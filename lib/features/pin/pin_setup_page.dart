@@ -8,8 +8,8 @@ import 'widgets/pin_pad.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PinSetupPage extends StatefulWidget {
-  /// Called after the PIN has been saved successfully.
-  final VoidCallback onPinSet;
+  /// Called with the page's own [BuildContext] after the PIN has been saved.
+  final void Function(BuildContext context) onPinSet;
 
   const PinSetupPage({super.key, required this.onPinSet});
 
@@ -42,7 +42,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
       return;
     }
     await AppPrefs.savePin(_pin);
-    widget.onPinSet();
+    if (mounted) widget.onPinSet(context);
   }
 
   @override

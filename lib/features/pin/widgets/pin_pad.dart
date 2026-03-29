@@ -112,7 +112,7 @@ class _PadKey extends StatelessWidget {
           ),
         );
       }
-      return const SizedBox.expand();
+      return const SizedBox.shrink();
     }
 
     // Digit key

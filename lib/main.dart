@@ -5,6 +5,8 @@ import 'features/auth/login_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/pin/pin_setup_page.dart';
 import 'features/pin/pin_unlock_page.dart';
+import 'features/shell/main_shell.dart';
+import 'features/shell/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,11 +86,15 @@ class _AuthRoot extends StatelessWidget {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => PinSetupPage(
-          onPinSet: () {
-            // TODO: Navigate to home once Home page is implemented
-          },
+          onPinSet: (ctx) => _goToHome(ctx),
         ),
       ),
+    );
+  }
+
+  void _goToHome(BuildContext context) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 
@@ -115,7 +121,9 @@ class _PinUnlockRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     return PinUnlockPage(
       onUnlocked: () {
-        // TODO: Navigate to home once Home page is implemented
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
       },
     );
   }
