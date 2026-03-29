@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import '../home/home_page.dart';
+import '../insights/insights_page.dart';
+import '../journal/journal_page.dart';
 import '../planner/planner_page.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
@@ -21,8 +23,8 @@ class _MainShellState extends State<MainShell> {
     HomePage(),
     PlannerPage(),
     SizedBox.shrink(), // FAB slot – never shown
-    _PlaceholderPage(icon: Icons.bar_chart_rounded, label: 'Insights'),
-    _PlaceholderPage(icon: Icons.book_rounded, label: 'Journal'),
+    const InsightsPage(),
+    const JournalPage(),
   ];
 
   void _onNavTap(int index) {
@@ -74,29 +76,6 @@ class _MainShellState extends State<MainShell> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Placeholder pages for Insights / Journal (to be built later)
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 56, color: DzColors.borderLight),
-          const SizedBox(height: DzSpacing.md),
-          Text(
-            '$label coming soon.',
-            style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Quick-add bottom sheet (stub)
