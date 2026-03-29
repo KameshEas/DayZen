@@ -68,8 +68,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
               AnimatedSwitcher(
                 duration: DzDuration.normal,
                 child: _currentPage == 1
-                    ? const _DayZenWordmark(key: ValueKey('wordmark'))
-                    : const _DayZenLogo(key: ValueKey('logo')),
+                    ? const DzLogo(key: ValueKey('wordmark'), variant: DzLogoVariant.wordmarkOnly)
+                    : const DzLogo(key: ValueKey('logo')),
               ),
 
               const SizedBox(height: DzSpacing.lg),
@@ -463,62 +463,7 @@ class _FinalBottomBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Logo widgets
-// ─────────────────────────────────────────────────────────────────────────────
 
-class _DayZenLogo extends StatelessWidget {
-  const _DayZenLogo({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF60A5FA), DzColors.primary],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(Icons.water_drop_rounded,
-              color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: DzSpacing.sm),
-        Text(
-          'DayZen',
-          style: DzTextStyles.heading3.copyWith(
-            fontWeight: FontWeight.w700,
-            color: DzColors.textPrimary,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Plain muted wordmark for slide 2.
-class _DayZenWordmark extends StatelessWidget {
-  const _DayZenWordmark({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'DayZen',
-      style: DzTextStyles.heading3.copyWith(
-        fontWeight: FontWeight.w700,
-        color: DzColors.textSecondary,
-        letterSpacing: -0.3,
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared micro-widgets
