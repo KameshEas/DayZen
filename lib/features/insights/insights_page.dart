@@ -145,6 +145,7 @@ class _ProductivityScoreCard extends StatelessWidget {
               child: CustomPaint(
                 painter: _RingPainter(
                   progress: data.productivityScore / 100,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 child: Center(
                   child: Column(
@@ -160,7 +161,7 @@ class _ProductivityScoreCard extends StatelessWidget {
                       Text(
                         data.productivityDelta,
                         style: DzTextStyles.caption.copyWith(
-                          color: DzColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
                           fontSize: 11,
                         ),
@@ -188,8 +189,9 @@ class _ProductivityScoreCard extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.progress});
+  const _RingPainter({required this.progress, required this.color});
   final double progress;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -204,7 +206,7 @@ class _RingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final progressPaint = Paint()
-      ..color = DzColors.primary
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -250,8 +252,8 @@ class _FocusTrendCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Icon(Icons.trending_up_rounded,
-                    color: DzColors.primary, size: 20),
+                Icon(Icons.trending_up_rounded,
+                    color: Theme.of(context).colorScheme.primary, size: 20),
               ],
             ),
             const SizedBox(height: DzSpacing.lg),
@@ -314,7 +316,7 @@ class _Bar extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             child: Container(
               decoration: BoxDecoration(
-                color: highlight ? DzColors.primary : const Color(0xFFBFD7FF),
+                color: highlight ? Theme.of(context).colorScheme.primary : const Color(0xFFBFD7FF),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -424,7 +426,7 @@ class _AiSuggestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.primary,
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(DzRadius.card),
       ),
       padding: const EdgeInsets.all(DzSpacing.lg),
@@ -538,7 +540,7 @@ class _TopCategoryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: DzSpacing.md),
-            _ProgressBar(value: 0.72, color: DzColors.primary),
+            _ProgressBar(value: 0.72, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),

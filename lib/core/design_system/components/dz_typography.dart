@@ -214,7 +214,7 @@ class DzSectionHeader extends StatelessWidget {
             ),
             child: DzCaption(
               actionLabel!,
-              color: DzColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
       ],

@@ -125,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
                               child: Text(
                                 'Forgot Password?',
                                 style: DzTextStyles.label.copyWith(
-                                  color: DzColors.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -318,7 +318,7 @@ class _SignUpLink extends StatelessWidget {
             TextSpan(
               text: 'Start your journey',
               style: DzTextStyles.body.copyWith(
-                color: DzColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),

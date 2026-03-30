@@ -65,7 +65,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back_rounded),
-                        color: DzColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
                       const DzLogo(),
@@ -281,7 +281,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             TextSpan(
                               text: 'Log in',
                               style: DzTextStyles.body.copyWith(
-                                color: DzColors.primary,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

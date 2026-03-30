@@ -9,24 +9,32 @@ import '../tokens/dz_dimensions.dart';
 /// Design System specification.
 abstract final class DzTheme {
   // ── Light Theme ────────────────────────────────────────────
-  static ThemeData get light => _buildTheme(brightness: Brightness.light);
+  static ThemeData light({Color accent = const Color(0xFF10B981)}) =>
+      _buildTheme(brightness: Brightness.light, accent: accent);
 
   // ── Dark Theme ─────────────────────────────────────────────
-  static ThemeData get dark => _buildTheme(brightness: Brightness.dark);
+  static ThemeData dark({Color accent = const Color(0xFF10B981)}) =>
+      _buildTheme(brightness: Brightness.dark, accent: accent);
 
-  static ThemeData _buildTheme({required Brightness brightness}) {
+  static ThemeData _buildTheme({
+    required Brightness brightness,
+    required Color accent,
+  }) {
     final bool isDark = brightness == Brightness.dark;
 
     final Color bg = isDark ? DzColors.darkBackground : DzColors.appBackground;
     final Color card = isDark ? DzColors.darkCard : DzColors.cardBackground;
     final Color textPrimary = isDark ? DzColors.darkText : DzColors.textPrimary;
     final Color textSecondary = isDark ? const Color(0xFF94A3B8) : DzColors.textSecondary;
+    final Color primaryContainer = isDark
+        ? Color.lerp(accent, const Color(0xFF000000), 0.6)!
+        : Color.lerp(accent, const Color(0xFFFFFFFF), 0.85)!;
 
     final colorScheme = ColorScheme(
       brightness: brightness,
-      primary: DzColors.primary,
+      primary: accent,
       onPrimary: DzColors.white,
-      primaryContainer: isDark ? const Color(0xFF1D4ED8) : const Color(0xFFDBEAFE),
+      primaryContainer: primaryContainer,
       onPrimaryContainer: isDark ? DzColors.white : DzColors.textPrimary,
       secondary: DzColors.zenGreen,
       onSecondary: DzColors.white,
@@ -45,7 +53,7 @@ abstract final class DzTheme {
       scrim: Colors.black,
       inverseSurface: isDark ? DzColors.appBackground : DzColors.darkBackground,
       onInverseSurface: isDark ? DzColors.textPrimary : DzColors.darkText,
-      inversePrimary: DzColors.primary,
+      inversePrimary: accent,
     );
 
     return ThemeData(
@@ -77,13 +85,13 @@ abstract final class DzTheme {
       // ── Bottom Navigation ────────────────────────────────────
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: card,
-        selectedItemColor: DzColors.primary,
+        selectedItemColor: accent,
         unselectedItemColor: textSecondary,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: DzTextStyles.label.copyWith(color: DzColors.primary),
+        selectedLabelStyle: DzTextStyles.label.copyWith(color: accent),
         unselectedLabelStyle: DzTextStyles.label.copyWith(color: textSecondary),
       ),
 
@@ -101,7 +109,7 @@ abstract final class DzTheme {
       // ── Elevated Button ──────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: DzColors.primary,
+          backgroundColor: accent,
           foregroundColor: DzColors.white,
           elevation: 0,
           minimumSize: const Size(double.infinity, DzSizing.buttonHeight),
@@ -117,14 +125,14 @@ abstract final class DzTheme {
       // ── Outlined Button ──────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: DzColors.primary,
-          side: const BorderSide(color: DzColors.primary, width: 1.5),
+          foregroundColor: accent,
+          side: BorderSide(color: accent, width: 1.5),
           minimumSize: const Size(double.infinity, DzSizing.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(DzRadius.button),
           ),
-          textStyle: DzTextStyles.button.copyWith(color: DzColors.primary),
+          textStyle: DzTextStyles.button.copyWith(color: accent),
           animationDuration: DzDuration.fast,
         ),
       ),
@@ -132,7 +140,7 @@ abstract final class DzTheme {
       // ── Text Button ──────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: DzColors.primary,
+          foregroundColor: accent,
           minimumSize: const Size(0, DzSizing.minTouchTarget),
           padding: const EdgeInsets.symmetric(
             horizontal: DzSpacing.sm,
@@ -148,7 +156,7 @@ abstract final class DzTheme {
 
       // ── FAB ───────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: DzColors.primary,
+        backgroundColor: accent,
         foregroundColor: DzColors.white,
         elevation: 0,
         focusElevation: 0,
@@ -173,7 +181,7 @@ abstract final class DzTheme {
         ),
         hintStyle: DzTextStyles.body.copyWith(color: textSecondary),
         labelStyle: DzTextStyles.caption.copyWith(color: textSecondary),
-        floatingLabelStyle: DzTextStyles.caption.copyWith(color: DzColors.primary),
+        floatingLabelStyle: DzTextStyles.caption.copyWith(color: accent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
           borderSide: BorderSide(color: DzColors.borderLight),
@@ -186,7 +194,7 @@ abstract final class DzTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
-          borderSide: const BorderSide(color: DzColors.primary, width: 1.5),
+          borderSide: BorderSide(color: accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
@@ -238,7 +246,7 @@ abstract final class DzTheme {
           return isDark ? const Color(0xFF94A3B8) : DzColors.textSecondary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return DzColors.primary;
+          if (states.contains(WidgetState.selected)) return accent;
           return isDark ? const Color(0xFF334155) : DzColors.borderLight;
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),

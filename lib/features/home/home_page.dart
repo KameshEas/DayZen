@@ -86,10 +86,10 @@ class _HomeBody extends StatelessWidget {
             ),
             CircleAvatar(
               radius: 26,
-              backgroundColor: DzColors.primary.withValues(alpha: 0.15),
-              child: const Icon(
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              child: Icon(
                 Icons.person_rounded,
-                color: DzColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 28,
               ),
             ),
@@ -112,9 +112,9 @@ class _HomeBody extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(
+                  Icon(
                     Icons.trending_up_rounded,
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     size: 20,
                   ),
                 ],
@@ -134,7 +134,7 @@ class _HomeBody extends StatelessWidget {
                         strokeWidth: 10,
                         backgroundColor: DzColors.borderLight,
                         valueColor:
-                            const AlwaysStoppedAnimation(DzColors.primary),
+                            AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
                         strokeCap: StrokeCap.round,
                       ),
                     ),
@@ -220,7 +220,7 @@ class _HomeBody extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: DzColors.white,
-                  foregroundColor: DzColors.primary,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: DzSpacing.lg,
                     vertical: DzSpacing.sm + 4,
@@ -232,7 +232,7 @@ class _HomeBody extends StatelessWidget {
                 ),
                 child: Text(
                   'Optimize My Day',
-                  style: DzTextStyles.button.copyWith(color: DzColors.primary),
+                  style: DzTextStyles.button.copyWith(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ],
@@ -345,12 +345,12 @@ class _HomeBody extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: DzColors.primary.withValues(alpha: 0.12),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                         borderRadius:
                             BorderRadius.circular(DzRadius.small),
                       ),
-                      child: const Icon(Icons.timer_rounded,
-                          color: DzColors.primary, size: 20),
+                      child: Icon(Icons.timer_rounded,
+                          color: Theme.of(context).colorScheme.primary, size: 20),
                     ),
                     const SizedBox(height: DzSpacing.sm),
                     Text(
@@ -416,9 +416,9 @@ class _HomeBody extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.format_quote_rounded,
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     size: 22,
                   ),
                   const SizedBox(width: DzSpacing.sm),

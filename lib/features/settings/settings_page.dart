@@ -38,8 +38,8 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.notifications_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Notification settings',
                     subtitle: ctrl.quietHours
                         ? 'Quiet hours, focus mode alerts'
@@ -49,8 +49,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.access_time_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Timezone',
                     subtitle:
                         'Auto-detecting (${DateTime.now().timeZoneName})',
@@ -59,8 +59,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.grid_view_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Units',
                     subtitle: ctrl.unitsLabel,
                     onTap: () => _showUnitsSheet(context, ctrl),
@@ -97,8 +97,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.format_size_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Font size',
                     subtitle: ctrl.fontSize,
                     onTap: () =>
@@ -131,8 +131,8 @@ class SettingsPage extends StatelessWidget {
                   ],
                   _SettingsTile(
                     icon: Icons.download_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Data Export',
                     subtitle: 'Export as JSON or CSV',
                     onTap: () => _exportData(context),
@@ -160,8 +160,8 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.auto_awesome_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'AI Personality',
                     subtitle: ctrl.aiPersonality,
                     onTap: () => _showOptionSheet(
@@ -188,8 +188,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.insights_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Focus Analysis depth',
                     subtitle: ctrl.analysisDepth,
                     onTap: () => _showOptionSheet(
@@ -252,9 +252,57 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showAccentSheet(BuildContext context, SettingsController ctrl) {
-    _showOptionSheet(context, 'Theme Accent',
-        SettingsController.accentOptions, ctrl.accent,
-        (v) => ctrl.setAccent(v));
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(DzSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: DzSpacing.md),
+            Text('Theme Accent',
+                style:
+                    DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: DzSpacing.md),
+            ...SettingsController.accentOptions.map((opt) {
+              final color = SettingsController.accentColorMap[opt]!;
+              final isSelected = opt == ctrl.accent;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: isSelected
+                        ? Border.all(color: DzColors.textPrimary, width: 2.5)
+                        : null,
+                  ),
+                ),
+                title: Text(opt, style: DzTextStyles.body),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle_rounded,
+                        color: color, size: 22)
+                    : const Icon(Icons.circle_outlined,
+                        color: DzColors.borderLight, size: 22),
+                onTap: () {
+                  ctrl.setAccent(opt);
+                  Navigator.pop(context);
+                },
+              );
+            }),
+            const SizedBox(height: DzSpacing.sm),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showNotificationSheet(BuildContext context, SettingsController ctrl) {
@@ -532,7 +580,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                 Switch.adaptive(
                   value: widget.ctrl.biometricEnabled,
                   onChanged: _toggleBiometric,
-                  activeTrackColor: DzColors.primary,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
                 ),
             ],
           ),
@@ -561,12 +609,12 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: selected
-                            ? DzColors.primary
+                            ? Theme.of(context).colorScheme.primary
                             : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: selected
-                              ? DzColors.primary
+                              ? Theme.of(context).colorScheme.primary
                               : DzColors.borderLight,
                           width: 1.5,
                         ),
@@ -609,7 +657,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: DzTextStyles.caption.copyWith(
-          color: DzColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.0,
           fontSize: 12,
@@ -792,7 +840,7 @@ class _ToggleRow extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: DzColors.primary,
+          activeTrackColor: Theme.of(context).colorScheme.primary,
         ),
       ],
     );
@@ -831,8 +879,8 @@ class _OptionListSheet<T> extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(opt, style: DzTextStyles.body),
                 trailing: opt == selected
-                    ? const Icon(Icons.check_circle_rounded,
-                        color: DzColors.primary, size: 22)
+                    ? Icon(Icons.check_circle_rounded,
+                        color: Theme.of(context).colorScheme.primary, size: 22)
                     : const Icon(Icons.circle_outlined,
                         color: DzColors.borderLight, size: 22),
                 onTap: () => onSelect(opt),

@@ -33,7 +33,7 @@ class _JournalPageState extends State<JournalPage> {
       builder: (context, _) => Scaffold(
         backgroundColor: DzColors.appBackground,
         floatingActionButton: FloatingActionButton(
-          backgroundColor: DzColors.primary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           onPressed: _openNewEntry,
           child: const Icon(Icons.add, color: Colors.white),
         ),
@@ -102,7 +102,7 @@ class _WeeklyReflectionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.primary,
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(DzRadius.card),
       ),
       padding: const EdgeInsets.all(DzSpacing.lg),

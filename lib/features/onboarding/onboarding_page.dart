@@ -128,16 +128,16 @@ class _Slide1Content extends StatelessWidget {
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     _IconTile(
-                      color: Color(0xFFDDE4F8),
+                      color: const Color(0xFFDDE4F8),
                       shape: BoxShape.rectangle,
                       radius: 28,
                       icon: Icons.calendar_month_rounded,
-                      iconColor: DzColors.primary,
+                      iconColor: Theme.of(context).colorScheme.primary,
                     ),
-                    SizedBox(width: DzSpacing.md),
-                    _IconTile(
+                    const SizedBox(width: DzSpacing.md),
+                    const _IconTile(
                       color: Color(0xFF34D399),
                       shape: BoxShape.circle,
                       icon: Icons.eco_rounded,
@@ -225,7 +225,7 @@ class _Slide2Content extends StatelessWidget {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: DzColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
@@ -310,12 +310,12 @@ class _Slide3Content extends StatelessWidget {
                   ),
                 ),
                 // Blue clock — bottom right of card
-                const Positioned(
+                Positioned(
                   bottom: 14,
                   right: 42,
                   child: _BadgeCircle(
                     size: 52,
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     icon: Icons.schedule_rounded,
                     iconColor: Colors.white,
                   ),
@@ -407,7 +407,7 @@ class _StandardBottomBar extends StatelessWidget {
               icon: const Icon(Icons.arrow_forward_rounded, size: 16),
               label: const Text('Next'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: DzColors.primary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: DzColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -748,7 +748,7 @@ class _PageDots extends StatelessWidget {
           width: active ? 28 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: active ? DzColors.primary : const Color(0xFFCBD5E1),
+            color: active ? Theme.of(context).colorScheme.primary : const Color(0xFFCBD5E1),
             borderRadius: BorderRadius.circular(4),
           ),
         );

@@ -108,7 +108,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? DzColors.primary : DzColors.textSecondary;
+    final color = isActive ? Theme.of(context).colorScheme.primary : DzColors.textSecondary;
 
     return InkWell(
       onTap: onTap,
@@ -118,9 +118,12 @@ class _NavTile extends StatelessWidget {
         children: [
           AnimatedSwitcher(
             duration: DzDuration.fast,
-            child: isActive
-                ? KeyedSubtree(key: const ValueKey('active'), child: item.activeIcon)
-                : KeyedSubtree(key: const ValueKey('inactive'), child: item.icon),
+            child: IconTheme(
+              data: IconThemeData(color: color),
+              child: isActive
+                  ? KeyedSubtree(key: const ValueKey('active'), child: item.activeIcon)
+                  : KeyedSubtree(key: const ValueKey('inactive'), child: item.icon),
+            ),
           ),
           const SizedBox(height: 3),
           Text(
@@ -179,12 +182,12 @@ abstract final class DzNavDefaults {
   static const List<DzNavItem> items = [
     DzNavItem(
       icon: Icon(Icons.home_outlined, size: 24),
-      activeIcon: Icon(Icons.home_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.home_rounded, size: 24),
       label: 'Home',
     ),
     DzNavItem(
       icon: Icon(Icons.calendar_today_outlined, size: 24),
-      activeIcon: Icon(Icons.calendar_today_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.calendar_today_rounded, size: 24),
       label: 'Planner',
     ),
     // index 2 → FAB placeholder
@@ -195,12 +198,12 @@ abstract final class DzNavDefaults {
     ),
     DzNavItem(
       icon: Icon(Icons.bar_chart_outlined, size: 24),
-      activeIcon: Icon(Icons.bar_chart_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.bar_chart_rounded, size: 24),
       label: 'Insights',
     ),
     DzNavItem(
       icon: Icon(Icons.book_outlined, size: 24),
-      activeIcon: Icon(Icons.book_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.book_rounded, size: 24),
       label: 'Journal',
     ),
   ];

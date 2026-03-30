@@ -75,8 +75,8 @@ class DayZenApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'DayZen',
         debugShowCheckedModeBanner: false,
-        theme: DzTheme.light,
-        darkTheme: DzTheme.dark,
+        theme: DzTheme.light(accent: settings.accentColor),
+        darkTheme: DzTheme.dark(accent: settings.accentColor),
         themeMode: settings.themeMode,
         home: _resolveHome(),
       ),

@@ -83,7 +83,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   width: 64,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? DzColors.primary
+                        ? Theme.of(context).colorScheme.primary
                         : DzColors.cardBackground,
                     borderRadius: BorderRadius.circular(DzRadius.card),
                     boxShadow: isSelected ? DzShadows.soft : [],
@@ -235,7 +235,7 @@ class _TimelineView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
-                        color: DzColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -252,7 +252,7 @@ class _TimelineView extends StatelessWidget {
                     Expanded(
                       child: Container(
                         height: 2,
-                        color: DzColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],
