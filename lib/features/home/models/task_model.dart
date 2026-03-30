@@ -30,6 +30,21 @@ extension TaskPriorityX on TaskPriority {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Task category
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum TaskCategory { work, personal, mindful, study }
+
+extension TaskCategoryX on TaskCategory {
+  String get label => switch (this) {
+        TaskCategory.work => 'Work',
+        TaskCategory.personal => 'Personal',
+        TaskCategory.mindful => 'Mindful',
+        TaskCategory.study => 'Study',
+      };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Task model
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -40,17 +55,23 @@ class DzTask {
     required this.startTime,
     required this.endTime,
     this.priority = TaskPriority.routine,
+    TaskCategory? category,
     this.icon,
     this.subtitle,
     this.isCompleted = false,
     DateTime? date,
-  }) : date = _midnight(date ?? DateTime.now());
+  })  : _category = category ?? TaskCategory.work,
+        date = _midnight(date ?? DateTime.now());
 
   final String id;
   final String title;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final TaskPriority priority;
+  // Backed by a nullable field so old persisted tasks (without this field)
+  // and hot-reload binary mismatches never cause a null-dereference crash.
+  final TaskCategory? _category;
+  TaskCategory get category => _category ?? TaskCategory.work;
   final IconData? icon;
   final String? subtitle;
   bool isCompleted;
@@ -80,6 +101,7 @@ class DzTask {
         startTime: startTime,
         endTime: endTime,
         priority: priority,
+        category: _category,
         icon: icon,
         subtitle: subtitle,
         isCompleted: isCompleted ?? this.isCompleted,
@@ -94,6 +116,7 @@ class DzTask {
         'endHour': endTime.hour,
         'endMinute': endTime.minute,
         'priority': priority.name,
+        'category': category.name,
         'iconCode': icon?.codePoint,
         'subtitle': subtitle,
         'isCompleted': isCompleted,
@@ -109,6 +132,9 @@ class DzTask {
         endTime: TimeOfDay(
             hour: json['endHour'] as int, minute: json['endMinute'] as int),
         priority: TaskPriority.values.byName(json['priority'] as String),
+        category: json['category'] != null
+            ? TaskCategory.values.byName(json['category'] as String)
+            : TaskCategory.work,
         icon: json['iconCode'] != null
             ? IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons')
             : null,
