@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
+import 'core/notification_service.dart';
 import 'features/app_data.dart';
 import 'features/auth/login_page.dart';
 import 'features/biometric/biometric_auth_page.dart';
@@ -43,6 +44,14 @@ void main() async {
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
+
+  // ── Initialise notifications ────────────────────────────────────────
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermission();
+
+  // Wire notifications enabled/disabled based on notification settings
+  final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
+  taskCtrl.setNotificationsEnabled(notificationsOn);
 
   runApp(AppData(
     tasks: taskCtrl,

@@ -362,6 +362,7 @@ class SettingsPage extends StatelessWidget {
                 value: ctrl.quietHours,
                 onChanged: (v) {
                   ctrl.setQuietHours(v);
+                  _syncNotifications(context, ctrl);
                   setSt(() {});
                 },
               ),
@@ -371,6 +372,7 @@ class SettingsPage extends StatelessWidget {
                 value: ctrl.focusAlerts,
                 onChanged: (v) {
                   ctrl.setFocusAlerts(v);
+                  _syncNotifications(context, ctrl);
                   setSt(() {});
                 },
               ),
@@ -380,6 +382,12 @@ class SettingsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Syncs the TaskController notification state with the current settings.
+  void _syncNotifications(BuildContext context, SettingsController ctrl) {
+    final enabled = ctrl.quietHours || ctrl.focusAlerts;
+    AppData.of(context).tasks.setNotificationsEnabled(enabled);
   }
 
   void _showUnitsSheet(BuildContext context, SettingsController ctrl) {
