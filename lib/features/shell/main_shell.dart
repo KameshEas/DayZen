@@ -21,9 +21,9 @@ class _MainShellState extends State<MainShell> {
 
   static const _pageTitles = ['DayZen', 'Planner', '', 'Insights', 'Journal'];
 
-  final _pages = const [
-    HomePage(),
-    PlannerPage(),
+  final _pages = [
+    const HomePage(),
+    const PlannerPage(),
     SizedBox.shrink(), // FAB slot – never shown
     const InsightsPage(),
     const JournalPage(),

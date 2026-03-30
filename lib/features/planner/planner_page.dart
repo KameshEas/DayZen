@@ -70,7 +70,7 @@ class _PlannerPageState extends State<PlannerPage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
             itemCount: _weekDays.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (context, i) =>
                 const SizedBox(width: DzSpacing.sm),
             itemBuilder: (context, i) {
               final day = _weekDays[i];

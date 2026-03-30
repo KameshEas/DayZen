@@ -352,7 +352,8 @@ class _WeeklyCompletionCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                Flexible(
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -370,6 +371,7 @@ class _WeeklyCompletionCard extends StatelessWidget {
                           .copyWith(fontWeight: FontWeight.w700),
                     ),
                   ],
+                ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(

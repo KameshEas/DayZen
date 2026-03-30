@@ -1,1 +1,8 @@
 include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Catches Text/widgets in Row without Flexible/Expanded
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+    use_full_hex_values_for_flutter_colors: true
