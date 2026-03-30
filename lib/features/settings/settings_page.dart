@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
+import '../biometric/biometric_setup_guide_page.dart';
 import 'settings_controller.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -521,6 +522,21 @@ class _BiometricSheetState extends State<_BiometricSheet> {
           _checking = false;
           _error = 'Biometrics not available on this device.';
         });
+        return;
+      }
+
+      // Check if the user has enrolled any biometrics
+      final enrolled = await _auth.getAvailableBiometrics();
+      if (enrolled.isEmpty) {
+        if (!mounted) return;
+        setState(() => _checking = false);
+        // Close the bottom sheet, then navigate to the setup guide
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const BiometricSetupGuidePage(),
+          ),
+        );
         return;
       }
 
