@@ -123,4 +123,10 @@ class TaskController extends ChangeNotifier {
     await TaskRepository.save(_tasks);
     notifyListeners();
   }
+
+  Future<void> clearAll() async {
+    _tasks.clear();
+    await TaskRepository.save(_tasks);
+    notifyListeners();
+  }
 }

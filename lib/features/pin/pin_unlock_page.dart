@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../core/app_prefs.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/pin_pad.dart';
@@ -30,6 +31,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
   static const _pinLength = 4;
   static const _maxAttempts = 5;
 
+  final _auth = LocalAuthentication();
   String _pin = '';
   String? _errorMessage;
   int _attempts = 0;
@@ -85,6 +87,36 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             ? 'Incorrect PIN. $remaining attempt${remaining == 1 ? '' : 's'} remaining.'
             : 'Too many attempts. Please try again later.';
       });
+    }
+  }
+
+  Future<void> _triggerBiometric() async {
+    try {
+      final canCheck = await _auth.canCheckBiometrics;
+      if (!canCheck) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometrics not available.')),
+          );
+        }
+        return;
+      }
+      final didAuth = await _auth.authenticate(
+        localizedReason: 'Authenticate to unlock DayZen',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+      if (didAuth && mounted) {
+        widget.onUnlocked();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric authentication failed.')),
+        );
+      }
     }
   }
 
@@ -178,13 +210,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             Column(
               children: [
                 GestureDetector(
-                  onTap: () {
-                    // TODO: trigger local_auth biometric prompt
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Biometrics coming soon.')),
-                    );
-                  },
+                  onTap: _triggerBiometric,
                   child: Container(
                     width: 64,
                     height: 64,

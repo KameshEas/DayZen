@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'settings_controller.dart';
@@ -129,12 +133,7 @@ class SettingsPage extends StatelessWidget {
                     iconColor: DzColors.primary,
                     title: 'Data Export',
                     subtitle: 'Export as JSON or CSV',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Data export coming soon.')),
-                      );
-                    },
+                    onTap: () => _exportData(context),
                   ),
                   const _Divider(),
                   _SettingsTile(
@@ -353,80 +352,7 @@ class SettingsPage extends StatelessWidget {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
       ),
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
-          padding: const EdgeInsets.all(DzSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SheetHandle(),
-              const SizedBox(height: DzSpacing.md),
-              Text('Biometric Lock',
-                  style: DzTextStyles.heading3
-                      .copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: DzSpacing.lg),
-              _ToggleRow(
-                label: 'Enable Biometric Lock',
-                value: ctrl.biometricEnabled,
-                onChanged: (v) {
-                  ctrl.setBiometricEnabled(v);
-                  setSt(() {});
-                },
-              ),
-              if (ctrl.biometricEnabled) ...[
-                const SizedBox(height: DzSpacing.lg),
-                Text('Lock after inactivity',
-                    style: DzTextStyles.caption
-                        .copyWith(color: DzColors.textSecondary)),
-                const SizedBox(height: DzSpacing.sm),
-                Row(
-                  children: [1, 5, 10, 15].map((m) {
-                    final selected = ctrl.lockTimeout == m;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          ctrl.setLockTimeout(m);
-                          setSt(() {});
-                        },
-                        child: AnimatedContainer(
-                          duration: DzDuration.fast,
-                          margin: const EdgeInsets.only(right: 6),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? DzColors.primary
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: selected
-                                  ? DzColors.primary
-                                  : DzColors.borderLight,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            '${m}m',
-                            textAlign: TextAlign.center,
-                            style: DzTextStyles.small.copyWith(
-                              color: selected
-                                  ? DzColors.white
-                                  : DzColors.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-              const SizedBox(height: DzSpacing.lg),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => _BiometricSheet(ctrl: ctrl),
     );
   }
 
@@ -474,20 +400,192 @@ class SettingsPage extends StatelessWidget {
             onPressed: () async {
               final tasks = AppData.of(context).tasks;
               final journal = AppData.of(context).journal;
-              for (final t in List.of(tasks.forDate(DateTime.now()))) {
-                await tasks.deleteTask(t.id);
-              }
+              await tasks.clearAll();
               await journal.clearAll();
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('History cleared.')),
+                  const SnackBar(content: Text('All history cleared.')),
                 );
               }
             },
             child: Text('Clear',
                 style: TextStyle(color: DzColors.error)),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _exportData(BuildContext context) {
+    final data = AppData.of(context);
+    final export = {
+      'exportedAt': DateTime.now().toIso8601String(),
+      'tasks': data.tasks.all.map((t) => t.toJson()).toList(),
+      'journal': data.journal.all.map((e) => e.toJson()).toList(),
+    };
+    final json = const JsonEncoder.withIndent('  ').convert(export);
+
+    Clipboard.setData(ClipboardData(text: json));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Data copied to clipboard as JSON.')),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric sheet — requests real biometric auth before enabling
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BiometricSheet extends StatefulWidget {
+  const _BiometricSheet({required this.ctrl});
+  final SettingsController ctrl;
+
+  @override
+  State<_BiometricSheet> createState() => _BiometricSheetState();
+}
+
+class _BiometricSheetState extends State<_BiometricSheet> {
+  final _auth = LocalAuthentication();
+  bool _checking = false;
+  String? _error;
+
+  Future<void> _toggleBiometric(bool enable) async {
+    if (!enable) {
+      widget.ctrl.setBiometricEnabled(false);
+      setState(() => _error = null);
+      return;
+    }
+
+    setState(() {
+      _checking = true;
+      _error = null;
+    });
+
+    try {
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+
+      if (!canCheck || !isSupported) {
+        setState(() {
+          _checking = false;
+          _error = 'Biometrics not available on this device.';
+        });
+        return;
+      }
+
+      final didAuth = await _auth.authenticate(
+        localizedReason: 'Verify your identity to enable biometric lock',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (didAuth) {
+        widget.ctrl.setBiometricEnabled(true);
+        setState(() => _checking = false);
+      } else {
+        setState(() {
+          _checking = false;
+          _error = 'Authentication failed. Try again.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _checking = false;
+        _error = 'Biometric error: ${e.toString().split(': ').last}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(DzSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SheetHandle(),
+          const SizedBox(height: DzSpacing.md),
+          Text('Biometric Lock',
+              style: DzTextStyles.heading3
+                  .copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: DzSpacing.lg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Enable Biometric Lock', style: DzTextStyles.body),
+              if (_checking)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Switch.adaptive(
+                  value: widget.ctrl.biometricEnabled,
+                  onChanged: _toggleBiometric,
+                  activeTrackColor: DzColors.primary,
+                ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: DzSpacing.sm),
+            Text(_error!, style: DzTextStyles.caption.copyWith(color: DzColors.error)),
+          ],
+          if (widget.ctrl.biometricEnabled) ...[
+            const SizedBox(height: DzSpacing.lg),
+            Text('Lock after inactivity',
+                style: DzTextStyles.caption
+                    .copyWith(color: DzColors.textSecondary)),
+            const SizedBox(height: DzSpacing.sm),
+            Row(
+              children: [1, 5, 10, 15].map((m) {
+                final selected = widget.ctrl.lockTimeout == m;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      widget.ctrl.setLockTimeout(m);
+                      setState(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: DzDuration.fast,
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? DzColors.primary
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: selected
+                              ? DzColors.primary
+                              : DzColors.borderLight,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        '${m}m',
+                        textAlign: TextAlign.center,
+                        style: DzTextStyles.small.copyWith(
+                          color: selected
+                              ? DzColors.white
+                              : DzColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: DzSpacing.lg),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
 import 'features/app_data.dart';
 import 'features/auth/login_page.dart';
+import 'features/biometric/biometric_auth_page.dart';
 import 'features/journal_controller.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/pin/pin_setup_page.dart';
@@ -19,12 +20,14 @@ void main() async {
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
+    AppPrefs.isBiometricEnabled(),
     taskCtrl.load(),
     journalCtrl.load(),
     settingsCtrl.load(),
   ]);
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
+  final biometricEnabled = results[2] as bool;
 
   runApp(AppData(
     tasks: taskCtrl,
@@ -33,6 +36,7 @@ void main() async {
     child: DayZenApp(
       showOnboarding: !seenOnboarding,
       hasPin: hasPin,
+      biometricEnabled: biometricEnabled,
     ),
   ));
 }
@@ -40,26 +44,34 @@ void main() async {
 class DayZenApp extends StatelessWidget {
   final bool showOnboarding;
   final bool hasPin;
+  final bool biometricEnabled;
   const DayZenApp({
     super.key,
     required this.showOnboarding,
     required this.hasPin,
+    required this.biometricEnabled,
   });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DayZen',
-      debugShowCheckedModeBanner: false,
-      theme: DzTheme.light,
-      darkTheme: DzTheme.dark,
-      themeMode: ThemeMode.system,
-      home: _resolveHome(),
+    final settings = AppData.of(context).settings;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => MaterialApp(
+        title: 'DayZen',
+        debugShowCheckedModeBanner: false,
+        theme: DzTheme.light,
+        darkTheme: DzTheme.dark,
+        themeMode: settings.themeMode,
+        home: _resolveHome(),
+      ),
     );
   }
 
   Widget _resolveHome() {
     if (showOnboarding) return const _OnboardingRoot();
+    // Biometric takes priority over PIN
+    if (biometricEnabled) return const _BiometricUnlockRoot();
     if (hasPin) return const _PinUnlockRoot();
     return const _AuthRoot();
   }
@@ -119,6 +131,32 @@ class _AuthRoot extends StatelessWidget {
       onContinueOffline: () {
         // Offline users also prompted to set a PIN
         _goToPinSetup(context);
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric unlock root — shown when biometric is enabled
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BiometricUnlockRoot extends StatelessWidget {
+  const _BiometricUnlockRoot();
+
+  @override
+  Widget build(BuildContext context) {
+    return BiometricAuthPage(
+      onAuthenticated: () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
+      },
+      onFallbackToPin: () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const _PinUnlockRoot(),
+          ),
+        );
       },
     );
   }
