@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Task model
+// Task priority
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum TaskPriority { high, zen, routine, low }
@@ -29,6 +29,10 @@ extension TaskPriorityX on TaskPriority {
       };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Task model
+// ─────────────────────────────────────────────────────────────────────────────
+
 class DzTask {
   DzTask({
     required this.id,
@@ -39,7 +43,8 @@ class DzTask {
     this.icon,
     this.subtitle,
     this.isCompleted = false,
-  });
+    DateTime? date,
+  }) : date = _midnight(date ?? DateTime.now());
 
   final String id;
   final String title;
@@ -49,6 +54,15 @@ class DzTask {
   final IconData? icon;
   final String? subtitle;
   bool isCompleted;
+  /// Normalised to midnight (date only, no time component).
+  final DateTime date;
+
+  static DateTime _midnight(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool isSameDay(DateTime other) =>
+      date.year == other.year &&
+      date.month == other.month &&
+      date.day == other.day;
 
   String get timeRange {
     String fmt(TimeOfDay t) {
@@ -57,13 +71,57 @@ class DzTask {
       final period = t.period == DayPeriod.am ? 'AM' : 'PM';
       return '$h:$m $period';
     }
-
     return '${fmt(startTime)} — ${fmt(endTime)}';
   }
+
+  DzTask copyWith({bool? isCompleted}) => DzTask(
+        id: id,
+        title: title,
+        startTime: startTime,
+        endTime: endTime,
+        priority: priority,
+        icon: icon,
+        subtitle: subtitle,
+        isCompleted: isCompleted ?? this.isCompleted,
+        date: date,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'startHour': startTime.hour,
+        'startMinute': startTime.minute,
+        'endHour': endTime.hour,
+        'endMinute': endTime.minute,
+        'priority': priority.name,
+        'iconCode': icon?.codePoint,
+        'subtitle': subtitle,
+        'isCompleted': isCompleted,
+        'dateMs': date.millisecondsSinceEpoch,
+      };
+
+  factory DzTask.fromJson(Map<String, dynamic> json) => DzTask(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        startTime: TimeOfDay(
+            hour: json['startHour'] as int,
+            minute: json['startMinute'] as int),
+        endTime: TimeOfDay(
+            hour: json['endHour'] as int, minute: json['endMinute'] as int),
+        priority: TaskPriority.values.byName(json['priority'] as String),
+        icon: json['iconCode'] != null
+            ? IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons')
+            : null,
+        subtitle: json['subtitle'] as String?,
+        isCompleted: json['isCompleted'] as bool? ?? false,
+        date: json['dateMs'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(json['dateMs'] as int)
+            : DateTime.now(),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Planner event model
+// Planner event — lightweight view model derived from DzTask
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PlannerEvent {
@@ -76,7 +134,6 @@ class PlannerEvent {
     required this.accentColor,
     required this.icon,
     this.isCompleted = false,
-    this.isEmpty = false,
   });
 
   final String title;
@@ -87,97 +144,19 @@ class PlannerEvent {
   final Color accentColor;
   final IconData icon;
   final bool isCompleted;
-  final bool isEmpty;
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────────────────────────────────────
-
-class DzMockData {
-  static final todayTasks = [
-    DzTask(
-      id: '1',
-      title: 'Deep Work: Design Review',
-      startTime: const TimeOfDay(hour: 9, minute: 0),
-      endTime: const TimeOfDay(hour: 10, minute: 30),
-      priority: TaskPriority.high,
-      icon: Icons.work_outline_rounded,
-    ),
-    DzTask(
-      id: '2',
-      title: 'Mindful Walk',
-      startTime: const TimeOfDay(hour: 12, minute: 0),
-      endTime: const TimeOfDay(hour: 12, minute: 30),
-      priority: TaskPriority.zen,
-      icon: Icons.directions_walk_rounded,
-    ),
-    DzTask(
-      id: '3',
-      title: 'Email Batching',
-      startTime: const TimeOfDay(hour: 14, minute: 0),
-      endTime: const TimeOfDay(hour: 14, minute: 45),
-      priority: TaskPriority.routine,
-      icon: Icons.mail_outline_rounded,
-    ),
-  ];
-
-  static const plannerEvents = [
-    PlannerEvent(
-      title: 'Morning Stretch',
-      subtitle: 'Done at 8:15 AM',
-      hour: 8,
-      minute: 0,
-      durationMinutes: 30,
-      accentColor: Color(0xFF10B981),
-      icon: Icons.wb_sunny_outlined,
-      isCompleted: true,
-    ),
-    PlannerEvent(
-      title: 'Deep Work: UI System',
-      subtitle: 'Focus Session • 9:00 - 11:30',
-      hour: 9,
-      minute: 0,
-      durationMinutes: 150,
-      accentColor: Color(0xFF3B82F6),
-      icon: Icons.work_outline_rounded,
-    ),
-    PlannerEvent(
-      title: 'Coffee & Reflection',
-      subtitle: '15 min mindful break',
-      hour: 11,
-      minute: 0,
-      durationMinutes: 15,
-      accentColor: Color(0xFFF59E0B),
-      icon: Icons.coffee_rounded,
-    ),
-    PlannerEvent(
-      title: 'Schedule Lunch',
-      subtitle: '',
-      hour: 12,
-      minute: 0,
-      durationMinutes: 60,
-      accentColor: Color(0xFFCBD5E1),
-      icon: Icons.add_circle_outline_rounded,
-      isEmpty: true,
-    ),
-    PlannerEvent(
-      title: 'Sync Meeting',
-      subtitle: 'Project Phoenix Update',
-      hour: 13,
-      minute: 0,
-      durationMinutes: 60,
-      accentColor: Color(0xFF3B82F6),
-      icon: Icons.group_outlined,
-    ),
-    PlannerEvent(
-      title: 'Meditation',
-      subtitle: 'Offline Session',
-      hour: 14,
-      minute: 0,
-      durationMinutes: 30,
-      accentColor: Color(0xFF10B981),
-      icon: Icons.self_improvement_rounded,
-    ),
-  ];
+  factory PlannerEvent.fromTask(DzTask task) {
+    final startMins = task.startTime.hour * 60 + task.startTime.minute;
+    final endMins = task.endTime.hour * 60 + task.endTime.minute;
+    return PlannerEvent(
+      title: task.title,
+      subtitle: task.timeRange,
+      hour: task.startTime.hour,
+      minute: task.startTime.minute,
+      durationMinutes: (endMins - startMins).clamp(15, 480),
+      accentColor: task.priority.color,
+      icon: task.icon ?? Icons.circle_outlined,
+      isCompleted: task.isCompleted,
+    );
+  }
 }

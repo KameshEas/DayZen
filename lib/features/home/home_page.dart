@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
-import '../../core/design_system/design_system.dart';
+import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../app_data.dart';
+import '../task_controller.dart';
 import 'models/task_model.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) {
+    final taskCtrl = AppData.of(context).tasks;
+    return ListenableBuilder(
+      listenable: taskCtrl,
+      builder: (context, _) => _HomeBody(taskCtrl: taskCtrl),
+    );
+  }
 }
 
-class _HomePageState extends State<HomePage> {
-  late List<DzTask> _tasks;
-
-  @override
-  void initState() {
-    super.initState();
-    _tasks = List.of(DzMockData.todayTasks);
-  }
+class _HomeBody extends StatelessWidget {
+  const _HomeBody({required this.taskCtrl});
+  final TaskController taskCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +34,18 @@ class _HomePageState extends State<HomePage> {
     final weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final months = [
       'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
     ];
     final dateLabel =
         '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
 
-    final remaining = _tasks.where((t) => !t.isCompleted).length;
+    final tasks = taskCtrl.forDate(now);
+    final remaining = tasks.where((t) => !t.isCompleted).length;
+    final score = taskCtrl.todayScore;
+    final focusLabel = taskCtrl.todayFocusLabel;
+    final zenDone = tasks
+        .where((t) => t.priority == TaskPriority.zen && t.isCompleted)
+        .length;
 
     return ListView(
       padding: const EdgeInsets.symmetric(
@@ -63,7 +72,11 @@ class _HomePageState extends State<HomePage> {
                   Text(greeting, style: DzTextStyles.heading1),
                   const SizedBox(height: 4),
                   Text(
-                    'It\'s a beautiful day for focus.',
+                    tasks.isEmpty
+                        ? 'Add your first task to get started.'
+                        : remaining == 0
+                            ? 'All tasks done. Great work!'
+                            : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
                     style: DzTextStyles.body.copyWith(
                       color: DzColors.textSecondary,
                     ),
@@ -71,7 +84,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            // Avatar placeholder
             CircleAvatar(
               radius: 26,
               backgroundColor: DzColors.primary.withValues(alpha: 0.15),
@@ -118,10 +130,11 @@ class _HomePageState extends State<HomePage> {
                       width: 120,
                       height: 120,
                       child: CircularProgressIndicator(
-                        value: 0.75,
+                        value: tasks.isEmpty ? 0 : score / 100,
                         strokeWidth: 10,
                         backgroundColor: DzColors.borderLight,
-                        valueColor: const AlwaysStoppedAnimation(DzColors.primary),
+                        valueColor:
+                            const AlwaysStoppedAnimation(DzColors.primary),
                         strokeCap: StrokeCap.round,
                       ),
                     ),
@@ -129,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '75',
+                          '$score',
                           style: const TextStyle(
                             fontFamily: 'InterDisplay',
                             fontSize: 32,
@@ -151,24 +164,17 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: DzSpacing.md),
-              RichText(
+              Text(
+                tasks.isEmpty
+                    ? 'Add tasks to track your focus score.'
+                    : score >= 80
+                        ? 'Excellent focus today \u2014 you\'re in the zone!'
+                        : score >= 50
+                            ? 'Good progress! Keep the momentum going.'
+                            : 'Every task completed brings you closer.',
                 textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
-                  ),
-                  children: const [
-                    TextSpan(text: 'You\'re more '),
-                    TextSpan(
-                      text: 'focused',
-                      style: TextStyle(
-                        color: DzColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextSpan(text: ' than 80% of your mornings.'),
-                  ],
-                ),
+                style: DzTextStyles.caption
+                    .copyWith(color: DzColors.textSecondary),
               ),
             ],
           ),
@@ -190,12 +196,16 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Feeling overwhelmed?',
+                remaining > 3
+                    ? 'Feeling overwhelmed?'
+                    : 'You\'re on a great path!',
                 style: DzTextStyles.heading3.copyWith(color: DzColors.white),
               ),
               const SizedBox(height: DzSpacing.sm),
               Text(
-                'Let AI balance your schedule for maximum calm.',
+                remaining > 3
+                    ? 'Let AI balance your schedule for maximum calm.'
+                    : 'Keep up the momentum \u2014 mindful progress every day.',
                 style: DzTextStyles.body.copyWith(
                   color: DzColors.white.withValues(alpha: 0.85),
                 ),
@@ -204,7 +214,8 @@ class _HomePageState extends State<HomePage> {
               ElevatedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('AI optimizer coming soon.')),
+                    const SnackBar(
+                        content: Text('AI optimizer coming soon.')),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -234,7 +245,6 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.all(DzSpacing.md),
           child: Column(
             children: [
-              // Header
               Row(
                 children: [
                   const Icon(
@@ -243,10 +253,7 @@ class _HomePageState extends State<HomePage> {
                     size: 20,
                   ),
                   const SizedBox(width: DzSpacing.sm),
-                  Text(
-                    'Today\'s Tasks',
-                    style: DzTextStyles.heading3,
-                  ),
+                  Text('Today\'s Tasks', style: DzTextStyles.heading3),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -269,25 +276,33 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: DzSpacing.md),
 
-              // Task items
-              ..._tasks.map((task) => _TaskItem(
-                    task: task,
-                    onToggle: (val) =>
-                        setState(() => task.isCompleted = val ?? false),
-                  )),
+              if (tasks.isEmpty)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: DzSpacing.md),
+                  child: Text(
+                    'No tasks yet. Tap + to add one.',
+                    style: DzTextStyles.body
+                        .copyWith(color: DzColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else
+                ...tasks.map((task) => _TaskItem(
+                      task: task,
+                      onToggle: () =>
+                          AppData.of(context).tasks.toggleTask(task.id),
+                    )),
 
               const SizedBox(height: DzSpacing.sm),
 
               // Quick Add
               GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Quick add coming soon.')),
-                  );
-                },
+                onTap: () => _showAddTaskSheet(context),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: DzSpacing.md),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: DzSpacing.md),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: DzColors.borderLight,
@@ -331,7 +346,8 @@ class _HomePageState extends State<HomePage> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: DzColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(DzRadius.small),
+                        borderRadius:
+                            BorderRadius.circular(DzRadius.small),
                       ),
                       child: const Icon(Icons.timer_rounded,
                           color: DzColors.primary, size: 20),
@@ -339,12 +355,12 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: DzSpacing.sm),
                     Text(
                       'Focus Time',
-                      style: DzTextStyles.small.copyWith(
-                          color: DzColors.textSecondary),
+                      style: DzTextStyles.small
+                          .copyWith(color: DzColors.textSecondary),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '4.2h',
+                      focusLabel,
                       style: DzTextStyles.heading2.copyWith(
                         color: DzColors.textPrimary,
                       ),
@@ -365,20 +381,21 @@ class _HomePageState extends State<HomePage> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: DzColors.zenGreen.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(DzRadius.small),
+                        borderRadius:
+                            BorderRadius.circular(DzRadius.small),
                       ),
                       child: const Icon(Icons.self_improvement_rounded,
                           color: DzColors.zenGreen, size: 20),
                     ),
                     const SizedBox(height: DzSpacing.sm),
                     Text(
-                      'Breaks Taken',
-                      style: DzTextStyles.small.copyWith(
-                          color: DzColors.textSecondary),
+                      'Zen Sessions',
+                      style: DzTextStyles.small
+                          .copyWith(color: DzColors.textSecondary),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '3/5',
+                      '$zenDone',
                       style: DzTextStyles.heading2.copyWith(
                         color: DzColors.textPrimary,
                       ),
@@ -421,7 +438,7 @@ class _HomePageState extends State<HomePage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '— MIKE MURDOCK',
+                  '\u2014 MIKE MURDOCK',
                   style: DzTextStyles.small.copyWith(
                     color: DzColors.textSecondary,
                     letterSpacing: 0.8,
@@ -435,6 +452,223 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+
+  void _showAddTaskSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddTaskSheet(taskCtrl: AppData.of(context).tasks),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Add Task bottom sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AddTaskSheet extends StatefulWidget {
+  const _AddTaskSheet({required this.taskCtrl});
+  final TaskController taskCtrl;
+
+  @override
+  State<_AddTaskSheet> createState() => _AddTaskSheetState();
+}
+
+class _AddTaskSheetState extends State<_AddTaskSheet> {
+  final _titleCtrl = TextEditingController();
+  TaskPriority _priority = TaskPriority.routine;
+  late TimeOfDay _startTime;
+  late TimeOfDay _endTime;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = TimeOfDay.now();
+    _startTime = now;
+    _endTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: now.minute);
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickTime({required bool isStart}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _startTime : _endTime,
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _startTime = picked;
+      } else {
+        _endTime = picked;
+      }
+    });
+  }
+
+  Future<void> _save() async {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) return;
+    final task = DzTask(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      startTime: _startTime,
+      endTime: _endTime,
+      priority: _priority,
+      icon: Icons.circle_outlined,
+    );
+    await widget.taskCtrl.addTask(task);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: DzColors.cardBackground,
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
+        ),
+        padding: const EdgeInsets.fromLTRB(
+            DzSpacing.lg, DzSpacing.lg, DzSpacing.lg, DzSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: DzColors.borderLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: DzSpacing.lg),
+            Text('Add Task',
+                style: DzTextStyles.heading3
+                    .copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: DzSpacing.md),
+            DzTextField(
+              controller: _titleCtrl,
+              label: 'Task name',
+              hint: 'What do you need to do?',
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: DzSpacing.md),
+            Text('Priority',
+                style: DzTextStyles.caption
+                    .copyWith(color: DzColors.textSecondary)),
+            const SizedBox(height: DzSpacing.sm),
+            Row(
+              children: TaskPriority.values.map((p) {
+                final selected = _priority == p;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _priority = p),
+                    child: AnimatedContainer(
+                      duration: DzDuration.fast,
+                      margin: const EdgeInsets.only(right: 6),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? p.bg : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: selected
+                            ? Border.all(color: p.color, width: 1.5)
+                            : Border.all(
+                                color: DzColors.borderLight, width: 1),
+                      ),
+                      child: Text(
+                        p.label,
+                        textAlign: TextAlign.center,
+                        style: DzTextStyles.small.copyWith(
+                          color:
+                              selected ? p.color : DzColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: DzSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimeTile(
+                    label: 'Start',
+                    time: _startTime,
+                    onTap: () => _pickTime(isStart: true),
+                  ),
+                ),
+                const SizedBox(width: DzSpacing.md),
+                Expanded(
+                  child: _TimeTile(
+                    label: 'End',
+                    time: _endTime,
+                    onTap: () => _pickTime(isStart: false),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: DzSpacing.lg),
+            DzPrimaryButton(label: 'Save Task', onPressed: _save),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeTile extends StatelessWidget {
+  const _TimeTile(
+      {required this.label, required this.time, required this.onTap});
+  final String label;
+  final TimeOfDay time;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final m = time.minute.toString().padLeft(2, '0');
+    final p = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: DzSpacing.md, vertical: DzSpacing.sm + 2),
+        decoration: BoxDecoration(
+          color: DzColors.appBackground,
+          borderRadius: BorderRadius.circular(DzRadius.card),
+          border: Border.all(color: DzColors.borderLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: DzTextStyles.small
+                    .copyWith(color: DzColors.textSecondary)),
+            const SizedBox(height: 2),
+            Text('$h:$m $p',
+                style:
+                    DzTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -444,7 +678,7 @@ class _HomePageState extends State<HomePage> {
 class _TaskItem extends StatelessWidget {
   const _TaskItem({required this.task, required this.onToggle});
   final DzTask task;
-  final ValueChanged<bool?> onToggle;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -460,7 +694,7 @@ class _TaskItem extends StatelessWidget {
         children: [
           Checkbox(
             value: task.isCompleted,
-            onChanged: onToggle,
+            onChanged: (_) => onToggle(),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -486,15 +720,16 @@ class _TaskItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   task.timeRange,
-                  style:
-                      DzTextStyles.small.copyWith(color: DzColors.textSecondary),
+                  style: DzTextStyles.small
+                      .copyWith(color: DzColors.textSecondary),
                 ),
               ],
             ),
           ),
           const SizedBox(width: DzSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: task.priority.bg,
               borderRadius: BorderRadius.circular(DzRadius.small),

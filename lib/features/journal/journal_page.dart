@@ -1,91 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Models
-// ─────────────────────────────────────────────────────────────────────────────
-
-enum JournalMood { happy, peaceful, inspired, overwhelmed }
-
-extension JournalMoodX on JournalMood {
-  IconData get icon => switch (this) {
-        JournalMood.happy => Icons.sentiment_very_satisfied_rounded,
-        JournalMood.peaceful => Icons.self_improvement_rounded,
-        JournalMood.inspired => Icons.lightbulb_outline_rounded,
-        JournalMood.overwhelmed => Icons.sentiment_dissatisfied_rounded,
-      };
-
-  Color get iconColor => switch (this) {
-        JournalMood.happy => const Color(0xFF10B981),
-        JournalMood.peaceful => const Color(0xFF3B82F6),
-        JournalMood.inspired => const Color(0xFFF59E0B),
-        JournalMood.overwhelmed => const Color(0xFFEF4444),
-      };
-
-  Color get bg => switch (this) {
-        JournalMood.happy => const Color(0xFFD1FAE5),
-        JournalMood.peaceful => const Color(0xFFDBEAFE),
-        JournalMood.inspired => const Color(0xFFFEF3C7),
-        JournalMood.overwhelmed => const Color(0xFFFEE2E2),
-      };
-}
-
-class JournalEntry {
-  const JournalEntry({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.mood,
-    required this.dateLabel,
-    this.isPhotoEntry = false,
-    this.accentColor,
-  });
-
-  final String id;
-  final String title;
-  final String body;
-  final JournalMood mood;
-  final String dateLabel;
-  final bool isPhotoEntry;
-  final Color? accentColor;
-}
-
-class _JournalMockData {
-  static const entries = [
-    JournalEntry(
-      id: '1',
-      title: 'Feeling productive',
-      body: 'Feeling productive today after my morning meditation. '
-          'The focus exercises are really helping me stay on track with my work goals.',
-      mood: JournalMood.happy,
-      dateLabel: 'Today, 9:30 AM',
-    ),
-    JournalEntry(
-      id: '2',
-      title: 'Quiet Moment',
-      body: 'Spent some time by the park. It\'s amazing how much a little nature can '
-          'reset your mood. No screens, just peace.',
-      mood: JournalMood.peaceful,
-      dateLabel: 'Yesterday, 8:45 PM',
-    ),
-    JournalEntry(
-      id: '3',
-      title: 'New Perspective',
-      body: 'Had a breakthrough regarding the new project. Journaling my thoughts helped clear the fog.',
-      mood: JournalMood.inspired,
-      dateLabel: 'Jun 12, 2:15 PM',
-      accentColor: Color(0xFFF59E0B),
-    ),
-    JournalEntry(
-      id: '5',
-      title: 'A bit overwhelmed',
-      body: 'Too many tasks today. Need to prioritize and breathe. '
-          'Writing it down makes it feel more manageable.',
-      mood: JournalMood.overwhelmed,
-      dateLabel: 'Jun 10, 10:00 AM',
-    ),
-  ];
-}
+import '../app_data.dart';
+import '../journal_controller.dart';
+import 'models/journal_entry.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // JournalPage
@@ -110,39 +27,52 @@ class _JournalPageState extends State<JournalPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DzColors.appBackground,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: DzColors.primary,
-        onPressed: _openNewEntry,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(
-            horizontal: DzSpacing.lg, vertical: DzSpacing.md),
-        children: [
-          const _WeeklyReflectionBanner(),
-          const SizedBox(height: DzSpacing.xl),
-          const _RecentEntriesHeader(),
-          const SizedBox(height: DzSpacing.md),
-          ..._buildEntries(),
-          const SizedBox(height: DzSpacing.xl),
-        ],
+    final journalCtrl = AppData.of(context).journal;
+    return ListenableBuilder(
+      listenable: journalCtrl,
+      builder: (context, _) => Scaffold(
+        backgroundColor: DzColors.appBackground,
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: DzColors.primary,
+          onPressed: _openNewEntry,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.symmetric(
+              horizontal: DzSpacing.lg, vertical: DzSpacing.md),
+          children: [
+            _WeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
+            const SizedBox(height: DzSpacing.xl),
+            const _RecentEntriesHeader(),
+            const SizedBox(height: DzSpacing.md),
+            ..._buildEntries(journalCtrl),
+            const SizedBox(height: DzSpacing.xl),
+          ],
+        ),
       ),
     );
   }
 
-  List<Widget> _buildEntries() {
+  List<Widget> _buildEntries(JournalController journalCtrl) {
+    final entries = journalCtrl.all;
+    if (entries.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
+          child: Center(
+            child: Text(
+              'No entries yet. Tap + to write your first.',
+              style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ];
+    }
     final widgets = <Widget>[];
-    for (int i = 0; i < _JournalMockData.entries.length; i++) {
-      final entry = _JournalMockData.entries[i];
+    for (final entry in entries) {
       widgets.add(_JournalEntryCard(entry: entry));
       widgets.add(const SizedBox(height: DzSpacing.md));
-      // Insert photo card between index 2 and 3 (after 'New Perspective')
-      if (i == 2) {
-        widgets.add(const _PhotoCard());
-        widgets.add(const SizedBox(height: DzSpacing.md));
-      }
     }
     return widgets;
   }
@@ -153,7 +83,20 @@ class _JournalPageState extends State<JournalPage> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _WeeklyReflectionBanner extends StatelessWidget {
-  const _WeeklyReflectionBanner();
+  const _WeeklyReflectionBanner({required this.count});
+  final int count;
+
+  String get _headline {
+    if (count == 0) return 'Start your journey';
+    if (count <= 2) return 'Good start!';
+    if (count <= 4) return 'Keep it up!';
+    return 'You\'re on fire!';
+  }
+
+  String get _subtitle {
+    if (count == 0) return 'Write your first entry today.';
+    return 'You\'ve logged $count entr${count == 1 ? 'y' : 'ies'} this week.\nConsistency is the key to mindfulness.';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,14 +108,12 @@ class _WeeklyReflectionBanner extends StatelessWidget {
       padding: const EdgeInsets.all(DzSpacing.lg),
       child: Stack(
         children: [
-          // decorative stars
           Positioned(
             right: 8,
             top: 4,
             child: Opacity(
               opacity: 0.18,
-              child: Icon(Icons.auto_awesome,
-                  color: Colors.white, size: 80),
+              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 80),
             ),
           ),
           Positioned(
@@ -180,8 +121,7 @@ class _WeeklyReflectionBanner extends StatelessWidget {
             bottom: 4,
             child: Opacity(
               opacity: 0.12,
-              child: Icon(Icons.auto_awesome,
-                  color: Colors.white, size: 48),
+              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 48),
             ),
           ),
           Column(
@@ -196,7 +136,7 @@ class _WeeklyReflectionBanner extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Keep it up!',
+                _headline,
                 style: DzTextStyles.heading2.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -205,10 +145,9 @@ class _WeeklyReflectionBanner extends StatelessWidget {
               ),
               const SizedBox(height: DzSpacing.sm),
               Text(
-                'You\'ve logged 5 entries this week.\nConsistency is the key to mindfulness.',
-                style: DzTextStyles.body.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
-                ),
+                _subtitle,
+                style: DzTextStyles.body
+                    .copyWith(color: Colors.white.withValues(alpha: 0.88)),
               ),
             ],
           ),
@@ -331,45 +270,6 @@ class _JournalEntryCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Photo / Captured Moments card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PhotoCard extends StatelessWidget {
-  const _PhotoCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(DzRadius.card),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2D4A3E), Color(0xFF4A7C59)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      alignment: Alignment.bottomLeft,
-      padding: const EdgeInsets.all(DzSpacing.md),
-      child: Row(
-        children: [
-          const Icon(Icons.photo_camera_outlined,
-              color: Colors.white60, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            'Captured Moments',
-            style: DzTextStyles.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // New entry bottom sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -468,11 +368,19 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
             DzPrimaryButton(
               label: 'Save Entry',
               onPressed: () {
-                // TODO: persist entry
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Entry saved!')),
+                final title = _titleController.text.trim();
+                final body = _bodyController.text.trim();
+                if (title.isEmpty) return;
+                final entry = JournalEntry(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: title,
+                  body: body.isEmpty ? '' : body,
+                  mood: _selectedMood,
+                  timestamp: DateTime.now(),
+                  accentColor: _selectedMood.iconColor,
                 );
+                AppData.of(context).journal.addEntry(entry);
+                Navigator.of(context).pop();
               },
             ),
           ],
