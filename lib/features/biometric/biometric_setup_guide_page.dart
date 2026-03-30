@@ -1,3 +1,4 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 
@@ -167,15 +168,7 @@ class BiometricSetupGuidePage extends StatelessWidget {
   }
 
   void _openDeviceSettings(BuildContext context) {
-    // On Android, Intent.ACTION_SECURITY_SETTINGS isn't directly
-    // available from Flutter without a plugin. We inform the user instead.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Open your device Settings → Security → Fingerprint to register.',
-        ),
-      ),
-    );
+    AppSettings.openAppSettings(type: AppSettingsType.security);
   }
 }
 

@@ -3,16 +3,20 @@ import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
 
 class SignUpPage extends StatefulWidget {
-  /// Called when account is successfully created.
-  final VoidCallback onSignedUp;
+  /// Called when account is successfully created, with the email used.
+  final ValueChanged<String> onSignedUp;
 
   /// Called when the user opts to continue offline instead.
   final VoidCallback onContinueOffline;
+
+  /// When true, hides the "Use Offline Instead" button (user is already offline).
+  final bool canGoBack;
 
   const SignUpPage({
     super.key,
     required this.onSignedUp,
     required this.onContinueOffline,
+    this.canGoBack = false,
   });
 
   @override
@@ -36,11 +40,12 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   void _submit() {
+    final email = _emailCtrl.text.trim();
     _controller.signUp(
       fullName: _nameCtrl.text,
-      email: _emailCtrl.text,
+      email: email,
       password: _passwordCtrl.text,
-      onSuccess: widget.onSignedUp,
+      onSuccess: () => widget.onSignedUp(email),
     );
   }
 
@@ -209,6 +214,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         const SizedBox(height: DzSpacing.lg),
 
                         // ── "or choose privacy" divider ─────────────
+                        if (!widget.canGoBack) ...[
                         Row(
                           children: [
                             const Expanded(child: Divider()),
@@ -238,6 +244,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           onPressed: widget.onContinueOffline,
                         ),
+                        ],
                       ],
                     ),
                   ),

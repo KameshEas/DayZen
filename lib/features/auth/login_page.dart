@@ -4,16 +4,20 @@ import 'auth_controller.dart';
 import 'sign_up_page.dart';
 
 class LoginPage extends StatefulWidget {
-  /// Called when the user successfully signs in.
-  final VoidCallback onSignedIn;
+  /// Called when the user successfully signs in, with the email used.
+  final ValueChanged<String> onSignedIn;
 
   /// Called when the user chooses to continue offline.
   final VoidCallback onContinueOffline;
+
+  /// When true, shows a back arrow in the top-left.
+  final bool canGoBack;
 
   const LoginPage({
     super.key,
     required this.onSignedIn,
     required this.onContinueOffline,
+    this.canGoBack = false,
   });
 
   @override
@@ -35,10 +39,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submit() {
+    final email = _emailCtrl.text.trim();
     _controller.signIn(
-      email: _emailCtrl.text,
+      email: email,
       password: _passwordCtrl.text,
-      onSuccess: widget.onSignedIn,
+      onSuccess: () => widget.onSignedIn(email),
     );
   }
 
@@ -56,10 +61,21 @@ class _LoginPageState extends State<LoginPage> {
                 vertical: DzSpacing.xl,
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Back button (when pushed from Settings) ────
+                  if (widget.canGoBack)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+
                   // ── Brand ─────────────────────────────────────────
                   const SizedBox(height: DzSpacing.lg),
-                  const DzLogo(size: DzLogoSize.large),
+                  const Center(child: DzLogo(size: DzLogoSize.large)),
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Card ──────────────────────────────────────────
@@ -184,7 +200,8 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: DzSpacing.lg),
 
-                        // ── OR divider ──────────────────────────────
+                        // ── OR divider + Continue Offline ────────
+                        if (!widget.canGoBack) ...[
                         Row(
                           children: [
                             const Expanded(child: Divider()),
@@ -214,6 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           onPressed: widget.onContinueOffline,
                         ),
+                        ],
                         const SizedBox(height: DzSpacing.xl),
 
                         // ── Sign Up link ────────────────────────────
@@ -227,6 +245,7 @@ class _LoginPageState extends State<LoginPage> {
                                         onSignedUp: widget.onSignedIn,
                                         onContinueOffline:
                                             widget.onContinueOffline,
+                                        canGoBack: widget.canGoBack,
                                       ),
                                 ),
                               );

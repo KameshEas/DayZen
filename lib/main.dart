@@ -142,7 +142,10 @@ class _AuthRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LoginPage(
-      onSignedIn: () => _goToPinSetup(context),
+      onSignedIn: (email) {
+        AppData.of(context).settings.setSignedIn(true, email);
+        _goToPinSetup(context);
+      },
       onContinueOffline: () {
         // Offline users also prompted to set a PIN
         _goToPinSetup(context);
