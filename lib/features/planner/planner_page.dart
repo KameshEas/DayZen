@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
+import '../app_data.dart';
 import '../home/models/task_model.dart';
 
 class PlannerPage extends StatefulWidget {
@@ -28,6 +29,13 @@ class _PlannerPageState extends State<PlannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppData.of(context).tasks,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -114,7 +122,11 @@ class _PlannerPageState extends State<PlannerPage> {
         // ── Timeline ─────────────────────────────────────────────
         Expanded(
           child: _TimelineView(
-            events: DzMockData.plannerEvents,
+            events: AppData.of(context)
+                .tasks
+                .forDate(_selectedDate)
+                .map(PlannerEvent.fromTask)
+                .toList(),
             currentHour: DateTime.now().hour,
             currentMinute: DateTime.now().minute,
           ),
@@ -260,32 +272,6 @@ class _EventBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (event.isEmpty) {
-      return Container(
-        height: height.clamp(48.0, 200.0),
-        margin: const EdgeInsets.only(bottom: 2),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: DzColors.borderLight,
-            style: BorderStyle.solid,
-          ),
-          borderRadius: BorderRadius.circular(DzRadius.card),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_rounded, size: 16, color: DzColors.textSecondary),
-            const SizedBox(width: DzSpacing.xs),
-            Text(
-              event.title,
-              style: DzTextStyles.caption
-                  .copyWith(color: DzColors.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       height: height.clamp(52.0, 200.0),
       margin: const EdgeInsets.only(bottom: 2),

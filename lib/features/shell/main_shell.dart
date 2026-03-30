@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../core/design_system/design_system.dart';
+import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../app_data.dart';
 import '../home/home_page.dart';
+import '../home/models/task_model.dart';
 import '../insights/insights_page.dart';
 import '../journal/journal_page.dart';
 import '../planner/planner_page.dart';
+import '../settings/settings_page.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
 /// Index 2 is the FAB placeholder – tapping it opens a quick-add bottom sheet.
@@ -61,8 +64,8 @@ class _MainShellState extends State<MainShell> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings coming soon.')),
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
               );
             },
           ),
@@ -81,8 +84,38 @@ class _MainShellState extends State<MainShell> {
 // Quick-add bottom sheet (stub)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _QuickAddSheet extends StatelessWidget {
+class _QuickAddSheet extends StatefulWidget {
   const _QuickAddSheet();
+
+  @override
+  State<_QuickAddSheet> createState() => _QuickAddSheetState();
+}
+
+class _QuickAddSheetState extends State<_QuickAddSheet> {
+  final _titleCtrl = TextEditingController();
+  TaskPriority _priority = TaskPriority.routine;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) return;
+    final now = TimeOfDay.now();
+    final task = DzTask(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      startTime: now,
+      endTime: TimeOfDay(hour: (now.hour + 1) % 24, minute: now.minute),
+      priority: _priority,
+      icon: Icons.circle_outlined,
+    );
+    await AppData.of(context).tasks.addTask(task);
+    if (mounted) Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,12 +132,46 @@ class _QuickAddSheet extends StatelessWidget {
         children: [
           Text('Quick Add Task', style: DzTextStyles.heading3),
           const SizedBox(height: DzSpacing.md),
-          const DzTextField(hint: 'What do you need to do?'),
-          const SizedBox(height: DzSpacing.md),
-          DzPrimaryButton(
-            label: 'Add Task',
-            onPressed: () => Navigator.pop(context),
+          DzTextField(
+            controller: _titleCtrl,
+            hint: 'What do you need to do?',
+            autofocus: true,
+            textInputAction: TextInputAction.done,
           ),
+          const SizedBox(height: DzSpacing.md),
+          Row(
+            children: TaskPriority.values.map((p) {
+              final selected = _priority == p;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _priority = p),
+                  child: AnimatedContainer(
+                    duration: DzDuration.fast,
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? p.bg : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: selected
+                          ? Border.all(color: p.color, width: 1.5)
+                          : Border.all(color: DzColors.borderLight, width: 1),
+                    ),
+                    child: Text(
+                      p.label,
+                      textAlign: TextAlign.center,
+                      style: DzTextStyles.small.copyWith(
+                        color: selected ? p.color : DzColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: DzSpacing.md),
+          DzPrimaryButton(label: 'Add Task', onPressed: _save),
         ],
       ),
     );

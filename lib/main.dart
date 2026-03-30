@@ -1,25 +1,39 @@
 import 'package:flutter/material.dart';
 import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
+import 'features/app_data.dart';
 import 'features/auth/login_page.dart';
+import 'features/journal_controller.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/pin/pin_setup_page.dart';
 import 'features/pin/pin_unlock_page.dart';
+import 'features/settings/settings_controller.dart';
 import 'features/shell/main_shell.dart';
-import 'features/shell/main_shell.dart';
+import 'features/task_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final taskCtrl = TaskController();
+  final journalCtrl = JournalController();
+  final settingsCtrl = SettingsController();
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
+    taskCtrl.load(),
+    journalCtrl.load(),
+    settingsCtrl.load(),
   ]);
-  final seenOnboarding = results[0];
-  final hasPin = results[1];
+  final seenOnboarding = results[0] as bool;
+  final hasPin = results[1] as bool;
 
-  runApp(DayZenApp(
-    showOnboarding: !seenOnboarding,
-    hasPin: hasPin,
+  runApp(AppData(
+    tasks: taskCtrl,
+    journal: journalCtrl,
+    settings: settingsCtrl,
+    child: DayZenApp(
+      showOnboarding: !seenOnboarding,
+      hasPin: hasPin,
+    ),
   ));
 }
 
