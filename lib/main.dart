@@ -1,51 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
+import 'features/app_data.dart';
 import 'features/auth/login_page.dart';
+import 'features/biometric/biometric_auth_page.dart';
+import 'features/journal_controller.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/pin/pin_setup_page.dart';
 import 'features/pin/pin_unlock_page.dart';
+import 'features/settings/settings_controller.dart';
 import 'features/shell/main_shell.dart';
-import 'features/shell/main_shell.dart';
+import 'features/task_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final taskCtrl = TaskController();
+  final journalCtrl = JournalController();
+  final settingsCtrl = SettingsController();
+
+  // Check device biometric hardware availability
+  final auth = LocalAuthentication();
+  bool deviceHasBiometrics;
+  try {
+    final canCheck = await auth.canCheckBiometrics;
+    final isSupported = await auth.isDeviceSupported();
+    deviceHasBiometrics = canCheck && isSupported;
+  } catch (_) {
+    deviceHasBiometrics = false;
+  }
+  settingsCtrl.setDeviceHasBiometrics(deviceHasBiometrics);
+
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
+    AppPrefs.isBiometricEnabled(),
+    taskCtrl.load(),
+    journalCtrl.load(),
+    settingsCtrl.load(),
   ]);
-  final seenOnboarding = results[0];
-  final hasPin = results[1];
+  final seenOnboarding = results[0] as bool;
+  final hasPin = results[1] as bool;
+  // Only use biometric unlock if both the preference is on AND device supports it
+  final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
 
-  runApp(DayZenApp(
-    showOnboarding: !seenOnboarding,
-    hasPin: hasPin,
+  runApp(AppData(
+    tasks: taskCtrl,
+    journal: journalCtrl,
+    settings: settingsCtrl,
+    child: DayZenApp(
+      showOnboarding: !seenOnboarding,
+      hasPin: hasPin,
+      biometricEnabled: biometricEnabled,
+    ),
   ));
 }
 
 class DayZenApp extends StatelessWidget {
   final bool showOnboarding;
   final bool hasPin;
+  final bool biometricEnabled;
   const DayZenApp({
     super.key,
     required this.showOnboarding,
     required this.hasPin,
+    required this.biometricEnabled,
   });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DayZen',
-      debugShowCheckedModeBanner: false,
-      theme: DzTheme.light,
-      darkTheme: DzTheme.dark,
-      themeMode: ThemeMode.system,
-      home: _resolveHome(),
+    final settings = AppData.of(context).settings;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => MaterialApp(
+        title: 'DayZen',
+        debugShowCheckedModeBanner: false,
+        theme: DzTheme.light,
+        darkTheme: DzTheme.dark,
+        themeMode: settings.themeMode,
+        home: _resolveHome(),
+      ),
     );
   }
 
   Widget _resolveHome() {
     if (showOnboarding) return const _OnboardingRoot();
+    // Biometric takes priority over PIN
+    if (biometricEnabled) return const _BiometricUnlockRoot();
     if (hasPin) return const _PinUnlockRoot();
     return const _AuthRoot();
   }
@@ -105,6 +146,32 @@ class _AuthRoot extends StatelessWidget {
       onContinueOffline: () {
         // Offline users also prompted to set a PIN
         _goToPinSetup(context);
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric unlock root — shown when biometric is enabled
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BiometricUnlockRoot extends StatelessWidget {
+  const _BiometricUnlockRoot();
+
+  @override
+  Widget build(BuildContext context) {
+    return BiometricAuthPage(
+      onAuthenticated: () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
+      },
+      onFallbackToPin: () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const _PinUnlockRoot(),
+          ),
+        );
       },
     );
   }

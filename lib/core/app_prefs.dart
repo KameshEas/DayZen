@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppPrefs {
   static const _keyOnboardingSeen = 'onboarding_seen';
   static const _keyPin = 'app_pin';
+  static const _keyBiometricEnabled = 's_biometricEnabled';
 
   // ── Onboarding ──────────────────────────────────────────────────────────
 
@@ -38,4 +39,13 @@ class AppPrefs {
   }
 
   static Future<bool> hasPin() async => (await getPin()) != null;
+
+  // ── Biometric ───────────────────────────────────────────────────────────
+
+  /// Returns true if the user has opted into biometric lock.
+  /// Reads the same key used by [SettingsController].
+  static Future<bool> isBiometricEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyBiometricEnabled) ?? false;
+  }
 }
