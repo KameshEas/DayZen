@@ -35,6 +35,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
   String _pin = '';
   String? _errorMessage;
   int _attempts = 0;
+  bool _biometricAvailable = false;
 
   late final AnimationController _shakeCtrl;
   late final Animation<double> _shakeAnim;
@@ -49,6 +50,19 @@ class _PinUnlockPageState extends State<PinUnlockPage>
     _shakeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticOut),
     );
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    try {
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      if (mounted) {
+        setState(() => _biometricAvailable = canCheck && isSupported);
+      }
+    } catch (_) {
+      // Leave _biometricAvailable as false
+    }
   }
 
   @override
@@ -206,12 +220,13 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const Spacer(),
 
-            // ── Biometrics button ──────────────────────────────────
-            Column(
-              children: [
-                GestureDetector(
-                  onTap: _triggerBiometric,
-                  child: Container(
+            // ── Biometrics button (only shown if hardware available) ─
+            if (_biometricAvailable)
+              Column(
+                children: [
+                  GestureDetector(
+                    onTap: _triggerBiometric,
+                    child: Container(
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
@@ -235,7 +250,6 @@ class _PinUnlockPageState extends State<PinUnlockPage>
                 ),
               ],
             ),
-
             const SizedBox(height: DzSpacing.xl),
 
             // ── Footer ─────────────────────────────────────────────

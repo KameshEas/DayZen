@@ -41,6 +41,23 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
     });
 
     try {
+      // Verify hardware is still available at auth time
+      final canCheck = await _auth.canCheckBiometrics;
+      final isSupported = await _auth.isDeviceSupported();
+      if (!canCheck || !isSupported) {
+        if (!mounted) return;
+        // Device doesn't support biometrics — fall back to PIN
+        if (widget.onFallbackToPin != null) {
+          widget.onFallbackToPin!();
+        } else {
+          setState(() {
+            _isAuthenticating = false;
+            _errorMessage = 'Biometrics not available on this device.';
+          });
+        }
+        return;
+      }
+
       final didAuthenticate = await _auth.authenticate(
         localizedReason: 'Authenticate to unlock DayZen',
         options: const AuthenticationOptions(

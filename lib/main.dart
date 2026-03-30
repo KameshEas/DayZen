@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
 import 'features/app_data.dart';
@@ -17,6 +18,19 @@ void main() async {
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
+
+  // Check device biometric hardware availability
+  final auth = LocalAuthentication();
+  bool deviceHasBiometrics;
+  try {
+    final canCheck = await auth.canCheckBiometrics;
+    final isSupported = await auth.isDeviceSupported();
+    deviceHasBiometrics = canCheck && isSupported;
+  } catch (_) {
+    deviceHasBiometrics = false;
+  }
+  settingsCtrl.setDeviceHasBiometrics(deviceHasBiometrics);
+
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
@@ -27,7 +41,8 @@ void main() async {
   ]);
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
-  final biometricEnabled = results[2] as bool;
+  // Only use biometric unlock if both the preference is on AND device supports it
+  final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
 
   runApp(AppData(
     tasks: taskCtrl,

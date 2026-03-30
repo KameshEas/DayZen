@@ -3,6 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Persisted settings for the DayZen app.
 class SettingsController extends ChangeNotifier {
+  // ── Device biometric capability (set once at startup, not persisted) ───
+  bool _deviceHasBiometrics = false;
+  bool get deviceHasBiometrics => _deviceHasBiometrics;
+
+  void setDeviceHasBiometrics(bool value) {
+    _deviceHasBiometrics = value;
+    // If device lost biometrics, auto-disable the setting
+    if (!value && _biometricEnabled) {
+      _biometricEnabled = false;
+      _save();
+    }
+    notifyListeners();
+  }
+
   // ── Theme ──────────────────────────────────────────────────────────────
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;

@@ -118,15 +118,17 @@ class SettingsPage extends StatelessWidget {
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _SettingsTile(
-                    icon: Icons.fingerprint_rounded,
-                    iconBg: const Color(0xFFFEE2E2),
-                    iconColor: DzColors.error,
-                    title: 'Biometric Lock',
-                    subtitle: ctrl.biometricLabel,
-                    onTap: () => _showBiometricSheet(context, ctrl),
-                  ),
-                  const _Divider(),
+                  if (ctrl.deviceHasBiometrics) ...[
+                    _SettingsTile(
+                      icon: Icons.fingerprint_rounded,
+                      iconBg: const Color(0xFFFEE2E2),
+                      iconColor: DzColors.error,
+                      title: 'Biometric Lock',
+                      subtitle: ctrl.biometricLabel,
+                      onTap: () => _showBiometricSheet(context, ctrl),
+                    ),
+                    const _Divider(),
+                  ],
                   _SettingsTile(
                     icon: Icons.download_rounded,
                     iconBg: const Color(0xFFDBEAFE),
