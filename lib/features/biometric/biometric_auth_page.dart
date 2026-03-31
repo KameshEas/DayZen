@@ -98,13 +98,13 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock_rounded,
-                    color: DzColors.primary, size: 22),
+                Icon(Icons.lock_rounded,
+                    color: Theme.of(context).colorScheme.primary, size: 22),
                 const SizedBox(width: DzSpacing.sm),
                 Text(
                   'DayZen',
                   style: DzTextStyles.heading2.copyWith(
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -121,9 +121,9 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
                 color: const Color(0xFFDDE8F8),
                 borderRadius: BorderRadius.circular(DzRadius.card),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.fingerprint_rounded,
-                color: DzColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 56,
               ),
             ),
@@ -167,7 +167,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
                 icon: const Icon(Icons.dialpad_rounded, size: 18),
                 label: const Text('Use PIN instead'),
                 style: TextButton.styleFrom(
-                  foregroundColor: DzColors.primary,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: DzSpacing.md),

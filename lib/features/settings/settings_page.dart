@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
+import '../auth/login_page.dart';
+import '../biometric/biometric_setup_guide_page.dart';
 import 'settings_controller.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -29,6 +31,36 @@ class SettingsPage extends StatelessWidget {
             _PrivacyBanner(),
             const SizedBox(height: DzSpacing.lg),
 
+            // ── ACCOUNT ──────────────────────────────────────────
+            _SectionLabel('ACCOUNT'),
+            const SizedBox(height: DzSpacing.sm),
+            DzCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                icon: ctrl.isSignedIn
+                    ? Icons.cloud_done_rounded
+                    : Icons.cloud_off_rounded,
+                iconBg: ctrl.isSignedIn
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : const Color(0xFFFEF3C7),
+                iconColor: ctrl.isSignedIn
+                    ? Theme.of(context).colorScheme.primary
+                    : const Color(0xFFF59E0B),
+                title: ctrl.isSignedIn ? 'Account' : 'Sign In & Sync',
+                subtitle: ctrl.isSignedIn
+                    ? ctrl.userEmail ?? 'Signed in'
+                    : 'Offline mode — tap to sign in',
+                onTap: () {
+                  if (ctrl.isSignedIn) {
+                    _showAccountSheet(context, ctrl);
+                  } else {
+                    _navigateToSignIn(context, ctrl);
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: DzSpacing.lg),
+
             // ── PREFERENCES ──────────────────────────────────────
             _SectionLabel('PREFERENCES'),
             const SizedBox(height: DzSpacing.sm),
@@ -38,8 +70,8 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.notifications_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Notification settings',
                     subtitle: ctrl.quietHours
                         ? 'Quiet hours, focus mode alerts'
@@ -49,8 +81,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.access_time_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Timezone',
                     subtitle:
                         'Auto-detecting (${DateTime.now().timeZoneName})',
@@ -59,8 +91,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.grid_view_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Units',
                     subtitle: ctrl.unitsLabel,
                     onTap: () => _showUnitsSheet(context, ctrl),
@@ -97,8 +129,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.format_size_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Font size',
                     subtitle: ctrl.fontSize,
                     onTap: () =>
@@ -131,8 +163,8 @@ class SettingsPage extends StatelessWidget {
                   ],
                   _SettingsTile(
                     icon: Icons.download_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Data Export',
                     subtitle: 'Export as JSON or CSV',
                     onTap: () => _exportData(context),
@@ -160,8 +192,8 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.auto_awesome_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'AI Personality',
                     subtitle: ctrl.aiPersonality,
                     onTap: () => _showOptionSheet(
@@ -188,8 +220,8 @@ class SettingsPage extends StatelessWidget {
                   const _Divider(),
                   _SettingsTile(
                     icon: Icons.insights_rounded,
-                    iconBg: const Color(0xFFDBEAFE),
-                    iconColor: DzColors.primary,
+                    iconBg: Theme.of(context).colorScheme.primaryContainer,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     title: 'Focus Analysis depth',
                     subtitle: ctrl.analysisDepth,
                     onTap: () => _showOptionSheet(
@@ -252,9 +284,57 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showAccentSheet(BuildContext context, SettingsController ctrl) {
-    _showOptionSheet(context, 'Theme Accent',
-        SettingsController.accentOptions, ctrl.accent,
-        (v) => ctrl.setAccent(v));
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(DzSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: DzSpacing.md),
+            Text('Theme Accent',
+                style:
+                    DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: DzSpacing.md),
+            ...SettingsController.accentOptions.map((opt) {
+              final color = SettingsController.accentColorMap[opt]!;
+              final isSelected = opt == ctrl.accent;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: isSelected
+                        ? Border.all(color: DzColors.textPrimary, width: 2.5)
+                        : null,
+                  ),
+                ),
+                title: Text(opt, style: DzTextStyles.body),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle_rounded,
+                        color: color, size: 22)
+                    : const Icon(Icons.circle_outlined,
+                        color: DzColors.borderLight, size: 22),
+                onTap: () {
+                  ctrl.setAccent(opt);
+                  Navigator.pop(context);
+                },
+              );
+            }),
+            const SizedBox(height: DzSpacing.sm),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showNotificationSheet(BuildContext context, SettingsController ctrl) {
@@ -282,6 +362,7 @@ class SettingsPage extends StatelessWidget {
                 value: ctrl.quietHours,
                 onChanged: (v) {
                   ctrl.setQuietHours(v);
+                  _syncNotifications(context, ctrl);
                   setSt(() {});
                 },
               ),
@@ -291,6 +372,7 @@ class SettingsPage extends StatelessWidget {
                 value: ctrl.focusAlerts,
                 onChanged: (v) {
                   ctrl.setFocusAlerts(v);
+                  _syncNotifications(context, ctrl);
                   setSt(() {});
                 },
               ),
@@ -300,6 +382,12 @@ class SettingsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Syncs the TaskController notification state with the current settings.
+  void _syncNotifications(BuildContext context, SettingsController ctrl) {
+    final enabled = ctrl.quietHours || ctrl.focusAlerts;
+    AppData.of(context).tasks.setNotificationsEnabled(enabled);
   }
 
   void _showUnitsSheet(BuildContext context, SettingsController ctrl) {
@@ -433,6 +521,106 @@ class SettingsPage extends StatelessWidget {
       const SnackBar(content: Text('Data copied to clipboard as JSON.')),
     );
   }
+
+  void _navigateToSignIn(BuildContext context, SettingsController ctrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LoginPage(
+          canGoBack: true,
+          onSignedIn: (email) {
+            ctrl.setSignedIn(true, email);
+            Navigator.of(context).pop();
+          },
+          onContinueOffline: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showAccountSheet(BuildContext context, SettingsController ctrl) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(DzSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: DzSpacing.md),
+            Text('Account',
+                style: DzTextStyles.heading3
+                    .copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: DzSpacing.lg),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.person_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 26),
+                ),
+                const SizedBox(width: DzSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ctrl.userEmail ?? 'Signed in',
+                        style: DzTextStyles.body
+                            .copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Sync is active',
+                        style: DzTextStyles.caption
+                            .copyWith(color: DzColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: DzSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Sign Out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: DzColors.error,
+                  side: const BorderSide(color: DzColors.error),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: DzSpacing.md),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(DzRadius.button),
+                  ),
+                ),
+                onPressed: () {
+                  ctrl.signOut();
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            const SizedBox(height: DzSpacing.lg),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,6 +661,21 @@ class _BiometricSheetState extends State<_BiometricSheet> {
           _checking = false;
           _error = 'Biometrics not available on this device.';
         });
+        return;
+      }
+
+      // Check if the user has enrolled any biometrics
+      final enrolled = await _auth.getAvailableBiometrics();
+      if (enrolled.isEmpty) {
+        if (!mounted) return;
+        setState(() => _checking = false);
+        // Close the bottom sheet, then navigate to the setup guide
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const BiometricSetupGuidePage(),
+          ),
+        );
         return;
       }
 
@@ -532,7 +735,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                 Switch.adaptive(
                   value: widget.ctrl.biometricEnabled,
                   onChanged: _toggleBiometric,
-                  activeTrackColor: DzColors.primary,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
                 ),
             ],
           ),
@@ -561,12 +764,12 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: selected
-                            ? DzColors.primary
+                            ? Theme.of(context).colorScheme.primary
                             : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: selected
-                              ? DzColors.primary
+                              ? Theme.of(context).colorScheme.primary
                               : DzColors.borderLight,
                           width: 1.5,
                         ),
@@ -609,7 +812,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: DzTextStyles.caption.copyWith(
-          color: DzColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.0,
           fontSize: 12,
@@ -792,7 +995,7 @@ class _ToggleRow extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: DzColors.primary,
+          activeTrackColor: Theme.of(context).colorScheme.primary,
         ),
       ],
     );
@@ -831,8 +1034,8 @@ class _OptionListSheet<T> extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(opt, style: DzTextStyles.body),
                 trailing: opt == selected
-                    ? const Icon(Icons.check_circle_rounded,
-                        color: DzColors.primary, size: 22)
+                    ? Icon(Icons.check_circle_rounded,
+                        color: Theme.of(context).colorScheme.primary, size: 22)
                     : const Icon(Icons.circle_outlined,
                         color: DzColors.borderLight, size: 22),
                 onTap: () => onSelect(opt),

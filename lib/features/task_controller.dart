@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
+import '../core/notification_service.dart';
 import 'home/models/task_model.dart';
 
 class TaskController extends ChangeNotifier {
   List<DzTask> _tasks = [];
+  bool _notificationsEnabled = true;
 
   List<DzTask> get all => List.unmodifiable(_tasks);
+
+  /// Call once to tell the controller whether to schedule notifications.
+  void setNotificationsEnabled(bool value) {
+    _notificationsEnabled = value;
+    if (!value) {
+      NotificationService.instance.cancelAll();
+    } else {
+      NotificationService.instance.rescheduleAll(_tasks);
+    }
+  }
 
   // ── Queries ───────────────────────────────────────────────────────
 
@@ -102,12 +114,18 @@ class TaskController extends ChangeNotifier {
   Future<void> load() async {
     _tasks = await TaskRepository.load();
     notifyListeners();
+    if (_notificationsEnabled) {
+      await NotificationService.instance.rescheduleAll(_tasks);
+    }
   }
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
     await TaskRepository.save(_tasks);
     notifyListeners();
+    if (_notificationsEnabled) {
+      await NotificationService.instance.scheduleForTask(task);
+    }
   }
 
   Future<void> toggleTask(String id) async {
@@ -116,17 +134,29 @@ class TaskController extends ChangeNotifier {
     _tasks[idx] = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
     await TaskRepository.save(_tasks);
     notifyListeners();
+    // Cancel notification if completed; re-schedule if unchecked
+    if (_notificationsEnabled) {
+      if (_tasks[idx].isCompleted) {
+        await NotificationService.instance.cancelForTask(id);
+      } else {
+        await NotificationService.instance.scheduleForTask(_tasks[idx]);
+      }
+    }
   }
 
   Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
     await TaskRepository.save(_tasks);
     notifyListeners();
+    if (_notificationsEnabled) {
+      await NotificationService.instance.cancelForTask(id);
+    }
   }
 
   Future<void> clearAll() async {
     _tasks.clear();
     await TaskRepository.save(_tasks);
     notifyListeners();
+    await NotificationService.instance.cancelAll();
   }
 }

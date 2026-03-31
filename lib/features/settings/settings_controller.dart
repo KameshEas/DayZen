@@ -29,8 +29,15 @@ class SettingsController extends ChangeNotifier {
 
   // ── Accent ─────────────────────────────────────────────────────────────
   static const accentOptions = ['Zen Green', 'Ocean Blue', 'Sunset Orange', 'Lavender'];
+  static const accentColorMap = <String, Color>{
+    'Zen Green': Color(0xFF10B981),
+    'Ocean Blue': Color(0xFF3B82F6),
+    'Sunset Orange': Color(0xFFF97316),
+    'Lavender': Color(0xFF8B5CF6),
+  };
   String _accent = 'Zen Green';
   String get accent => _accent;
+  Color get accentColor => accentColorMap[_accent] ?? const Color(0xFF10B981);
 
   // ── Font size ──────────────────────────────────────────────────────────
   static const fontSizeOptions = ['Small (14px)', 'Standard (16px)', 'Large (18px)'];
@@ -68,6 +75,13 @@ class SettingsController extends ChangeNotifier {
       ? 'Locked after $_lockTimeout mins of inactivity'
       : 'Disabled';
 
+  // ── Account ─────────────────────────────────────────────────────────────
+  bool _isSignedIn = false;
+  bool get isSignedIn => _isSignedIn;
+
+  String? _userEmail;
+  String? get userEmail => _userEmail;
+
   // ── AI Settings ────────────────────────────────────────────────────────
   static const personalityOptions = ['Supportive & Calm', 'Motivational', 'Analytical'];
   String _aiPersonality = 'Supportive & Calm';
@@ -104,6 +118,8 @@ class SettingsController extends ChangeNotifier {
     _aiPersonality = prefs.getString('s_aiPersonality') ?? 'Supportive & Calm';
     _tipFrequency = prefs.getString('s_tipFrequency') ?? 'Twice daily during peaks';
     _analysisDepth = prefs.getString('s_analysisDepth') ?? 'Comprehensive local processing';
+    _isSignedIn = prefs.getBool('s_isSignedIn') ?? false;
+    _userEmail = prefs.getString('s_userEmail');
     notifyListeners();
   }
 
@@ -121,6 +137,12 @@ class SettingsController extends ChangeNotifier {
     await prefs.setString('s_aiPersonality', _aiPersonality);
     await prefs.setString('s_tipFrequency', _tipFrequency);
     await prefs.setString('s_analysisDepth', _analysisDepth);
+    await prefs.setBool('s_isSignedIn', _isSignedIn);
+    if (_userEmail != null) {
+      await prefs.setString('s_userEmail', _userEmail!);
+    } else {
+      await prefs.remove('s_userEmail');
+    }
   }
 
   // ── Mutators ───────────────────────────────────────────────────────────
@@ -163,6 +185,20 @@ class SettingsController extends ChangeNotifier {
 
   void setMetricUnits(bool value) {
     _metricUnits = value;
+    notifyListeners();
+    _save();
+  }
+
+  void setSignedIn(bool value, [String? email]) {
+    _isSignedIn = value;
+    _userEmail = value ? email : null;
+    notifyListeners();
+    _save();
+  }
+
+  void signOut() {
+    _isSignedIn = false;
+    _userEmail = null;
     notifyListeners();
     _save();
   }

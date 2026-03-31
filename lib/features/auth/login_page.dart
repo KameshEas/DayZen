@@ -4,16 +4,20 @@ import 'auth_controller.dart';
 import 'sign_up_page.dart';
 
 class LoginPage extends StatefulWidget {
-  /// Called when the user successfully signs in.
-  final VoidCallback onSignedIn;
+  /// Called when the user successfully signs in, with the email used.
+  final ValueChanged<String> onSignedIn;
 
   /// Called when the user chooses to continue offline.
   final VoidCallback onContinueOffline;
+
+  /// When true, shows a back arrow in the top-left.
+  final bool canGoBack;
 
   const LoginPage({
     super.key,
     required this.onSignedIn,
     required this.onContinueOffline,
+    this.canGoBack = false,
   });
 
   @override
@@ -35,11 +39,59 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submit() {
+    final email = _emailCtrl.text.trim();
     _controller.signIn(
-      email: _emailCtrl.text,
+      email: email,
       password: _passwordCtrl.text,
-      onSuccess: widget.onSignedIn,
+      onSuccess: () => widget.onSignedIn(email),
     );
+  }
+
+  Future<void> _showForgotPasswordDialog(BuildContext context) async {
+    final resetEmailCtrl = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: resetEmailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email address',
+              hintText: 'name@example.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                final sent = await _controller.sendPasswordReset(
+                  email: resetEmailCtrl.text,
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      sent
+                          ? 'Password reset email sent. Check your inbox.'
+                          : _controller.error ?? 'Failed to send reset email.',
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Send Reset Email'),
+            ),
+          ],
+        );
+      },
+    );
+    resetEmailCtrl.dispose();
   }
 
   @override
@@ -56,10 +108,21 @@ class _LoginPageState extends State<LoginPage> {
                 vertical: DzSpacing.xl,
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Back button (when pushed from Settings) ────
+                  if (widget.canGoBack)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+
                   // ── Brand ─────────────────────────────────────────
                   const SizedBox(height: DzSpacing.lg),
-                  const DzLogo(size: DzLogoSize.large),
+                  const Center(child: DzLogo(size: DzLogoSize.large)),
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Card ──────────────────────────────────────────
@@ -114,18 +177,11 @@ class _LoginPageState extends State<LoginPage> {
                           children: [
                             Text('Password', style: DzTextStyles.label),
                             GestureDetector(
-                              onTap: () {
-                                // TODO: Navigate to forgot-password flow
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Password reset coming soon.'),
-                                  ),
-                                );
-                              },
+                              onTap: () => _showForgotPasswordDialog(context),
                               child: Text(
                                 'Forgot Password?',
                                 style: DzTextStyles.label.copyWith(
-                                  color: DzColors.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -184,7 +240,8 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: DzSpacing.lg),
 
-                        // ── OR divider ──────────────────────────────
+                        // ── OR divider + Continue Offline ────────
+                        if (!widget.canGoBack) ...[
                         Row(
                           children: [
                             const Expanded(child: Divider()),
@@ -214,6 +271,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           onPressed: widget.onContinueOffline,
                         ),
+                        ],
                         const SizedBox(height: DzSpacing.xl),
 
                         // ── Sign Up link ────────────────────────────
@@ -227,6 +285,7 @@ class _LoginPageState extends State<LoginPage> {
                                         onSignedUp: widget.onSignedIn,
                                         onContinueOffline:
                                             widget.onContinueOffline,
+                                        canGoBack: widget.canGoBack,
                                       ),
                                 ),
                               );
@@ -318,7 +377,7 @@ class _SignUpLink extends StatelessWidget {
             TextSpan(
               text: 'Start your journey',
               style: DzTextStyles.body.copyWith(
-                color: DzColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),

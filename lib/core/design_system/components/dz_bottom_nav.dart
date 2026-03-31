@@ -27,7 +27,7 @@ class DzNavItem {
 /// Persistent bottom navigation bar for DayZen.
 ///
 /// The center slot is reserved for the FAB — pass [fabIndex] to mark which
-/// index is the FAB placeholder so it renders as an empty transparent space.
+/// index is the FAB slot so it renders as an empty transparent space (FAB overlays this slot).
 ///
 /// ```dart
 /// DzBottomNavBar(
@@ -108,7 +108,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? DzColors.primary : DzColors.textSecondary;
+    final color = isActive ? Theme.of(context).colorScheme.primary : DzColors.textSecondary;
 
     return InkWell(
       onTap: onTap,
@@ -118,9 +118,12 @@ class _NavTile extends StatelessWidget {
         children: [
           AnimatedSwitcher(
             duration: DzDuration.fast,
-            child: isActive
-                ? KeyedSubtree(key: const ValueKey('active'), child: item.activeIcon)
-                : KeyedSubtree(key: const ValueKey('inactive'), child: item.icon),
+            child: IconTheme(
+              data: IconThemeData(color: color),
+              child: isActive
+                  ? KeyedSubtree(key: const ValueKey('active'), child: item.activeIcon)
+                  : KeyedSubtree(key: const ValueKey('inactive'), child: item.icon),
+            ),
           ),
           const SizedBox(height: 3),
           Text(
@@ -139,7 +142,7 @@ class _NavTile extends StatelessWidget {
 
 /// The center FAB for the DayZen bottom bar.
 /// Wrap this in [FloatingActionButtonLocation.centerDocked] positioning.
-class DzFab extends StatelessWidget {
+class DzFab extends StatefulWidget {
   const DzFab({
     super.key,
     this.onPressed,
@@ -152,20 +155,63 @@ class DzFab extends StatelessWidget {
   final String tooltip;
 
   @override
+  State<DzFab> createState() => _DzFabState();
+}
+
+class _DzFabState extends State<DzFab> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.0,
+      upperBound: 0.08,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTap() async {
+    await _controller.forward();
+    await _controller.reverse();
+    widget.onPressed?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: DzShadows.fab,
       ),
-      child: FloatingActionButton(
-        onPressed: onPressed,
-        tooltip: tooltip,
-        elevation: 0,
-        focusElevation: 0,
-        hoverElevation: 0,
-        highlightElevation: 0,
-        child: icon,
+      child: GestureDetector(
+        onTap: _onTap,
+        child: AnimatedBuilder(
+          animation: _scale,
+          builder: (context, child) => Transform.scale(
+            scale: _scale.value,
+            child: FloatingActionButton(
+              onPressed: _onTap,
+              tooltip: widget.tooltip,
+              elevation: 0,
+              focusElevation: 0,
+              hoverElevation: 0,
+              highlightElevation: 0,
+              child: widget.icon,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -179,15 +225,15 @@ abstract final class DzNavDefaults {
   static const List<DzNavItem> items = [
     DzNavItem(
       icon: Icon(Icons.home_outlined, size: 24),
-      activeIcon: Icon(Icons.home_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.home_rounded, size: 24),
       label: 'Home',
     ),
     DzNavItem(
       icon: Icon(Icons.calendar_today_outlined, size: 24),
-      activeIcon: Icon(Icons.calendar_today_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.calendar_today_rounded, size: 24),
       label: 'Planner',
     ),
-    // index 2 → FAB placeholder
+    // index 2 → FAB slot (center button overlays here)
     DzNavItem(
       icon: SizedBox.shrink(),
       activeIcon: SizedBox.shrink(),
@@ -195,12 +241,12 @@ abstract final class DzNavDefaults {
     ),
     DzNavItem(
       icon: Icon(Icons.bar_chart_outlined, size: 24),
-      activeIcon: Icon(Icons.bar_chart_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.bar_chart_rounded, size: 24),
       label: 'Insights',
     ),
     DzNavItem(
       icon: Icon(Icons.book_outlined, size: 24),
-      activeIcon: Icon(Icons.book_rounded, size: 24, color: DzColors.primary),
+      activeIcon: Icon(Icons.book_rounded, size: 24),
       label: 'Journal',
     ),
   ];

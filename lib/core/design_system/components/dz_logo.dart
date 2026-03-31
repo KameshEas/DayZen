@@ -52,7 +52,7 @@ class DzLogo extends StatelessWidget {
     };
   }
 
-  TextStyle get _textStyle {
+  TextStyle _textStyle(BuildContext context) {
     final base = switch (size) {
       DzLogoSize.small => DzTextStyles.heading3.copyWith(fontSize: 16),
       DzLogoSize.medium => DzTextStyles.heading3,
@@ -60,7 +60,7 @@ class DzLogo extends StatelessWidget {
     };
     final resolvedColor = color ??
         (variant == DzLogoVariant.full
-            ? DzColors.primary
+            ? Theme.of(context).colorScheme.primary
             : DzColors.textSecondary);
     return base.copyWith(
       fontWeight: FontWeight.w700,
@@ -72,7 +72,7 @@ class DzLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (variant == DzLogoVariant.wordmarkOnly) {
-      return Text('DayZen', style: _textStyle);
+      return Text('DayZen', style: _textStyle(context));
     }
 
     return Row(
@@ -82,10 +82,10 @@ class DzLogo extends StatelessWidget {
           width: _iconBox,
           height: _iconBox,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF60A5FA), DzColors.primary],
+              colors: [const Color(0xFF60A5FA), Theme.of(context).colorScheme.primary],
             ),
             borderRadius: BorderRadius.circular(_iconBox * 0.31),
           ),
@@ -96,7 +96,7 @@ class DzLogo extends StatelessWidget {
           ),
         ),
         const SizedBox(width: DzSpacing.sm),
-        Text('DayZen', style: _textStyle),
+        Text('DayZen', style: _textStyle(context)),
       ],
     );
   }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../tokens/dz_colors.dart';
-import '../tokens/dz_dimensions.dart';
 import '../tokens/dz_text_styles.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────

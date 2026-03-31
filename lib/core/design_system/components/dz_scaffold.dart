@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../tokens/dz_dimensions.dart';
-import '../tokens/dz_colors.dart';
 import 'dz_bottom_nav.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,20 +227,20 @@ class DzDrawer extends StatelessWidget {
                     leading: Icon(
                       item.icon,
                       color: isActive
-                          ? DzColors.primary
+                          ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant,
                     ),
                     title: Text(
                       item.label,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: isActive ? DzColors.primary : null,
+                        color: isActive ? theme.colorScheme.primary : null,
                         fontWeight:
                             isActive ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                     selected: isActive,
                     selectedTileColor:
-                        DzColors.primary.withValues(alpha: 0.08),
+                        theme.colorScheme.primary.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(DzRadius.small),
                     ),

@@ -73,7 +73,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_rounded),
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                   Text(
@@ -97,9 +97,9 @@ class _PinSetupPageState extends State<PinSetupPage> {
                 color: Color(0xFFDDE8F8),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.lock_clock_rounded,
-                color: DzColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 34,
               ),
             ),

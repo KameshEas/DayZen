@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/app_prefs.dart';
 import '../../core/design_system/design_system.dart';
+import '../app_data.dart';
 import 'widgets/pin_pad.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,16 +148,16 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.lock_rounded,
-                  color: DzColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 22,
                 ),
                 const SizedBox(width: DzSpacing.sm),
                 Text(
                   'DayZen',
                   style: DzTextStyles.heading2.copyWith(
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -220,8 +221,8 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const Spacer(),
 
-            // ── Biometrics button (only shown if hardware available) ─
-            if (_biometricAvailable)
+            // ── Biometrics button (only shown if hardware available AND user opted in) ─
+            if (_biometricAvailable && AppData.of(context).settings.biometricEnabled)
               Column(
                 children: [
                   GestureDetector(
@@ -233,9 +234,9 @@ class _PinUnlockPageState extends State<PinUnlockPage>
                       color: const Color(0xFFDDE8F8),
                       borderRadius: BorderRadius.circular(DzRadius.card),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.fingerprint_rounded,
-                      color: DzColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 30,
                     ),
                   ),
@@ -244,7 +245,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
                 Text(
                   'Use biometrics',
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

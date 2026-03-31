@@ -88,12 +88,12 @@ class DzSecondaryButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: DzColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               )
             : icon != null
@@ -132,7 +132,7 @@ class DzGhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = color ?? DzColors.primary;
+    final textColor = color ?? Theme.of(context).colorScheme.primary;
     return TextButton(
       onPressed: onPressed,
       child: icon != null
