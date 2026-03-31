@@ -22,9 +22,9 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   List<DateTime> _buildWeek(DateTime anchor) {
-    // Show Mon–Fri centred around today
+    // Show Mon–Sun (full week) so weekend tasks are also visible
     final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return List.generate(5, (i) => monday.add(Duration(days: i)));
+    return List.generate(7, (i) => monday.add(Duration(days: i)));
   }
 
   @override
@@ -70,7 +70,7 @@ class _PlannerPageState extends State<PlannerPage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
             itemCount: _weekDays.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (context, i) =>
                 const SizedBox(width: DzSpacing.sm),
             itemBuilder: (context, i) {
               final day = _weekDays[i];
@@ -83,7 +83,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   width: 64,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? DzColors.primary
+                        ? Theme.of(context).colorScheme.primary
                         : DzColors.cardBackground,
                     borderRadius: BorderRadius.circular(DzRadius.card),
                     boxShadow: isSelected ? DzShadows.soft : [],
@@ -152,8 +152,8 @@ class _TimelineView extends StatelessWidget {
   final int currentMinute;
 
   static const double _hourHeight = 72.0;
-  static const int _startHour = 7;
-  static const int _endHour = 18;
+  static const int _startHour = 6;
+  static const int _endHour = 23;
   static const double _timeColWidth = 52.0;
 
   @override
@@ -209,8 +209,11 @@ class _TimelineView extends StatelessWidget {
 
             // ── Events ────────────────────────────────────────
             ...events.map((e) {
+              // Clamp events that start before the visible window
+              final clampedHour = e.hour.clamp(_startHour, _endHour - 1);
+              final clampedMinute = e.hour < _startHour ? 0 : e.minute;
               final top =
-                  (e.hour - _startHour + e.minute / 60.0) * _hourHeight;
+                  (clampedHour - _startHour + clampedMinute / 60.0) * _hourHeight;
               final height =
                   (e.durationMinutes / 60.0) * _hourHeight;
 
@@ -235,7 +238,7 @@ class _TimelineView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
-                        color: DzColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -252,7 +255,7 @@ class _TimelineView extends StatelessWidget {
                     Expanded(
                       child: Container(
                         height: 2,
-                        color: DzColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],

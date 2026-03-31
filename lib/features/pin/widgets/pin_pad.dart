@@ -180,7 +180,7 @@ class DzPinDots extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? DzColors.primary : const Color(0xFFD1DCF0),
+            color: isFilled ? Theme.of(context).colorScheme.primary : const Color(0xFFD1DCF0),
           ),
         );
       }),

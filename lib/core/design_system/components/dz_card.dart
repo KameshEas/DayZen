@@ -107,14 +107,14 @@ class DzSectionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title!, style: theme.textTheme.titleMedium),
-                        if (subtitle != null) ...[
+                        if (subtitle case final s?) ...[
                           const SizedBox(height: 2),
-                          Text(subtitle!, style: theme.textTheme.bodySmall),
+                          Text(s, style: theme.textTheme.bodySmall),
                         ],
                       ],
                     ),
                   ),
-                  if (trailing != null) trailing!,
+                  ?trailing,
                 ],
               ),
             ),

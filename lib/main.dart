@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
 import 'core/design_system/design_system.dart';
+import 'core/notification_service.dart';
 import 'features/app_data.dart';
 import 'features/auth/login_page.dart';
 import 'features/biometric/biometric_auth_page.dart';
@@ -15,6 +17,7 @@ import 'features/task_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
@@ -43,6 +46,14 @@ void main() async {
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
+
+  // ── Initialise notifications ────────────────────────────────────────
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermission();
+
+  // Wire notifications enabled/disabled based on notification settings
+  final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
+  taskCtrl.setNotificationsEnabled(notificationsOn);
 
   runApp(AppData(
     tasks: taskCtrl,
@@ -75,8 +86,8 @@ class DayZenApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'DayZen',
         debugShowCheckedModeBanner: false,
-        theme: DzTheme.light,
-        darkTheme: DzTheme.dark,
+        theme: DzTheme.light(accent: settings.accentColor),
+        darkTheme: DzTheme.dark(accent: settings.accentColor),
         themeMode: settings.themeMode,
         home: _resolveHome(),
       ),
@@ -142,7 +153,10 @@ class _AuthRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LoginPage(
-      onSignedIn: () => _goToPinSetup(context),
+      onSignedIn: (email) {
+        AppData.of(context).settings.setSignedIn(true, email);
+        _goToPinSetup(context);
+      },
       onContinueOffline: () {
         // Offline users also prompted to set a PIN
         _goToPinSetup(context);

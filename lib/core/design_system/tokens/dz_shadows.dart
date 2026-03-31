@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dz_colors.dart';
 
 /// DayZen Shadow Tokens
 abstract final class DzShadows {
