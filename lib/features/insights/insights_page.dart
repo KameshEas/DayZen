@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
@@ -98,10 +99,13 @@ class _Greeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final rawName = user?.displayName ?? user?.email ?? 'there';
+    final name = rawName.contains('@') ? rawName.split('@').first : rawName.split(' ').first;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Hello, Alex',
+        Text('Hello, $name',
             style: DzTextStyles.heading2
                 .copyWith(fontWeight: FontWeight.w700, fontSize: 24)),
         const SizedBox(height: 4),

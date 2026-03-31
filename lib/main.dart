@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
@@ -16,6 +17,7 @@ import 'features/task_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();

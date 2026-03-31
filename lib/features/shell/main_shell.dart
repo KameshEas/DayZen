@@ -8,7 +8,7 @@ import '../settings/settings_page.dart';
 import '../tasks/new_task_page.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
-/// Index 2 is the FAB placeholder – tapping it opens a quick-add bottom sheet.
+/// Index 2 is the FAB slot – tapping the FAB opens the New Task page.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -24,13 +24,13 @@ class _MainShellState extends State<MainShell> {
   final _pages = [
     const HomePage(),
     const PlannerPage(),
-    SizedBox.shrink(), // FAB slot – never shown
+    SizedBox.shrink(), // FAB slot – never shown (handled by DzScaffold)
     const InsightsPage(),
     const JournalPage(),
   ];
 
   void _onNavTap(int index) {
-    if (index == 2) return; // FAB slot
+    if (index == 2) return; // FAB slot (handled by FAB button)
     setState(() => _currentIndex = index);
   }
 
@@ -66,11 +66,19 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-      body: _pages[_currentIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: KeyedSubtree(
+          key: ValueKey(_currentIndex),
+          child: _pages[_currentIndex],
+        ),
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Placeholder pages for Insights / Journal (to be built later)
+
 // ─────────────────────────────────────────────────────────────────────────────

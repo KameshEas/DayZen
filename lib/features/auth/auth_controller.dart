@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-/// Minimal auth state controller using ValueNotifier.
-/// Handles login, sign-up, and offline mode transitions.
+/// Auth state controller backed by Firebase Authentication.
 class AuthController extends ChangeNotifier {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   bool _isLoading = false;
   String? _error;
 
@@ -26,7 +28,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Simulate sign-in.  Replace body with real auth logic (e.g. Supabase / Firebase).
+  /// Signs in with [email] and [password] via Firebase Auth.
   Future<bool> signIn({
     required String email,
     required String password,
@@ -37,13 +39,24 @@ class AuthController extends ChangeNotifier {
       return false;
     }
     _setLoading(true);
-    await Future.delayed(const Duration(seconds: 1)); // TODO: replace with real call
-    _setLoading(false);
-    onSuccess();
-    return true;
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      _setLoading(false);
+      onSuccess();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _setError(_friendlyMessage(e.code));
+      return false;
+    } catch (_) {
+      _setError('An unexpected error occurred. Please try again.');
+      return false;
+    }
   }
 
-  /// Simulate sign-up. Replace body with real auth logic.
+  /// Creates a new account via Firebase Auth.
   Future<bool> signUp({
     required String fullName,
     required String email,
@@ -59,9 +72,63 @@ class AuthController extends ChangeNotifier {
       return false;
     }
     _setLoading(true);
-    await Future.delayed(const Duration(seconds: 1)); // TODO: replace with real call
-    _setLoading(false);
-    onSuccess();
-    return true;
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await credential.user?.updateDisplayName(fullName.trim());
+      _setLoading(false);
+      onSuccess();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _setError(_friendlyMessage(e.code));
+      return false;
+    } catch (_) {
+      _setError('An unexpected error occurred. Please try again.');
+      return false;
+    }
+  }
+
+  /// Sends a password-reset email to [email].
+  Future<bool> sendPasswordReset({required String email}) async {
+    if (email.trim().isEmpty) {
+      _setError('Please enter your email address.');
+      return false;
+    }
+    _setLoading(true);
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _setError(_friendlyMessage(e.code));
+      return false;
+    } catch (_) {
+      _setError('An unexpected error occurred. Please try again.');
+      return false;
+    }
+  }
+
+  String _friendlyMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'No internet connection.';
+      default:
+        return 'Authentication failed. Please try again.';
+    }
   }
 }
+

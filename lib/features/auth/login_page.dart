@@ -47,6 +47,53 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Future<void> _showForgotPasswordDialog(BuildContext context) async {
+    final resetEmailCtrl = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: resetEmailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email address',
+              hintText: 'name@example.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                final sent = await _controller.sendPasswordReset(
+                  email: resetEmailCtrl.text,
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      sent
+                          ? 'Password reset email sent. Check your inbox.'
+                          : _controller.error ?? 'Failed to send reset email.',
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Send Reset Email'),
+            ),
+          ],
+        );
+      },
+    );
+    resetEmailCtrl.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,14 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                           children: [
                             Text('Password', style: DzTextStyles.label),
                             GestureDetector(
-                              onTap: () {
-                                // TODO: Navigate to forgot-password flow
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Password reset coming soon.'),
-                                  ),
-                                );
-                              },
+                              onTap: () => _showForgotPasswordDialog(context),
                               child: Text(
                                 'Forgot Password?',
                                 style: DzTextStyles.label.copyWith(

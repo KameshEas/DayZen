@@ -3,6 +3,7 @@ import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../app_data.dart';
 import '../task_controller.dart';
 import '../tasks/new_task_page.dart';
+import 'day_optimizer_sheet.dart';
 import 'models/task_model.dart';
 
 class HomePage extends StatelessWidget {
@@ -169,163 +170,12 @@ class _HomeBody extends StatelessWidget {
                 tasks.isEmpty
                     ? 'Add tasks to track your focus score.'
                     : score >= 80
-                        ? 'Excellent focus today \u2014 you\'re in the zone!'
+                        ? 'Excellent focus — keep it up!'
                         : score >= 50
-                            ? 'Good progress! Keep the momentum going.'
-                            : 'Every task completed brings you closer.',
-                textAlign: TextAlign.center,
-                style: DzTextStyles.caption
-                    .copyWith(color: DzColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: DzSpacing.md),
-
-        // ── AI Suggestion Card ───────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF3D6FDB), Color(0xFF2563EB)],
-            ),
-            borderRadius: BorderRadius.circular(DzRadius.card),
-          ),
-          padding: const EdgeInsets.all(DzSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                remaining > 3
-                    ? 'Feeling overwhelmed?'
-                    : 'You\'re on a great path!',
-                style: DzTextStyles.heading3.copyWith(color: DzColors.white),
-              ),
-              const SizedBox(height: DzSpacing.sm),
-              Text(
-                remaining > 3
-                    ? 'Let AI balance your schedule for maximum calm.'
-                    : 'Keep up the momentum \u2014 mindful progress every day.',
+                            ? 'Good progress — keep going!'
+                            : 'Let\'s try to improve focus today.',
                 style: DzTextStyles.body.copyWith(
-                  color: DzColors.white.withValues(alpha: 0.85),
-                ),
-              ),
-              const SizedBox(height: DzSpacing.lg),
-              ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('AI optimizer coming soon.')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DzColors.white,
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DzSpacing.lg,
-                    vertical: DzSpacing.sm + 4,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(DzRadius.button),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Optimize My Day',
-                  style: DzTextStyles.button.copyWith(color: Theme.of(context).colorScheme.primary),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: DzSpacing.lg),
-
-        // ── Today's Tasks ────────────────────────────────────────
-        DzCard(
-          padding: const EdgeInsets.all(DzSpacing.md),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_month_rounded,
-                    color: DzColors.zenGreen,
-                    size: 20,
-                  ),
-                  const SizedBox(width: DzSpacing.sm),
-                  Text('Today\'s Tasks', style: DzTextStyles.heading3),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DzSpacing.sm,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: DzColors.appBackground,
-                      borderRadius: BorderRadius.circular(DzRadius.small),
-                    ),
-                    child: Text(
-                      '$remaining Left',
-                      style: DzTextStyles.small.copyWith(
-                        color: DzColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: DzSpacing.md),
-
-              if (tasks.isEmpty)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: DzSpacing.md),
-                  child: Text(
-                    'No tasks yet. Tap + to add one.',
-                    style: DzTextStyles.body
-                        .copyWith(color: DzColors.textSecondary),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else
-                ...tasks.map((task) => _TaskItem(
-                      task: task,
-                      onToggle: () =>
-                          AppData.of(context).tasks.toggleTask(task.id),
-                    )),
-
-              const SizedBox(height: DzSpacing.sm),
-
-              // Quick Add
-              GestureDetector(
-                onTap: () => _showAddTaskSheet(context),
-                child: Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: DzSpacing.md),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: DzColors.borderLight,
-                      style: BorderStyle.solid,
-                    ),
-                    borderRadius: BorderRadius.circular(DzRadius.card),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.add_rounded,
-                          size: 16, color: DzColors.textSecondary),
-                      const SizedBox(width: DzSpacing.xs),
-                      Text(
-                        'Quick Add Task',
-                        style: DzTextStyles.caption.copyWith(
-                          color: DzColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                  color: DzColors.textSecondary,
                 ),
               ),
             ],
