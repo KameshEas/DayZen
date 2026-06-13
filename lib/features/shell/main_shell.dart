@@ -6,6 +6,7 @@ import '../journal/journal_page.dart';
 import '../planner/planner_page.dart';
 import '../settings/settings_page.dart';
 import '../tasks/new_task_page.dart';
+import '../debug/test_notification_page.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
 /// Index 2 is the FAB slot – tapping the FAB opens the New Task page.
@@ -56,6 +57,14 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TestNotificationPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../journal_controller.dart';
 import 'models/journal_entry.dart';
@@ -87,14 +89,20 @@ class _WeeklyReflectionBanner extends StatelessWidget {
   final int count;
 
   String get _headline {
-    if (count == 0) return 'Start your journey';
-    if (count <= 2) return 'Good start!';
-    if (count <= 4) return 'Keep it up!';
-    return 'You\'re on fire!';
+    if (count == 0) {
+      return AppConfig.journalReflectionMessages[0] ?? AppConfig.journalReflectionDefault;
+    } else if (count <= 2) {
+      return AppConfig.journalReflectionMessages[2] ?? AppConfig.journalReflectionDefault;
+    } else if (count <= 4) {
+      return AppConfig.journalReflectionMessages[4] ?? AppConfig.journalReflectionDefault;
+    }
+    return AppConfig.journalReflectionDefault;
   }
 
   String get _subtitle {
-    if (count == 0) return 'Write your first entry today.';
+    if (count == 0) {
+      return AppConfig.journalSubtitleMessages[0] ?? 'Write your first entry today.';
+    }
     return 'You\'ve logged $count entr${count == 1 ? 'y' : 'ies'} this week.\nConsistency is the key to mindfulness.';
   }
 
@@ -167,8 +175,7 @@ class _RecentEntriesHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final monthYear =
-        '${_monthName(now.month).toUpperCase()} ${now.year}';
+    final monthYear = DateFormatter.formatMonthYear(now);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -188,11 +195,6 @@ class _RecentEntriesHeader extends StatelessWidget {
       ],
     );
   }
-
-  String _monthName(int m) => const [
-        '', 'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ][m];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import '../config/app_config.dart';
 import '../../features/home/models/task_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,9 +72,8 @@ class DayOptimizer {
       });
 
     // ── Slot assignment ──────────────────────────────────────────────────────
-    // Start at 8:00 AM; pack tasks sequentially with 10-min micro-breaks
-    // between high-focus items and 5-min gaps between lighter ones.
-    int currentMinute = 8 * 60; // 8:00 AM
+    // Start at configured hour; pack tasks sequentially with breaks
+    int currentMinute = AppConfig.optimizerStartHour * 60;
     final suggestions = <AiSuggestion>[];
 
     for (final task in sorted) {
@@ -87,8 +87,8 @@ class DayOptimizer {
       ));
       final gap = task.priority == TaskPriority.high ||
               task.category == TaskCategory.mindful
-          ? 10
-          : 5;
+          ? AppConfig.highPriorityGapMinutes
+          : AppConfig.regularGapMinutes;
       currentMinute += durationMinutes + gap;
     }
 
@@ -127,10 +127,10 @@ class DayOptimizer {
     final scheduled = endM - startM;
     if (scheduled > 0) return scheduled;
     return switch (task.priority) {
-      TaskPriority.high => 90,
-      TaskPriority.zen => 60,
-      TaskPriority.routine => 30,
-      TaskPriority.low => 20,
+      TaskPriority.high => AppConfig.highPriorityDurationMinutes,
+      TaskPriority.zen => AppConfig.zenDurationMinutes,
+      TaskPriority.routine => AppConfig.routineDurationMinutes,
+      TaskPriority.low => AppConfig.lowDurationMinutes,
     };
   }
 
@@ -193,7 +193,7 @@ class DayOptimizer {
           'Total focused time: $durationText.';
     }
 
-    if (totalFocusMinutes > 240) {
+    if (totalFocusMinutes > AppConfig.heavyWorkloadThresholdMinutes) {
       return 'Heavy day ahead ($durationText of focus). '
           'I\'ve ordered tasks to protect your energy — '
           'high-stakes work first, lighter items after lunch.';
@@ -204,13 +204,12 @@ class DayOptimizer {
   }
 
   static String _breakRecommendation(int totalFocusMinutes) {
-    if (totalFocusMinutes > 300) {
-      return 'Schedule a 20-min break every 90 minutes. '
-          'A short walk or breathing exercise will restore peak focus.';
+    if (totalFocusMinutes > AppConfig.breakRecommendationHighThreshold) {
+      return AppConfig.breakRecommendationHigh;
     }
-    if (totalFocusMinutes > 150) {
-      return 'Take a 10-min mindful break around midday to sustain focus.';
+    if (totalFocusMinutes > AppConfig.breakRecommendationMediumThreshold) {
+      return AppConfig.breakRecommendationMedium;
     }
-    return 'Light day — a short stretch or breathing exercise is enough.';
+    return AppConfig.breakRecommendationLight;
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
 
@@ -36,11 +38,6 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Column(
       children: [
@@ -56,7 +53,7 @@ class _PlannerPageState extends State<PlannerPage> {
               ),
               const SizedBox(width: DzSpacing.sm),
               Text(
-                '${months[_selectedDate.month - 1]} ${_selectedDate.day}',
+                '${DateFormatter.monthAbbr(_selectedDate.month)} ${_selectedDate.day}',
                 style: DzTextStyles.heading1.copyWith(color: DzColors.zenGreen),
               ),
             ],
@@ -92,7 +89,7 @@ class _PlannerPageState extends State<PlannerPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        dayNames[day.weekday - 1],
+                        DateFormatter.weekdayAbbr(day),
                         style: DzTextStyles.small.copyWith(
                           color: isSelected
                               ? DzColors.white.withValues(alpha: 0.8)
@@ -151,10 +148,10 @@ class _TimelineView extends StatelessWidget {
   final int currentHour;
   final int currentMinute;
 
-  static const double _hourHeight = 72.0;
-  static const int _startHour = 6;
-  static const int _endHour = 23;
-  static const double _timeColWidth = 52.0;
+  static double get _hourHeight => AppConfig.timelineHourHeight;
+  static int get _startHour => AppConfig.timelineStartHour;
+  static int get _endHour => AppConfig.timelineEndHour;
+  static double get _timeColWidth => AppConfig.timelineColWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +273,7 @@ class _EventBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height.clamp(52.0, 200.0),
+      height: height.clamp(AppConfig.timelineMinEventHeight.toDouble(), AppConfig.timelineMaxEventHeight.toDouble()),
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: DzColors.cardBackground,

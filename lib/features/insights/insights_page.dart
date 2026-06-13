@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/services/content_service.dart';
 import '../app_data.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,16 +38,20 @@ class _InsightsData {
   static const completionDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   String get productivityDelta {
-    if (productivityScore >= 80) return 'Great week!';
-    if (productivityScore >= 50) return 'Making progress';
-    return 'Keep going!';
+    if (productivityScore >= AppConfig.excellentScoreThreshold) {
+      return AppConfig.productivityDeltaMessages[AppConfig.excellentScoreThreshold] ?? AppConfig.productivityDeltaDefault;
+    }
+    if (productivityScore >= AppConfig.goodScoreThreshold) {
+      return AppConfig.productivityDeltaMessages[AppConfig.goodScoreThreshold] ?? AppConfig.productivityDeltaDefault;
+    }
+    return AppConfig.productivityDeltaDefault;
   }
 
   String get aiQuote {
-    if (productivityScore >= 80) {
-      return '"Your morning focus sessions are driving this peak."';
+    if (productivityScore >= AppConfig.excellentScoreThreshold) {
+      return AppConfig.aiQuotesByScore[AppConfig.excellentScoreThreshold] ?? AppConfig.aiQuoteDefault;
     }
-    return '"Consistency beats perfection. Every small step counts."';
+    return AppConfig.aiQuoteDefault;
   }
 }
 

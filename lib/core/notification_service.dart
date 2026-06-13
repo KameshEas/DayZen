@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../features/home/models/task_model.dart';
@@ -69,11 +70,23 @@ class NotificationService {
       task.startTime.hour,
       task.startTime.minute,
     );
+    // Build timezone-aware datetimes
+    final preReminderMinutes = 5;
+    final preDateTime = taskDateTime.subtract(Duration(minutes: preReminderMinutes));
 
-    // Don't schedule if the time has already passed
-    if (taskDateTime.isBefore(now)) return;
+    // Don't schedule notifications in the past
+    final shouldScheduleOnTime = taskDateTime.isAfter(now);
+    final shouldSchedulePre = preDateTime.isAfter(now);
 
-    final notifId = task.id.hashCode.abs() % 0x7FFFFFFF; // keep within 32-bit int
+    debugPrint('NotificationService: scheduling task ${task.id}');
+    debugPrint(' - now: $now');
+    debugPrint(' - preDateTime: $preDateTime (will schedule: $shouldSchedulePre)');
+    debugPrint(' - taskDateTime: $taskDateTime (will schedule: $shouldScheduleOnTime)');
+
+    // Deterministic, non-colliding IDs: use a compact base and map to two ids
+    final base = task.id.hashCode.abs() % 0x3FFFFFFF; // keep base small
+    final onTimeId = (base * 2) % 0x7FFFFFFF;
+    final preId = (base * 2 + 1) % 0x7FFFFFFF;
 
     final priorityEmoji = switch (task.priority) {
       TaskPriority.high => '🔴',
@@ -82,38 +95,97 @@ class NotificationService {
       TaskPriority.low => '🔵',
     };
 
-    await _plugin.zonedSchedule(
-      id: notifId,
-      title: '$priorityEmoji ${task.title}',
-      body: 'Scheduled for ${task.timeRange}',
-      scheduledDate: taskDateTime,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'dayzen_tasks',
-          'Task Reminders',
-          channelDescription: 'Notifications for your planned activities',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
+    final details = const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'dayzen_tasks',
+        'Task Reminders',
+        channelDescription: 'Notifications for your planned activities',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
       ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      matchDateTimeComponents: null,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
     );
+
+    // Schedule pre-reminder 5 minutes before (if in future)
+    if (shouldSchedulePre) {
+      await _plugin.zonedSchedule(
+        id: preId,
+        title: '$priorityEmoji ${task.title} — Upcoming',
+        body: 'Starting in $preReminderMinutes minutes',
+        scheduledDate: preDateTime,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+      );
+      debugPrint('NotificationService: scheduled pre-reminder id=$preId at $preDateTime');
+    }
+
+    // Schedule on-time reminder
+    if (shouldScheduleOnTime) {
+      await _plugin.zonedSchedule(
+        id: onTimeId,
+        title: '$priorityEmoji ${task.title}',
+        body: 'Scheduled for ${task.timeRange}',
+        scheduledDate: taskDateTime,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+      );
+      debugPrint('NotificationService: scheduled on-time id=$onTimeId at $taskDateTime');
+    }
   }
 
   // ── Cancel a single task's notification ───────────────────────────────
 
   Future<void> cancelForTask(String taskId) async {
     if (!_initialized) return;
-    final notifId = taskId.hashCode.abs() % 0x7FFFFFFF;
-    await _plugin.cancel(id: notifId);
+    final base = taskId.hashCode.abs() % 0x3FFFFFFF;
+    final onTimeId = (base * 2) % 0x7FFFFFFF;
+    final preId = (base * 2 + 1) % 0x7FFFFFFF;
+    await _plugin.cancel(id: onTimeId);
+    debugPrint('NotificationService: cancelled on-time id=$onTimeId for task $taskId');
+    await _plugin.cancel(id: preId);
+    debugPrint('NotificationService: cancelled pre-reminder id=$preId for task $taskId');
+  }
+
+  /// Send an immediate notification (useful for debugging).
+  Future<void> showImmediateNotification({
+    int id = 0,
+    required String title,
+    required String body,
+  }) async {
+    if (!_initialized) return;
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'dayzen_tasks',
+        'Task Reminders',
+        channelDescription: 'Notifications for your planned activities',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.show(id, title, body, details);
+  }
+
+  /// Return pending notification requests (debugging helper).
+  Future<List<PendingNotificationRequest>> pendingRequests() async {
+    if (!_initialized) return <PendingNotificationRequest>[];
+    return await _plugin.pendingNotificationRequests();
   }
 
   // ── Cancel all notifications ──────────────────────────────────────────

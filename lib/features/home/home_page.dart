@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../../core/services/content_service.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
 import '../tasks/new_task_page.dart';
@@ -27,19 +30,13 @@ class _HomeBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final hour = now.hour;
-    final greeting = hour < 12
-        ? 'Good Morning'
-        : hour < 17
-            ? 'Good Afternoon'
-            : 'Good Evening';
+    final greeting = hour < AppConfig.morningHourThreshold
+        ? AppConfig.greetingMorning
+        : hour < AppConfig.afternoonHourThreshold
+            ? AppConfig.greetingAfternoon
+            : AppConfig.greetingEvening;
 
-    final weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    final months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-    ];
-    final dateLabel =
-        '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+    final dateLabel = DateFormatter.formatDate(now);
 
     final tasks = taskCtrl.forDate(now);
     final remaining = tasks.where((t) => !t.isCompleted).length;
@@ -169,11 +166,11 @@ class _HomeBody extends StatelessWidget {
               Text(
                 tasks.isEmpty
                     ? 'Add tasks to track your focus score.'
-                    : score >= 80
-                        ? 'Excellent focus — keep it up!'
-                        : score >= 50
-                            ? 'Good progress — keep going!'
-                            : 'Let\'s try to improve focus today.',
+                    : score >= AppConfig.excellentScoreThreshold
+                        ? AppConfig.messageExcellent
+                        : score >= AppConfig.goodScoreThreshold
+                            ? AppConfig.messageGood
+                            : AppConfig.messageNeedImprovement,
                 style: DzTextStyles.body.copyWith(
                   color: DzColors.textSecondary,
                 ),
@@ -260,44 +257,50 @@ class _HomeBody extends StatelessWidget {
         const SizedBox(height: DzSpacing.md),
 
         // ── Daily Reflection ─────────────────────────────────────
-        DzCard(
-          padding: const EdgeInsets.all(DzSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        FutureBuilder<String>(
+          future: ContentService.instance.getDailyReflectionQuote(),
+          builder: (context, snapshot) {
+            final quote = snapshot.data ?? AppConfig.defaultDailyReflectionQuote;
+            return DzCard(
+              padding: const EdgeInsets.all(DzSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.format_quote_rounded,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 22,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.format_quote_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: DzSpacing.sm),
+                      Text('Daily Reflection', style: DzTextStyles.heading3),
+                    ],
                   ),
-                  const SizedBox(width: DzSpacing.sm),
-                  Text('Daily Reflection', style: DzTextStyles.heading3),
+                  const SizedBox(height: DzSpacing.md),
+                  Text(
+                    quote,
+                    style: DzTextStyles.body.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: DzColors.textPrimary,
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: DzSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '\u2014 ${AppConfig.defaultDailyReflectionAuthor}',
+                      style: DzTextStyles.small.copyWith(
+                        color: DzColors.textSecondary,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: DzSpacing.md),
-              Text(
-                '"The secret of your future is hidden in your daily routine."',
-                style: DzTextStyles.body.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: DzColors.textPrimary,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: DzSpacing.sm),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '\u2014 MIKE MURDOCK',
-                  style: DzTextStyles.small.copyWith(
-                    color: DzColors.textSecondary,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
         const SizedBox(height: DzSpacing.xl),
       ],

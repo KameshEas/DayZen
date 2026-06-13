@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
 
@@ -53,49 +55,24 @@ class _NewTaskPageState extends State<NewTaskPage> {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _formatScheduled() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final selected = DateTime(_scheduledDate.year, _scheduledDate.month, _scheduledDate.day);
-
-    final diff = selected.difference(today).inDays;
-    final dayLabel = diff == 0
-        ? 'Today'
-        : diff == 1
-            ? 'Tomorrow'
-            : '${_weekday(_scheduledDate)}, ${_scheduledDate.day} ${_monthAbbr(_scheduledDate.month)}';
-
-    final h = _startTime.hourOfPeriod == 0 ? 12 : _startTime.hourOfPeriod;
-    final m = _startTime.minute.toString().padLeft(2, '0');
-    final period = _startTime.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$dayLabel at $h:$m $period';
+    return DateFormatter.formatTaskSchedule(_scheduledDate, _startTime.hour, _startTime.minute);
   }
 
-  String _weekday(DateTime d) =>
-      const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d.weekday - 1];
+  String _focusLabel() {
+    final categoryName = _category.name;
+    return AppConfig.categoryFocusLabels[categoryName] ?? 'Focus Session';
+  }
 
-  String _monthAbbr(int m) =>
-      const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
+  String _focusInitials() {
+    final categoryName = _category.name;
+    return AppConfig.categoryInitials[categoryName] ?? 'FS';
+  }
 
-  String _focusLabel() => switch (_category) {
-        TaskCategory.work => 'Deep Work Session',
-        TaskCategory.personal => 'Personal Time',
-        TaskCategory.mindful => 'Mindful Afternoon',
-        TaskCategory.study => 'Focus Study Block',
-      };
-
-  String _focusInitials() => switch (_category) {
-        TaskCategory.work => 'DW',
-        TaskCategory.personal => 'PT',
-        TaskCategory.mindful => 'MA',
-        TaskCategory.study => 'FS',
-      };
-
-  Color _focusColor() => switch (_category) {
-        TaskCategory.work => const Color(0xFF3B82F6),
-        TaskCategory.personal => const Color(0xFF8B5CF6),
-        TaskCategory.mindful => const Color(0xFF10B981),
-        TaskCategory.study => const Color(0xFFF59E0B),
-      };
+  Color _focusColor() {
+    final categoryName = _category.name;
+    final colorValue = AppConfig.categoryColors[categoryName] ?? 0xFF3B82F6;
+    return Color(colorValue);
+  }
 
   TaskPriority _toDzPriority() => switch (_priority) {
         _PriorityLevel.low => TaskPriority.low,
