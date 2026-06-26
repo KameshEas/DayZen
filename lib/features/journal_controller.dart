@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/data/journal_repository.dart';
+import '../core/services/journal_sync_manager.dart';
 import 'journal/models/journal_entry.dart';
 
 class JournalController extends ChangeNotifier {
@@ -26,18 +27,34 @@ class JournalController extends ChangeNotifier {
     _entries = await JournalRepository.load();
     _entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     notifyListeners();
+    // Sync with server in background
+    syncWithServer();
   }
 
   Future<void> addEntry(JournalEntry entry) async {
     _entries.insert(0, entry);
     await JournalRepository.save(_entries);
     notifyListeners();
+    // Queue for sync (fire-and-forget)
+    JournalSyncManager.instance.createEntryWithSync(this, entry);
   }
 
   Future<void> deleteEntry(String id) async {
     _entries.removeWhere((e) => e.id == id);
     await JournalRepository.save(_entries);
     notifyListeners();
+    // Queue for sync (fire-and-forget)
+    JournalSyncManager.instance.deleteEntryWithSync(this, id);
+  }
+
+  /// Sync entries with server (background operation).
+  Future<void> syncWithServer() async {
+    try {
+      await JournalSyncManager.instance.syncEntries(this);
+    } catch (e) {
+      debugPrint('Background journal sync failed: $e');
+      // Silently fail - local state is preserved
+    }
   }
 
   Future<void> clearAll() async {

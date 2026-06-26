@@ -5,6 +5,7 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../journal_controller.dart';
 import 'models/journal_entry.dart';
+import 'widgets/journal_sync_indicator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // JournalPage
@@ -45,6 +46,11 @@ class _JournalPageState extends State<JournalPage> {
           children: [
             _WeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
             const SizedBox(height: DzSpacing.xl),
+            JournalSyncIndicator(
+              journalController: journalCtrl,
+              showFullStatus: true,
+            ),
+            const SizedBox(height: DzSpacing.md),
             const _RecentEntriesHeader(),
             const SizedBox(height: DzSpacing.md),
             ..._buildEntries(journalCtrl),
