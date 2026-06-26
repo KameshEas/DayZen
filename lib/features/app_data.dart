@@ -4,9 +4,9 @@ import 'journal_controller.dart';
 import 'settings/settings_controller.dart';
 import 'insights_controller.dart';
 import 'ai_optimization_controller.dart';
+import 'notification_controller.dart';
 
-/// Provides [TaskController], [JournalController], [SettingsController],
-/// [InsightsController], and [AIOptimizationController] to the entire widget tree.
+/// Provides all app controllers to the entire widget tree.
 ///
 /// Access via [AppData.of(context)].
 class AppData extends InheritedWidget {
@@ -17,6 +17,7 @@ class AppData extends InheritedWidget {
     required this.settings,
     required this.insights,
     required this.aiOptimization,
+    required this.notifications,
     required super.child,
   });
 
@@ -25,6 +26,7 @@ class AppData extends InheritedWidget {
   final SettingsController settings;
   final InsightsController insights;
   final AIOptimizationController aiOptimization;
+  final NotificationController notifications;
 
   static AppData of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppData>()!;
@@ -35,5 +37,6 @@ class AppData extends InheritedWidget {
       journal != old.journal ||
       settings != old.settings ||
       insights != old.insights ||
-      aiOptimization != old.aiOptimization;
+      aiOptimization != old.aiOptimization ||
+      notifications != old.notifications;
 }

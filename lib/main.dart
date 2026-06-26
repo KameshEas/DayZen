@@ -10,6 +10,7 @@ import 'features/biometric/biometric_auth_page.dart';
 import 'features/journal_controller.dart';
 import 'features/insights_controller.dart';
 import 'features/ai_optimization_controller.dart';
+import 'features/notification_controller.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/pin/pin_setup_page.dart';
 import 'features/pin/pin_unlock_page.dart';
@@ -25,6 +26,7 @@ void main() async {
   final settingsCtrl = SettingsController();
   final insightsCtrl = InsightsController();
   final aiOptCtrl = AIOptimizationController();
+  final notifCtrl = NotificationController();
 
   // Check device biometric hardware availability
   final auth = LocalAuthentication();
@@ -47,6 +49,7 @@ void main() async {
     settingsCtrl.load(),
     insightsCtrl.load(),
     aiOptCtrl.load(),
+    notifCtrl.load(),
   ]);
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
@@ -67,6 +70,7 @@ void main() async {
     settings: settingsCtrl,
     insights: insightsCtrl,
     aiOptimization: aiOptCtrl,
+    notifications: notifCtrl,
     child: DayZenApp(
       showOnboarding: !seenOnboarding,
       hasPin: hasPin,
