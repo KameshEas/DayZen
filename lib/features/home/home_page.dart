@@ -9,6 +9,7 @@ import '../tasks/new_task_page.dart';
 import 'day_optimizer_sheet.dart';
 import 'models/task_model.dart';
 import 'widgets/sync_status_indicator.dart';
+import 'widgets/ai_recommendations_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -101,6 +102,12 @@ class _HomeBody extends StatelessWidget {
         SyncStatusIndicator(
           taskController: taskCtrl,
           showFullStatus: true,
+        ),
+        const SizedBox(height: DzSpacing.md),
+
+        // ── AI Recommendations ───────────────────────────────────
+        AIRecommendationsCard(
+          aiController: AppData.of(context).aiOptimization,
         ),
         const SizedBox(height: DzSpacing.md),
 

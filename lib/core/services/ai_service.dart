@@ -1,0 +1,349 @@
+/// Service for AI-powered optimization, recommendations, and insights.
+library;
+
+import '../api/api_client.dart';
+
+/// Task recommendation from AI.
+class TaskRecommendation {
+  final String id;
+  final String title;
+  final String reason;
+  final int priorityScore; // 0-100
+  final DateTime suggestedDate;
+  final int suggestedStartHour;
+  final int suggestedStartMinute;
+  final String category;
+  final double confidenceScore; // 0-1.0
+
+  TaskRecommendation({
+    required this.id,
+    required this.title,
+    required this.reason,
+    required this.priorityScore,
+    required this.suggestedDate,
+    required this.suggestedStartHour,
+    required this.suggestedStartMinute,
+    required this.category,
+    required this.confidenceScore,
+  });
+
+  factory TaskRecommendation.fromJson(Map<String, dynamic> json) {
+    return TaskRecommendation(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      reason: json['reason'] as String,
+      priorityScore: json['priority_score'] as int? ?? 50,
+      suggestedDate: DateTime.parse(json['suggested_date'] as String),
+      suggestedStartHour: json['suggested_start_hour'] as int? ?? 9,
+      suggestedStartMinute: json['suggested_start_minute'] as int? ?? 0,
+      category: json['category'] as String? ?? 'work',
+      confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
+    );
+  }
+}
+
+/// Schedule optimization suggestion.
+class ScheduleOptimization {
+  final String taskId;
+  final String taskTitle;
+  final int currentStartHour;
+  final int currentStartMinute;
+  final int recommendedStartHour;
+  final int recommendedStartMinute;
+  final String reason;
+  final double confidenceScore; // 0-1.0
+
+  ScheduleOptimization({
+    required this.taskId,
+    required this.taskTitle,
+    required this.currentStartHour,
+    required this.currentStartMinute,
+    required this.recommendedStartHour,
+    required this.recommendedStartMinute,
+    required this.reason,
+    required this.confidenceScore,
+  });
+
+  factory ScheduleOptimization.fromJson(Map<String, dynamic> json) {
+    return ScheduleOptimization(
+      taskId: json['task_id'] as String,
+      taskTitle: json['task_title'] as String,
+      currentStartHour: json['current_start_hour'] as int,
+      currentStartMinute: json['current_start_minute'] as int,
+      recommendedStartHour: json['recommended_start_hour'] as int,
+      recommendedStartMinute: json['recommended_start_minute'] as int,
+      reason: json['reason'] as String,
+      confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
+    );
+  }
+}
+
+/// AI-generated productivity insight.
+class ProductivityInsight {
+  final String title;
+  final String description;
+  final String category; // habit, timing, focus, etc.
+  final String? actionableAdvice;
+  final int impactScore; // 1-10
+
+  ProductivityInsight({
+    required this.title,
+    required this.description,
+    required this.category,
+    this.actionableAdvice,
+    required this.impactScore,
+  });
+
+  factory ProductivityInsight.fromJson(Map<String, dynamic> json) {
+    return ProductivityInsight(
+      title: json['title'] as String,
+      description: json['description'] as String,
+      category: json['category'] as String? ?? 'general',
+      actionableAdvice: json['actionable_advice'] as String?,
+      impactScore: json['impact_score'] as int? ?? 5,
+    );
+  }
+}
+
+/// Smart reminder suggestion.
+class SmartReminder {
+  final String id;
+  final String taskId;
+  final String taskTitle;
+  final DateTime reminderTime;
+  final String reminderType; // before_deadline, optimal_time, focus_block, etc.
+  final String message;
+  final double confidenceScore;
+
+  SmartReminder({
+    required this.id,
+    required this.taskId,
+    required this.taskTitle,
+    required this.reminderTime,
+    required this.reminderType,
+    required this.message,
+    required this.confidenceScore,
+  });
+
+  factory SmartReminder.fromJson(Map<String, dynamic> json) {
+    return SmartReminder(
+      id: json['id'] as String,
+      taskId: json['task_id'] as String,
+      taskTitle: json['task_title'] as String,
+      reminderTime: DateTime.parse(json['reminder_time'] as String),
+      reminderType: json['reminder_type'] as String,
+      message: json['message'] as String,
+      confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
+    );
+  }
+}
+
+/// Service for AI operations.
+class AIService {
+  AIService._();
+
+  static final AIService _instance = AIService._();
+
+  static AIService get instance => _instance;
+
+  static final ApiClient _apiClient = ApiClient();
+
+  // Cache
+  final Map<String, List<TaskRecommendation>> _recommendationCache = {};
+  final Map<String, List<ScheduleOptimization>> _optimizationCache = {};
+  final Map<String, List<ProductivityInsight>> _insightCache = {};
+  final Map<String, List<SmartReminder>> _reminderCache = {};
+  DateTime? _lastSyncTime;
+
+  /// Get AI task recommendations for date.
+  Future<List<TaskRecommendation>> getTaskRecommendations({
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'recommendations_$dateStr';
+
+      // Return from cache if available
+      if (_recommendationCache.containsKey(cacheKey)) {
+        return _recommendationCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get('/ai/recommendations/tasks?date=$dateStr');
+      final recommendations = (response['recommendations'] as List<dynamic>?)
+          ?.map((r) => TaskRecommendation.fromJson(r as Map<String, dynamic>))
+          .toList() ?? [];
+
+      _recommendationCache[cacheKey] = recommendations;
+      return recommendations;
+    } on ApiException {
+      // Return cached if available
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'recommendations_$dateStr';
+      if (_recommendationCache.containsKey(cacheKey)) {
+        return _recommendationCache[cacheKey]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Get schedule optimization suggestions.
+  Future<List<ScheduleOptimization>> getScheduleOptimizations({
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'optimizations_$dateStr';
+
+      if (_optimizationCache.containsKey(cacheKey)) {
+        return _optimizationCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get('/ai/optimization/schedule?date=$dateStr');
+      final optimizations = (response['optimizations'] as List<dynamic>?)
+          ?.map((o) => ScheduleOptimization.fromJson(o as Map<String, dynamic>))
+          .toList() ?? [];
+
+      _optimizationCache[cacheKey] = optimizations;
+      return optimizations;
+    } on ApiException {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'optimizations_$dateStr';
+      if (_optimizationCache.containsKey(cacheKey)) {
+        return _optimizationCache[cacheKey]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Get productivity insights.
+  Future<List<ProductivityInsight>> getProductivityInsights({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+      final end = endDate ?? DateTime.now();
+      final startStr = start.toIso8601String().split('T').first;
+      final endStr = end.toIso8601String().split('T').first;
+      final cacheKey = 'insights_${startStr}_$endStr';
+
+      if (_insightCache.containsKey(cacheKey)) {
+        return _insightCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get(
+        '/ai/insights/productivity?start_date=$startStr&end_date=$endStr',
+      );
+      final insights = (response['insights'] as List<dynamic>?)
+          ?.map((i) => ProductivityInsight.fromJson(i as Map<String, dynamic>))
+          .toList() ?? [];
+
+      _insightCache[cacheKey] = insights;
+      return insights;
+    } on ApiException {
+      final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+      final end = endDate ?? DateTime.now();
+      final startStr = start.toIso8601String().split('T').first;
+      final endStr = end.toIso8601String().split('T').first;
+      final cacheKey = 'insights_${startStr}_$endStr';
+      if (_insightCache.containsKey(cacheKey)) {
+        return _insightCache[cacheKey]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Get smart reminder suggestions.
+  Future<List<SmartReminder>> getSmartReminders({
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'reminders_$dateStr';
+
+      if (_reminderCache.containsKey(cacheKey)) {
+        return _reminderCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get('/ai/reminders/smart?date=$dateStr');
+      final reminders = (response['reminders'] as List<dynamic>?)
+          ?.map((r) => SmartReminder.fromJson(r as Map<String, dynamic>))
+          .toList() ?? [];
+
+      _reminderCache[cacheKey] = reminders;
+      return reminders;
+    } on ApiException {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = 'reminders_$dateStr';
+      if (_reminderCache.containsKey(cacheKey)) {
+        return _reminderCache[cacheKey]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Sync all AI data for date range.
+  Future<Map<String, dynamic>> syncAIData({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final startStr = startDate.toIso8601String().split('T').first;
+      final endStr = endDate.toIso8601String().split('T').first;
+
+      final response = await _apiClient.post('/ai/sync', {
+        'start_date': startStr,
+        'end_date': endStr,
+      });
+
+      // Parse recommendations
+      final recommendations = (response['recommendations'] as List<dynamic>?)
+          ?.map((r) => TaskRecommendation.fromJson(r as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Parse optimizations
+      final optimizations = (response['optimizations'] as List<dynamic>?)
+          ?.map((o) => ScheduleOptimization.fromJson(o as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Parse insights
+      final insights = (response['insights'] as List<dynamic>?)
+          ?.map((i) => ProductivityInsight.fromJson(i as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Parse reminders
+      final reminders = (response['reminders'] as List<dynamic>?)
+          ?.map((r) => SmartReminder.fromJson(r as Map<String, dynamic>))
+          .toList() ?? [];
+
+      _lastSyncTime = DateTime.now();
+
+      return {
+        'recommendations': recommendations,
+        'optimizations': optimizations,
+        'insights': insights,
+        'reminders': reminders,
+        'synced_at': DateTime.parse(response['synced_at'] as String),
+      };
+    } on ApiException {
+      rethrow;
+    }
+  }
+
+  /// Get last sync time.
+  DateTime? get lastSyncTime => _lastSyncTime;
+
+  /// Clear cache (on logout).
+  void clearCache() {
+    _recommendationCache.clear();
+    _optimizationCache.clear();
+    _insightCache.clear();
+    _reminderCache.clear();
+    _lastSyncTime = null;
+  }
+
+  /// Get error message.
+  static String getErrorMessage(ApiException exception) {
+    return ApiClient.getUserErrorMessage(exception);
+  }
+}

@@ -5,6 +5,7 @@ import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/services/content_service.dart';
 import '../app_data.dart';
+import 'widgets/insights_sync_indicator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock data
@@ -66,7 +67,7 @@ class InsightsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final appData = AppData.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge([appData.tasks, appData.journal]),
+      listenable: Listenable.merge([appData.tasks, appData.journal, appData.insights]),
       builder: (context, _) {
         final d = _InsightsData.from(context);
         return ListView(
@@ -75,6 +76,11 @@ class InsightsPage extends StatelessWidget {
           children: [
             const _Greeting(),
             const SizedBox(height: DzSpacing.lg),
+            InsightsSyncIndicator(
+              insightsController: appData.insights,
+              showFullStatus: true,
+            ),
+            const SizedBox(height: DzSpacing.md),
             _ProductivityScoreCard(data: d),
             const SizedBox(height: DzSpacing.md),
             _FocusTrendCard(data: d),

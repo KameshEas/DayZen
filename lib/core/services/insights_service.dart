@@ -1,0 +1,264 @@
+/// Service for insights/analytics management with cloud sync and offline support.
+library;
+
+import '../api/api_client.dart';
+
+/// Daily insights response from API (productivity, mood, focus stats).
+class DailyInsights {
+  final DateTime date;
+  final int taskCompletionCount;
+  final int taskTotalCount;
+  final int focusMinutes;
+  final int journalEntryCount;
+  final String? mostCommonMood;
+  final int productivityScore; // 0-100
+  final List<String> tags;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  DailyInsights({
+    required this.date,
+    required this.taskCompletionCount,
+    required this.taskTotalCount,
+    required this.focusMinutes,
+    required this.journalEntryCount,
+    this.mostCommonMood,
+    required this.productivityScore,
+    required this.tags,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  /// Parse from API response.
+  factory DailyInsights.fromJson(Map<String, dynamic> json) {
+    return DailyInsights(
+      date: DateTime.parse(json['date'] as String),
+      taskCompletionCount: json['task_completion_count'] as int? ?? 0,
+      taskTotalCount: json['task_total_count'] as int? ?? 0,
+      focusMinutes: json['focus_minutes'] as int? ?? 0,
+      journalEntryCount: json['journal_entry_count'] as int? ?? 0,
+      mostCommonMood: json['most_common_mood'] as String?,
+      productivityScore: json['productivity_score'] as int? ?? 0,
+      tags: List<String>.from(json['tags'] as List<dynamic>? ?? []),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+}
+
+/// Weekly insights aggregation.
+class WeeklyInsights {
+  final DateTime weekStart;
+  final int totalTaskCompletions;
+  final int totalFocusMinutes;
+  final int totalJournalEntries;
+  final int averageProductivityScore;
+  final Map<String, int> moodDistribution; // mood -> count
+  final int streakDays;
+  final DateTime updatedAt;
+
+  WeeklyInsights({
+    required this.weekStart,
+    required this.totalTaskCompletions,
+    required this.totalFocusMinutes,
+    required this.totalJournalEntries,
+    required this.averageProductivityScore,
+    required this.moodDistribution,
+    required this.streakDays,
+    required this.updatedAt,
+  });
+
+  /// Parse from API response.
+  factory WeeklyInsights.fromJson(Map<String, dynamic> json) {
+    final moodData = json['mood_distribution'] as Map<String, dynamic>? ?? {};
+    final moodMap = <String, int>{};
+    moodData.forEach((key, value) {
+      moodMap[key] = value as int;
+    });
+
+    return WeeklyInsights(
+      weekStart: DateTime.parse(json['week_start'] as String),
+      totalTaskCompletions: json['total_task_completions'] as int? ?? 0,
+      totalFocusMinutes: json['total_focus_minutes'] as int? ?? 0,
+      totalJournalEntries: json['total_journal_entries'] as int? ?? 0,
+      averageProductivityScore: json['average_productivity_score'] as int? ?? 0,
+      moodDistribution: moodMap,
+      streakDays: json['streak_days'] as int? ?? 0,
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+}
+
+/// Service for insights API operations.
+class InsightsService {
+  InsightsService._();
+
+  static final InsightsService _instance = InsightsService._();
+
+  static InsightsService get instance => _instance;
+
+  static final ApiClient _apiClient = ApiClient();
+
+  // Cache
+  final Map<String, DailyInsights> _dailyCache = {};
+  final Map<String, WeeklyInsights> _weeklyCache = {};
+  DateTime? _lastSyncTime;
+
+  /// Get insights for a specific date.
+  Future<DailyInsights> getInsightForDate(DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T').first;
+      final cacheKey = dateStr;
+
+      // Return from cache if available
+      if (_dailyCache.containsKey(cacheKey)) {
+        return _dailyCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get('/insights/daily/$dateStr');
+      final insights = DailyInsights.fromJson(response);
+      _dailyCache[cacheKey] = insights;
+      return insights;
+    } on ApiException {
+      // Try to return cached version
+      final dateStr = date.toIso8601String().split('T').first;
+      if (_dailyCache.containsKey(dateStr)) {
+        return _dailyCache[dateStr]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Get insights for a date range.
+  Future<List<DailyInsights>> getInsightsRange({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final startStr = startDate.toIso8601String().split('T').first;
+      final endStr = endDate.toIso8601String().split('T').first;
+
+      final response = await _apiClient.get('/insights/daily?start_date=$startStr&end_date=$endStr');
+      final insights = (response['insights'] as List<dynamic>?)
+          ?.map((i) => DailyInsights.fromJson(i as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Cache all results
+      for (final insight in insights) {
+        final key = insight.date.toIso8601String().split('T').first;
+        _dailyCache[key] = insight;
+      }
+
+      return insights;
+    } on ApiException {
+      // Return cached insights if available
+      final cached = _dailyCache.values.where((i) {
+        return !i.date.isBefore(startDate) && !i.date.isAfter(endDate);
+      }).toList();
+      if (cached.isNotEmpty) {
+        return cached;
+      }
+      rethrow;
+    }
+  }
+
+  /// Get weekly insights.
+  Future<WeeklyInsights> getWeeklyInsights(DateTime weekStart) async {
+    try {
+      final weekStr = weekStart.toIso8601String().split('T').first;
+      final cacheKey = weekStr;
+
+      if (_weeklyCache.containsKey(cacheKey)) {
+        return _weeklyCache[cacheKey]!;
+      }
+
+      final response = await _apiClient.get('/insights/weekly/$weekStr');
+      final insights = WeeklyInsights.fromJson(response);
+      _weeklyCache[cacheKey] = insights;
+      return insights;
+    } on ApiException {
+      // Return cached version if available
+      final weekStr = weekStart.toIso8601String().split('T').first;
+      if (_weeklyCache.containsKey(weekStr)) {
+        return _weeklyCache[weekStr]!;
+      }
+      rethrow;
+    }
+  }
+
+  /// Sync insights (read-only from backend perspective).
+  /// Backend calculates insights from tasks/journal/etc., no client writes.
+  Future<Map<String, dynamic>> syncInsights({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final startStr = startDate.toIso8601String().split('T').first;
+      final endStr = endDate.toIso8601String().split('T').first;
+
+      final response = await _apiClient.post('/insights/sync', {
+        'start_date': startStr,
+        'end_date': endStr,
+      });
+
+      // Parse daily insights
+      final dailyInsights = (response['daily'] as List<dynamic>?)
+          ?.map((i) => DailyInsights.fromJson(i as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Cache all daily insights
+      for (final insight in dailyInsights) {
+        final key = insight.date.toIso8601String().split('T').first;
+        _dailyCache[key] = insight;
+      }
+
+      // Parse weekly insights
+      final weeklyInsights = (response['weekly'] as List<dynamic>?)
+          ?.map((w) => WeeklyInsights.fromJson(w as Map<String, dynamic>))
+          .toList() ?? [];
+
+      // Cache all weekly insights
+      for (final insight in weeklyInsights) {
+        final key = insight.weekStart.toIso8601String().split('T').first;
+        _weeklyCache[key] = insight;
+      }
+
+      _lastSyncTime = DateTime.now();
+
+      return {
+        'daily_insights': dailyInsights,
+        'weekly_insights': weeklyInsights,
+        'synced_at': DateTime.parse(response['synced_at'] as String),
+      };
+    } on ApiException {
+      rethrow;
+    }
+  }
+
+  /// Get current week's insights.
+  Future<WeeklyInsights> getCurrentWeekInsights() async {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    return getWeeklyInsights(weekStart);
+  }
+
+  /// Get today's insights.
+  Future<DailyInsights> getTodayInsights() async {
+    return getInsightForDate(DateTime.now());
+  }
+
+  /// Get last sync time.
+  DateTime? get lastSyncTime => _lastSyncTime;
+
+  /// Clear cache (on logout).
+  void clearCache() {
+    _dailyCache.clear();
+    _weeklyCache.clear();
+    _lastSyncTime = null;
+  }
+
+  /// Get error message.
+  static String getErrorMessage(ApiException exception) {
+    return ApiClient.getUserErrorMessage(exception);
+  }
+}
