@@ -179,7 +179,12 @@ class NotificationService {
       ),
     );
 
-    await _plugin.show(id, title, body, details);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+    );
   }
 
   /// Return pending notification requests (debugging helper).

@@ -7,6 +7,11 @@ library;
 class AppConfig {
   AppConfig._();
 
+  // ── API Configuration ───────────────────────────────────────────────────
+  static const String apiBaseUrl = 'http://localhost:8000/v1';
+  static const int apiTimeoutSeconds = 10;
+  static const int cacheValidityHours = 24;
+
   // ── Time & Date Configuration ────────────────────────────────────────
   static const List<String> weekdayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
   static const List<String> weekdayFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

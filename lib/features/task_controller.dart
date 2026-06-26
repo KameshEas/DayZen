@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
 import '../core/notification_service.dart';
+import '../core/services/sync_manager.dart';
 import 'home/models/task_model.dart';
 
 class TaskController extends ChangeNotifier {
@@ -117,6 +118,18 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
     }
+    // Sync with server in background
+    syncWithServer();
+  }
+
+  /// Sync tasks with server (background operation).
+  Future<void> syncWithServer() async {
+    try {
+      await SyncManager.instance.syncTasks(this);
+    } catch (e) {
+      debugPrint('Background sync failed: $e');
+      // Silently fail - local state is preserved
+    }
   }
 
   Future<void> addTask(DzTask task) async {
@@ -126,20 +139,40 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.scheduleForTask(task);
     }
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.createTaskWithSync(this, task);
   }
 
   Future<void> toggleTask(String id) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
-    _tasks[idx] = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
+    final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
+    _tasks[idx] = updatedTask;
     await TaskRepository.save(_tasks);
     notifyListeners();
     // Cancel notification if completed; re-schedule if unchecked
     if (_notificationsEnabled) {
-      if (_tasks[idx].isCompleted) {
+      if (updatedTask.isCompleted) {
         await NotificationService.instance.cancelForTask(id);
       } else {
-        await NotificationService.instance.scheduleForTask(_tasks[idx]);
+        await NotificationService.instance.scheduleForTask(updatedTask);
+      }
+    }
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
+  }
+
+  Future<void> updateTask(String id, DzTask updatedTask) async {
+    final idx = _tasks.indexWhere((t) => t.id == id);
+    if (idx == -1) return;
+    _tasks[idx] = updatedTask;
+    await TaskRepository.save(_tasks);
+    notifyListeners();
+    if (_notificationsEnabled) {
+      if (updatedTask.isCompleted) {
+        await NotificationService.instance.cancelForTask(id);
+      } else {
+        await NotificationService.instance.scheduleForTask(updatedTask);
       }
     }
   }
@@ -151,6 +184,8 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.cancelForTask(id);
     }
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.deleteTaskWithSync(this, id);
   }
 
   Future<void> clearAll() async {

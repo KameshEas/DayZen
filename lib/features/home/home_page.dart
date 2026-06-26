@@ -8,6 +8,7 @@ import '../task_controller.dart';
 import '../tasks/new_task_page.dart';
 import 'day_optimizer_sheet.dart';
 import 'models/task_model.dart';
+import 'widgets/sync_status_indicator.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -95,6 +96,13 @@ class _HomeBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: DzSpacing.lg),
+
+        // ── Sync Status ──────────────────────────────────────────
+        SyncStatusIndicator(
+          taskController: taskCtrl,
+          showFullStatus: true,
+        ),
+        const SizedBox(height: DzSpacing.md),
 
         // ── Focus Score Card ─────────────────────────────────────
         DzCard(

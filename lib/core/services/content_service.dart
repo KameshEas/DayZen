@@ -5,41 +5,85 @@ import '../api/api_client.dart';
 import '../config/app_config.dart';
 
 class ContentService {
-  ContentService._() {
-    _apiClient = ApiClient();
-  }
+  ContentService._();
 
   static final instance = ContentService._();
 
-  late final ApiClient _apiClient;
+  static final ApiClient _apiClient = ApiClient();
+
   String? _cachedDailyQuote;
   DateTime? _lastQuoteFetch;
+  String? _cachedRandomQuote;
+  DateTime? _lastRandomQuoteFetch;
 
+  /// Fetch today's daily reflection quote from API.
+  /// Caches result for 24 hours. Falls back to default on error.
   Future<String> getDailyReflectionQuote() async {
     try {
-      // Check cache (valid for 24 hours)
+      // Check cache validity (24 hours)
       if (_cachedDailyQuote != null && _lastQuoteFetch != null) {
-        if (DateTime.now().difference(_lastQuoteFetch!).inHours < 24) {
+        final hoursSinceFetch = DateTime.now().difference(_lastQuoteFetch!).inHours;
+        if (hoursSinceFetch < AppConfig.cacheValidityHours) {
           return _cachedDailyQuote!;
         }
       }
 
-      // Fetch from API
-      try {
-        final response = await _apiClient.get('/quotes/daily');
-        if (response.containsKey('quote') && response['quote'] is String) {
-          _cachedDailyQuote = response['quote'] as String;
-          _lastQuoteFetch = DateTime.now();
-          return _cachedDailyQuote!;
-        }
-      } on ApiException {
-        // API call failed, will use fallback below
+      // Fetch fresh quote from public API endpoint
+      final response = await _apiClient.publicGet('/quotes/daily');
+
+      if (response.containsKey('quote') && response['quote'] is String) {
+        _cachedDailyQuote = response['quote'] as String;
+        _lastQuoteFetch = DateTime.now();
+        return _cachedDailyQuote!;
       }
 
-      // Fallback to default if API fails
+      // Fallback to default if response invalid
       return AppConfig.defaultDailyReflectionQuote;
-    } catch (e) {
+    } on ApiException {
+      // Return cached quote if available, else default
+      if (_cachedDailyQuote != null) {
+        return _cachedDailyQuote!;
+      }
+      return AppConfig.defaultDailyReflectionQuote;
+    } catch (_) {
       // Unexpected error, use default
+      return AppConfig.defaultDailyReflectionQuote;
+    }
+  }
+
+  /// Fetch a random quote (with optional category filter).
+  /// Caches result for 24 hours. Falls back to default on error.
+  Future<String> getRandomQuote({String? category}) async {
+    try {
+      // Check cache validity
+      if (_cachedRandomQuote != null && _lastRandomQuoteFetch != null) {
+        final hoursSinceFetch = DateTime.now().difference(_lastRandomQuoteFetch!).inHours;
+        if (hoursSinceFetch < AppConfig.cacheValidityHours) {
+          return _cachedRandomQuote!;
+        }
+      }
+
+      // Build endpoint with optional category
+      final endpoint = category != null ? '/quotes/random?category=$category' : '/quotes/random';
+
+      // Fetch fresh quote from public API endpoint
+      final response = await _apiClient.publicGet(endpoint);
+
+      if (response.containsKey('quote') && response['quote'] is String) {
+        _cachedRandomQuote = response['quote'] as String;
+        _lastRandomQuoteFetch = DateTime.now();
+        return _cachedRandomQuote!;
+      }
+
+      // Fallback to default
+      return AppConfig.defaultDailyReflectionQuote;
+    } on ApiException {
+      // Return cached quote if available, else default
+      if (_cachedRandomQuote != null) {
+        return _cachedRandomQuote!;
+      }
+      return AppConfig.defaultDailyReflectionQuote;
+    } catch (_) {
       return AppConfig.defaultDailyReflectionQuote;
     }
   }
