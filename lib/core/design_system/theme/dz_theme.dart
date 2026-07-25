@@ -184,7 +184,7 @@ abstract final class DzTheme {
         floatingLabelStyle: DzTextStyles.caption.copyWith(color: accent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
-          borderSide: BorderSide(color: DzColors.borderLight),
+          borderSide: const BorderSide(color: DzColors.borderLight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),

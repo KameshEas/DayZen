@@ -25,7 +25,7 @@ class _MainShellState extends State<MainShell> {
   final _pages = [
     const HomePage(),
     const PlannerPage(),
-    SizedBox.shrink(), // FAB slot – never shown (handled by DzScaffold)
+    const SizedBox.shrink(), // FAB slot – never shown (handled by DzScaffold)
     const InsightsPage(),
     const JournalPage(),
   ];

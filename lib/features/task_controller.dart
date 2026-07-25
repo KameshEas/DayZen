@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
+import '../core/domain/task_analytics.dart';
 import '../core/notification_service.dart';
 import '../core/services/sync_manager.dart';
 import 'home/models/task_model.dart';
+import '../core/logging/app_logger.dart';
 
 class TaskController extends ChangeNotifier {
   List<DzTask> _tasks = [];
@@ -20,7 +22,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  // ── Queries ───────────────────────────────────────────────────────
+  // â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   List<DzTask> forDate(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
@@ -43,77 +45,45 @@ class TaskController extends ChangeNotifier {
     }).toList();
   }
 
-  // ── Derived stats ─────────────────────────────────────────────────
+  // â”€â”€ Derived stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Thin delegates to TaskAnalytics (lib/core/domain/task_analytics.dart)
+  // â€” no business logic lives here as of Phase 3.1. Same names/signatures
+  // as before the extraction, so no UI call site changes.
 
-  /// Completion fraction for [date] (0.0–1.0).
-  double completionFraction(DateTime date) {
-    final tasks = forDate(date);
-    if (tasks.isEmpty) return 0;
-    return tasks.where((t) => t.isCompleted).length / tasks.length;
-  }
+  /// Completion fraction for [date] (0.0â€“1.0).
+  double completionFraction(DateTime date) =>
+      TaskAnalytics.completionFraction(_tasks, date);
 
-  /// Productivity score (0–100) for today.
-  int get todayScore =>
-      (completionFraction(DateTime.now()) * 100).round();
+  /// Productivity score (0â€“100) for today.
+  int get todayScore => TaskAnalytics.score(_tasks, DateTime.now());
 
   /// Sum of completed-task durations for today in minutes.
-  int get todayFocusMinutes {
-    int total = 0;
-    for (final t in forDate(DateTime.now()).where((t) => t.isCompleted)) {
-      final start = t.startTime.hour * 60 + t.startTime.minute;
-      final end = t.endTime.hour * 60 + t.endTime.minute;
-      if (end > start) total += end - start;
-    }
-    return total;
-  }
+  int get todayFocusMinutes =>
+      TaskAnalytics.focusMinutes(_tasks, DateTime.now());
 
-  String get todayFocusLabel {
-    final m = todayFocusMinutes;
-    if (m == 0) return '0m';
-    final h = m ~/ 60;
-    final mn = m % 60;
-    return h > 0 ? '${h}h ${mn}m' : '${mn}m';
-  }
+  String get todayFocusLabel =>
+      TaskAnalytics.focusLabel(_tasks, DateTime.now());
 
-  /// Completion fractions for each day Mon–Sun of the week containing [anchor].
-  List<double> weekBarFractions(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return List.generate(
-        7, (i) => completionFraction(monday.add(Duration(days: i))));
-  }
+  /// Completion fractions for each day Monâ€“Sun of the week containing [anchor].
+  List<double> weekBarFractions(DateTime anchor) =>
+      TaskAnalytics.weekBarFractions(_tasks, anchor);
 
   /// Count of completed tasks in the week containing [anchor].
-  int weekCompletedCount(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return forWeek(monday).where((t) => t.isCompleted).length;
-  }
+  int weekCompletedCount(DateTime anchor) =>
+      TaskAnalytics.weekCompletedCount(_tasks, anchor);
 
   /// Most-used priority this week (or null if no tasks).
-  TaskPriority? topPriority(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    final tasks = forWeek(monday);
-    if (tasks.isEmpty) return null;
-    final counts = <TaskPriority, int>{};
-    for (final t in tasks) {
-      counts[t.priority] = (counts[t.priority] ?? 0) + 1;
-    }
-    return counts.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
-        .key;
-  }
+  TaskPriority? topPriority(DateTime anchor) =>
+      TaskAnalytics.topPriority(_tasks, anchor);
 
   /// Zen tasks (mindfulness) this week.
-  List<DzTask> zenTasksThisWeek(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return forWeek(monday)
-        .where((t) => t.priority == TaskPriority.zen)
-        .toList();
-  }
+  List<DzTask> zenTasksThisWeek(DateTime anchor) =>
+      TaskAnalytics.zenTasksThisWeek(_tasks, anchor);
 
-  // ── CRUD ──────────────────────────────────────────────────────────
+  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> load() async {
-    _tasks = await TaskRepository.load();
+    _tasks = await TaskRepository.loadAll();
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
@@ -127,14 +97,16 @@ class TaskController extends ChangeNotifier {
     try {
       await SyncManager.instance.syncTasks(this);
     } catch (e) {
-      debugPrint('Background sync failed: $e');
+      AppLogger.debug('Background sync failed: $e');
       // Silently fail - local state is preserved
     }
   }
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
-    await TaskRepository.save(_tasks);
+    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
+    // "re-serialize and rewrite the entire task list" pattern.
+    await TaskRepository.insertTask(task);
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.scheduleForTask(task);
@@ -148,7 +120,7 @@ class TaskController extends ChangeNotifier {
     if (idx == -1) return;
     final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
     _tasks[idx] = updatedTask;
-    await TaskRepository.save(_tasks);
+    await TaskRepository.updateTask(updatedTask);
     notifyListeners();
     // Cancel notification if completed; re-schedule if unchecked
     if (_notificationsEnabled) {
@@ -166,7 +138,7 @@ class TaskController extends ChangeNotifier {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     _tasks[idx] = updatedTask;
-    await TaskRepository.save(_tasks);
+    await TaskRepository.updateTask(updatedTask);
     notifyListeners();
     if (_notificationsEnabled) {
       if (updatedTask.isCompleted) {
@@ -179,7 +151,9 @@ class TaskController extends ChangeNotifier {
 
   Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
-    await TaskRepository.save(_tasks);
+    // Soft delete (deleted_at set, row retained for sync visibility) â€” see
+    // docs/DATABASE_SCHEMA.md.
+    await TaskRepository.deleteTask(id);
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.cancelForTask(id);
@@ -190,8 +164,12 @@ class TaskController extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _tasks.clear();
-    await TaskRepository.save(_tasks);
+    // Hard delete every row â€” this is the one place that's actually
+    // destructive; everyday deletes go through deleteTask's soft delete.
+    await TaskRepository.clearAll();
     notifyListeners();
     await NotificationService.instance.cancelAll();
   }
 }
+
+

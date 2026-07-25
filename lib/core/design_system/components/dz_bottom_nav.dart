@@ -191,7 +191,7 @@ class _DzFabState extends State<DzFab> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: DzShadows.fab,
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/services/ai_optimization_manager.dart';
 import '../core/services/ai_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Controls AI optimization features.
 class AIOptimizationController extends ChangeNotifier {
@@ -44,7 +45,7 @@ class AIOptimizationController extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to load insights: $e');
+      AppLogger.debug('Failed to load insights: $e');
       notifyListeners();
     }
   }
@@ -55,7 +56,7 @@ class AIOptimizationController extends ChangeNotifier {
       await _manager.getRecommendations(date: date);
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to get recommendations: $e');
+      AppLogger.debug('Failed to get recommendations: $e');
       notifyListeners();
     }
   }
@@ -66,7 +67,7 @@ class AIOptimizationController extends ChangeNotifier {
       await _manager.getOptimizations(date: date);
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to get optimizations: $e');
+      AppLogger.debug('Failed to get optimizations: $e');
       notifyListeners();
     }
   }
@@ -77,7 +78,7 @@ class AIOptimizationController extends ChangeNotifier {
       await _manager.getReminders(date: date);
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to get reminders: $e');
+      AppLogger.debug('Failed to get reminders: $e');
       notifyListeners();
     }
   }
@@ -93,7 +94,7 @@ class AIOptimizationController extends ChangeNotifier {
       await _manager.syncAIData(startDate: start, endDate: end);
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to sync AI data: $e');
+      AppLogger.debug('Failed to sync AI data: $e');
       notifyListeners();
     }
   }
@@ -109,7 +110,7 @@ class AIOptimizationController extends ChangeNotifier {
       await _manager.retrySyncAI(startDate: start, endDate: end);
       notifyListeners();
     } catch (e) {
-      debugPrint('Retry sync failed: $e');
+      AppLogger.debug('Retry sync failed: $e');
       notifyListeners();
     }
   }
@@ -124,3 +125,5 @@ class AIOptimizationController extends ChangeNotifier {
   /// Get analysis status.
   String get analysisStatus => _manager.syncStatus;
 }
+
+

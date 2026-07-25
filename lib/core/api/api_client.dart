@@ -67,7 +67,7 @@ class ApiClient {
   String get baseUrl => AppConfig.apiBaseUrl;
 
   /// Get the timeout duration
-  Duration get timeout => Duration(seconds: AppConfig.apiTimeoutSeconds);
+  Duration get timeout => const Duration(seconds: AppConfig.apiTimeoutSeconds);
 
   /// Maximum number of retries for failed requests
   static const int maxRetries = 2;

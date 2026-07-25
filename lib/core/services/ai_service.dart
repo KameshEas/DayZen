@@ -1,4 +1,11 @@
 /// Service for AI-powered optimization, recommendations, and insights.
+///
+/// API Bindings:
+/// - BINDING 20: GET /ai/recommendations/tasks (getTaskRecommendations) - Per-date cache
+/// - BINDING 21: GET /ai/optimization/schedule (getScheduleOptimizations) - Per-date cache
+/// - BINDING 22: GET /ai/insights/productivity (getProductivityInsights) - REUSED 3x with range cache
+/// - BINDING 23: GET /ai/reminders/smart (getSmartReminders) - Per-date cache
+/// - BINDING 24: POST /ai/sync (syncAIData) - Bulk refresh
 library;
 
 import '../api/api_client.dart';
@@ -155,7 +162,10 @@ class AIService {
   final Map<String, List<SmartReminder>> _reminderCache = {};
   DateTime? _lastSyncTime;
 
-  /// Get AI task recommendations for date.
+  /// BINDING 20: Get AI task recommendations for date.
+  /// API: GET /ai/recommendations/tasks?date={}
+  /// Cache: Per-date (24h)
+  /// Used By: AIOptimizationController.getRecommendations()
   Future<List<TaskRecommendation>> getTaskRecommendations({
     required DateTime date,
   }) async {
@@ -186,7 +196,10 @@ class AIService {
     }
   }
 
-  /// Get schedule optimization suggestions.
+  /// BINDING 21: Get schedule optimization suggestions.
+  /// API: GET /ai/optimization/schedule?date={}
+  /// Cache: Per-date (24h)
+  /// Used By: AIOptimizationController.getOptimizations()
   Future<List<ScheduleOptimization>> getScheduleOptimizations({
     required DateTime date,
   }) async {
@@ -215,7 +228,15 @@ class AIService {
     }
   }
 
-  /// Get productivity insights.
+  /// BINDING 22: Get productivity insights (REUSED - 3x per session)
+  /// API: GET /ai/insights/productivity?start_date={}&end_date={}
+  /// Cache: Date-range based
+  /// Used By:
+  ///   1. AIOptimizationController.getInsights() - AI insights view
+  ///   2. InsightsPage (productivity recommendations)
+  ///   3. Dashboard (summary insights)
+  ///
+  /// OPTIMIZATION: Cache by date range to prevent refetching
   Future<List<ProductivityInsight>> getProductivityInsights({
     DateTime? startDate,
     DateTime? endDate,
@@ -253,7 +274,10 @@ class AIService {
     }
   }
 
-  /// Get smart reminder suggestions.
+  /// BINDING 23: Get smart reminder suggestions.
+  /// API: GET /ai/reminders/smart?date={}
+  /// Cache: Per-date (24h)
+  /// Used By: AIOptimizationController.getReminders()
   Future<List<SmartReminder>> getSmartReminders({
     required DateTime date,
   }) async {
@@ -282,7 +306,10 @@ class AIService {
     }
   }
 
-  /// Sync all AI data for date range.
+  /// BINDING 24: Sync all AI data for date range.
+  /// API: POST /ai/sync
+  /// Used By: AIOPtimizationManager.syncAIData()
+  /// OPTIMIZATION: Single call fetches all AI features
   Future<Map<String, dynamic>> syncAIData({
     required DateTime startDate,
     required DateTime endDate,

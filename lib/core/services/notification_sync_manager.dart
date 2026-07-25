@@ -1,8 +1,9 @@
-/// Manages notification preferences and delivery tracking sync.
+﻿/// Manages notification preferences and delivery tracking sync.
 library;
 
 import 'package:flutter/foundation.dart';
 import 'notification_sync_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Handles notification sync coordination.
 class NotificationSyncManager extends ChangeNotifier {
@@ -35,7 +36,7 @@ class NotificationSyncManager extends ChangeNotifier {
       _preferences = await _service.getPreferences();
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to load preferences: $e');
+      AppLogger.debug('Failed to load preferences: $e');
       notifyListeners();
     }
   }
@@ -45,7 +46,7 @@ class NotificationSyncManager extends ChangeNotifier {
     try {
       return await _service.getPreference(type);
     } catch (e) {
-      debugPrint('Failed to get preference: $e');
+      AppLogger.debug('Failed to get preference: $e');
       return null;
     }
   }
@@ -61,7 +62,7 @@ class NotificationSyncManager extends ChangeNotifier {
       await loadPreferences();
       return updated;
     } catch (e) {
-      debugPrint('Failed to update preference: $e');
+      AppLogger.debug('Failed to update preference: $e');
       notifyListeners();
       return null;
     }
@@ -81,7 +82,7 @@ class NotificationSyncManager extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to load delivery history: $e');
+      AppLogger.debug('Failed to load delivery history: $e');
       notifyListeners();
     }
   }
@@ -92,7 +93,7 @@ class NotificationSyncManager extends ChangeNotifier {
       await _service.markAsRead(notificationId);
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to mark as read: $e');
+      AppLogger.debug('Failed to mark as read: $e');
     }
   }
 
@@ -112,10 +113,10 @@ class NotificationSyncManager extends ChangeNotifier {
 
       _lastSuccessfulSync = DateTime.now();
       _syncError = null;
-      debugPrint('Notification sync successful at $_lastSuccessfulSync');
+      AppLogger.debug('Notification sync successful at $_lastSuccessfulSync');
     } catch (e) {
       _syncError = e.toString();
-      debugPrint('Notification sync failed: $e');
+      AppLogger.debug('Notification sync failed: $e');
       rethrow;
     } finally {
       _isSyncing = false;
@@ -128,7 +129,7 @@ class NotificationSyncManager extends ChangeNotifier {
     try {
       await syncNotifications();
     } catch (e) {
-      debugPrint('Notification sync retry failed: $e');
+      AppLogger.debug('Notification sync retry failed: $e');
       rethrow;
     }
   }
@@ -138,7 +139,7 @@ class NotificationSyncManager extends ChangeNotifier {
     try {
       await _service.registerDevice(deviceToken);
     } catch (e) {
-      debugPrint('Failed to register device: $e');
+      AppLogger.debug('Failed to register device: $e');
     }
   }
 
@@ -147,7 +148,7 @@ class NotificationSyncManager extends ChangeNotifier {
     try {
       await _service.unregisterDevice(deviceToken);
     } catch (e) {
-      debugPrint('Failed to unregister device: $e');
+      AppLogger.debug('Failed to unregister device: $e');
     }
   }
 
@@ -177,3 +178,5 @@ class NotificationSyncManager extends ChangeNotifier {
     return '$daysAgo d ago';
   }
 }
+
+

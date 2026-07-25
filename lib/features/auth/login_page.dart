@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
 import 'sign_up_page.dart';
+import 'widgets/auth_shared_widgets.dart';
+import 'widgets/login_form_card.dart';
 
+/// LoginPage — composes LoginFormCard under features/auth/widgets/. Split
+/// from a single 389-line file in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
 class LoginPage extends StatefulWidget {
   /// Called when the user successfully signs in, with the email used.
   final ValueChanged<String> onSignedIn;
@@ -94,6 +98,18 @@ class _LoginPageState extends State<LoginPage> {
     resetEmailCtrl.dispose();
   }
 
+  void _goToSignUp(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SignUpPage(
+          onSignedUp: widget.onSignedIn,
+          onContinueOffline: widget.onContinueOffline,
+          canGoBack: widget.canGoBack,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,187 +142,31 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Card ──────────────────────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(DzSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: DzColors.cardBackground,
-                      borderRadius: BorderRadius.circular(DzRadius.card),
-                      boxShadow: DzShadows.soft,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Heading ─────────────────────────────────
-                        Center(
-                          child: Text(
-                            'Welcome Back',
-                            style: DzTextStyles.heading1,
-                          ),
-                        ),
-                        const SizedBox(height: DzSpacing.sm),
-                        Center(
-                          child: Text(
-                            'Continue your calm planning',
-                            style: DzTextStyles.body.copyWith(
-                              color: DzColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: DzSpacing.xl),
-
-                        // ── Email ───────────────────────────────────
-                        Text('Email address', style: DzTextStyles.label),
-                        const SizedBox(height: DzSpacing.sm),
-                        DzTextField(
-                          controller: _emailCtrl,
-                          hint: 'name@example.com',
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(
-                            Icons.mail_outline_rounded,
-                            size: 20,
-                          ),
-                          onChanged: (_) => _controller.clearError(),
-                        ),
-                        const SizedBox(height: DzSpacing.md),
-
-                        // ── Password ────────────────────────────────
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Password', style: DzTextStyles.label),
-                            GestureDetector(
-                              onTap: () => _showForgotPasswordDialog(context),
-                              child: Text(
-                                'Forgot Password?',
-                                style: DzTextStyles.label.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: DzSpacing.sm),
-                        DzTextField(
-                          controller: _passwordCtrl,
-                          hint: '••••••••',
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: const Icon(
-                            Icons.lock_outline_rounded,
-                            size: 20,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              );
-                            },
-                          ),
-                          onSubmitted: (_) => _submit(),
-                          onChanged: (_) => _controller.clearError(),
-                        ),
-
-                        // ── Error ───────────────────────────────────
-                        if (_controller.error != null) ...[
-                          const SizedBox(height: DzSpacing.sm),
-                          Text(
-                            _controller.error!,
-                            style: DzTextStyles.caption.copyWith(
-                              color: DzColors.error,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: DzSpacing.xl),
-
-                        // ── Sign In button ──────────────────────────
-                        DzPrimaryButton(
-                          label: 'Sign In',
-                          icon: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: DzColors.white,
-                            size: 18,
-                          ),
-                          isLoading: _controller.isLoading,
-                          onPressed: _submit,
-                        ),
-                        const SizedBox(height: DzSpacing.lg),
-
-                        // ── OR divider + Continue Offline ────────
-                        if (!widget.canGoBack) ...[
-                        Row(
-                          children: [
-                            const Expanded(child: Divider()),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: DzSpacing.md,
-                              ),
-                              child: Text(
-                                'OR',
-                                style: DzTextStyles.caption.copyWith(
-                                  color: DzColors.textSecondary,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: DzSpacing.lg),
-
-                        // ── Continue Offline button ─────────────────
-                        DzSecondaryButton(
-                          label: 'Continue Offline',
-                          icon: const Icon(
-                            Icons.cloud_off_rounded,
-                            size: 18,
-                          ),
-                          onPressed: widget.onContinueOffline,
-                        ),
-                        ],
-                        const SizedBox(height: DzSpacing.xl),
-
-                        // ── Sign Up link ────────────────────────────
-                        Center(
-                          child: _SignUpLink(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => SignUpPage(
-                                        onSignedUp: widget.onSignedIn,
-                                        onContinueOffline:
-                                            widget.onContinueOffline,
-                                        canGoBack: widget.canGoBack,
-                                      ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                  LoginFormCard(
+                    controller: _controller,
+                    emailCtrl: _emailCtrl,
+                    passwordCtrl: _passwordCtrl,
+                    obscurePassword: _obscurePassword,
+                    onToggleObscurePassword: () => setState(
+                        () => _obscurePassword = !_obscurePassword),
+                    onSubmit: _submit,
+                    onForgotPassword: () => _showForgotPasswordDialog(context),
+                    canGoBack: widget.canGoBack,
+                    onContinueOffline: widget.onContinueOffline,
+                    onSignUpTap: () => _goToSignUp(context),
                   ),
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Trust badges ───────────────────────────────────
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _TrustBadge(
+                      AuthTrustBadge(
                         icon: Icons.shield_rounded,
                         label: 'Privacy First',
                       ),
-                      const SizedBox(width: DzSpacing.xl),
-                      _TrustBadge(
+                      SizedBox(width: DzSpacing.xl),
+                      AuthTrustBadge(
                         icon: Icons.storage_rounded,
                         label: 'Local Storage',
                       ),
@@ -329,59 +189,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Private helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TrustBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _TrustBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: DzColors.textSecondary),
-        const SizedBox(width: DzSpacing.xs),
-        Text(
-          label,
-          style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _SignUpLink extends StatelessWidget {
-  final VoidCallback onTap;
-  const _SignUpLink({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
-          children: [
-            const TextSpan(text: "Don't have an account? "),
-            TextSpan(
-              text: 'Start your journey',
-              style: DzTextStyles.body.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ),
     );

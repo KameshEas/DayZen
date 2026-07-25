@@ -16,12 +16,21 @@ dependencies:
   timezone: ^0.11.0
   firebase_core: ^3.13.0
   firebase_auth: ^5.5.2
+  firebase_crashlytics: ^4.3.2
   http: ^1.1.0
+  flutter_secure_storage: ^9.2.4
+  crypto: ^3.0.6
+  drift: ^2.34.2
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  logger: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  drift_dev: ^2.34.0
+  build_runner: ^2.15.1
 
 flutter:
   uses-material-design: true

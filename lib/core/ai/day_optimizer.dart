@@ -181,7 +181,7 @@ class DayOptimizer {
     final hours = totalFocusMinutes ~/ 60;
     final mins = totalFocusMinutes % 60;
     final durationText = hours > 0
-        ? '$hours h ${mins > 0 ? '${mins} min' : ''}' .trim()
+        ? '$hours h ${mins > 0 ? '$mins min' : ''}' .trim()
         : '$mins min';
 
     final highCount =

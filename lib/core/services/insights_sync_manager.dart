@@ -1,8 +1,9 @@
-/// Manages insights data synchronization (read-only from client).
+﻿/// Manages insights data synchronization (read-only from client).
 library;
 
 import 'package:flutter/foundation.dart';
 import 'insights_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Handles insights sync coordination.
 /// Insights are computed by server from tasks/journal/etc., so client is read-only.
@@ -43,12 +44,12 @@ class InsightsSyncManager extends ChangeNotifier {
 
       _lastSuccessfulSync = DateTime.now();
       _syncError = null;
-      debugPrint('Insights sync successful at $_lastSuccessfulSync');
+      AppLogger.debug('Insights sync successful at $_lastSuccessfulSync');
 
       return result;
     } catch (e) {
       _syncError = e.toString();
-      debugPrint('Insights sync failed: $e');
+      AppLogger.debug('Insights sync failed: $e');
       rethrow;
     } finally {
       _isSyncing = false;
@@ -61,7 +62,7 @@ class InsightsSyncManager extends ChangeNotifier {
     try {
       return await _insightsService.getTodayInsights();
     } catch (e) {
-      debugPrint('Failed to get today insights: $e');
+      AppLogger.debug('Failed to get today insights: $e');
       return null;
     }
   }
@@ -71,7 +72,7 @@ class InsightsSyncManager extends ChangeNotifier {
     try {
       return await _insightsService.getCurrentWeekInsights();
     } catch (e) {
-      debugPrint('Failed to get week insights: $e');
+      AppLogger.debug('Failed to get week insights: $e');
       return null;
     }
   }
@@ -81,7 +82,7 @@ class InsightsSyncManager extends ChangeNotifier {
     try {
       return await _insightsService.getInsightForDate(date);
     } catch (e) {
-      debugPrint('Failed to get date insights: $e');
+      AppLogger.debug('Failed to get date insights: $e');
       return null;
     }
   }
@@ -97,7 +98,7 @@ class InsightsSyncManager extends ChangeNotifier {
         endDate: endDate,
       );
     } catch (e) {
-      debugPrint('Failed to get range insights: $e');
+      AppLogger.debug('Failed to get range insights: $e');
       return [];
     }
   }
@@ -110,7 +111,7 @@ class InsightsSyncManager extends ChangeNotifier {
     try {
       await syncInsights(startDate: startDate, endDate: endDate);
     } catch (e) {
-      debugPrint('Insights sync retry failed: $e');
+      AppLogger.debug('Insights sync retry failed: $e');
       rethrow;
     }
   }
@@ -139,3 +140,5 @@ class InsightsSyncManager extends ChangeNotifier {
     return '$daysAgo d ago';
   }
 }
+
+

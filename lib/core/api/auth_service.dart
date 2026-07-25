@@ -1,8 +1,9 @@
-/// Firebase authentication service for managing ID tokens.
+﻿/// Firebase authentication service for managing ID tokens.
 library;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import '../logging/app_logger.dart';
 
 /// Service for managing Firebase authentication tokens and headers.
 class AuthService extends ChangeNotifier {
@@ -71,7 +72,7 @@ class AuthService extends ChangeNotifier {
 
       return tokenResult;
     } catch (e) {
-      debugPrint('Error getting ID token: $e');
+      AppLogger.debug('Error getting ID token: $e');
       return null;
     }
   }
@@ -84,7 +85,7 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
     } catch (e) {
-      debugPrint('Sign in error: $e');
+      AppLogger.debug('Sign in error: $e');
       rethrow;
     }
   }
@@ -97,7 +98,7 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
     } catch (e) {
-      debugPrint('Sign up error: $e');
+      AppLogger.debug('Sign up error: $e');
       rethrow;
     }
   }
@@ -109,7 +110,7 @@ class AuthService extends ChangeNotifier {
       _tokenExpiryTime = null;
       await _firebaseAuth.signOut();
     } catch (e) {
-      debugPrint('Sign out error: $e');
+      AppLogger.debug('Sign out error: $e');
       rethrow;
     }
   }
@@ -146,3 +147,5 @@ class AuthService extends ChangeNotifier {
   /// Get token expiry time (for debugging)
   DateTime? get tokenExpiryTime => _tokenExpiryTime;
 }
+
+

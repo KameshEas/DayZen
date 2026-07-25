@@ -1,8 +1,9 @@
-/// Manages AI optimization features and recommendations.
+﻿/// Manages AI optimization features and recommendations.
 library;
 
 import 'package:flutter/foundation.dart';
 import 'ai_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Handles AI-powered optimization coordination.
 class AIOPtimizationManager extends ChangeNotifier {
@@ -57,10 +58,10 @@ class AIOPtimizationManager extends ChangeNotifier {
 
       _lastSuccessfulSync = DateTime.now();
       _syncError = null;
-      debugPrint('AI optimization sync successful at $_lastSuccessfulSync');
+      AppLogger.debug('AI optimization sync successful at $_lastSuccessfulSync');
     } catch (e) {
       _syncError = e.toString();
-      debugPrint('AI optimization sync failed: $e');
+      AppLogger.debug('AI optimization sync failed: $e');
       rethrow;
     } finally {
       _isSyncing = false;
@@ -78,7 +79,7 @@ class AIOPtimizationManager extends ChangeNotifier {
       notifyListeners();
       return recommendations;
     } catch (e) {
-      debugPrint('Failed to get recommendations: $e');
+      AppLogger.debug('Failed to get recommendations: $e');
       return [];
     }
   }
@@ -93,7 +94,7 @@ class AIOPtimizationManager extends ChangeNotifier {
       notifyListeners();
       return optimizations;
     } catch (e) {
-      debugPrint('Failed to get optimizations: $e');
+      AppLogger.debug('Failed to get optimizations: $e');
       return [];
     }
   }
@@ -112,7 +113,7 @@ class AIOPtimizationManager extends ChangeNotifier {
       notifyListeners();
       return insights;
     } catch (e) {
-      debugPrint('Failed to get insights: $e');
+      AppLogger.debug('Failed to get insights: $e');
       return [];
     }
   }
@@ -127,7 +128,7 @@ class AIOPtimizationManager extends ChangeNotifier {
       notifyListeners();
       return reminders;
     } catch (e) {
-      debugPrint('Failed to get reminders: $e');
+      AppLogger.debug('Failed to get reminders: $e');
       return [];
     }
   }
@@ -140,7 +141,7 @@ class AIOPtimizationManager extends ChangeNotifier {
     try {
       await syncAIData(startDate: startDate, endDate: endDate);
     } catch (e) {
-      debugPrint('AI sync retry failed: $e');
+      AppLogger.debug('AI sync retry failed: $e');
       rethrow;
     }
   }
@@ -173,3 +174,5 @@ class AIOPtimizationManager extends ChangeNotifier {
     return '$daysAgo d ago';
   }
 }
+
+

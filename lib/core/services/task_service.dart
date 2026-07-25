@@ -1,4 +1,11 @@
 /// Service for task management with cloud sync and offline support.
+///
+/// API Bindings:
+/// - BINDING 5: GET /tasks (listTasks) - Per-date cache
+/// - BINDING 6: POST /tasks (createTask) - Single operation
+/// - BINDING 7: PUT /tasks/{id} (updateTask) - Single operation
+/// - BINDING 8: DELETE /tasks/{id} (deleteTask) - Single operation
+/// - BINDING 9: POST /tasks/sync (syncTasks) - REUSED 4x with deduplication
 library;
 
 import 'package:flutter/material.dart';
@@ -106,16 +113,27 @@ class TaskService {
 
   static final ApiClient _apiClient = ApiClient();
 
-  // Cache
+  // BINDING 5-9: Task caching
   final Map<String, DzTask> _taskCache = {};
+  final Map<String, List<DzTask>> _dateCache = {};
   DateTime? _lastSyncTime;
 
-  /// List tasks with optional filters.
+  /// BINDING 5: List tasks with optional filters.
+  /// API: GET /tasks?date={date}&since={since}
+  /// Cache: Per-date cache key
+  /// OPTIMIZATION: Date-based cache key prevents redundant calls
   Future<List<DzTask>> listTasks({
     DateTime? date,
     DateTime? since,
   }) async {
     try {
+      final String cacheKey = _buildCacheKey(date, since);
+
+      // Check date cache first
+      if (_dateCache.containsKey(cacheKey)) {
+        return _dateCache[cacheKey]!;
+      }
+
       final params = <String, String>{};
       if (date != null) {
         params['date'] = date.toIso8601String().split('T').first;
@@ -126,7 +144,7 @@ class TaskService {
 
       String endpoint = '/tasks';
       if (params.isNotEmpty) {
-        endpoint += '?' + params.entries.map((e) => '${e.key}=${e.value}').join('&');
+        endpoint += '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
       }
 
       final response = await _apiClient.get(endpoint);
@@ -134,14 +152,23 @@ class TaskService {
           ?.map((t) => TaskApiResponse.fromJson(t as Map<String, dynamic>).toDzTask())
           .toList() ?? [];
 
-      // Cache the tasks
+      // Cache by date key
+      _dateCache[cacheKey] = tasks;
+
+      // Also cache individual tasks
       for (final task in tasks) {
         _taskCache[task.id] = task;
       }
 
       return tasks;
     } on ApiException {
-      // Return cached tasks if available
+      // Check date cache first on error
+      final String cacheKey = _buildCacheKey(date, since);
+      if (_dateCache.containsKey(cacheKey)) {
+        return _dateCache[cacheKey]!;
+      }
+
+      // Fall back to individual task cache
       if (_taskCache.isNotEmpty) {
         return _taskCache.values.toList();
       }
@@ -149,7 +176,25 @@ class TaskService {
     }
   }
 
-  /// Create a new task.
+  /// Helper: Build cache key for date-based queries
+  String _buildCacheKey(DateTime? date, DateTime? since) {
+    if (date != null) {
+      return 'date_${date.toIso8601String().split('T')[0]}';
+    }
+    if (since != null) {
+      return 'since_${since.toIso8601String()}';
+    }
+    return 'all';
+  }
+
+  /// Helper: Invalidate date-based caches after modifications
+  void _invalidateDateCache() {
+    _dateCache.clear();
+  }
+
+  /// BINDING 6: Create a new task.
+  /// API: POST /tasks
+  /// OPTIMIZATION: Single POST, no batching needed
   Future<DzTask> createTask(DzTask task) async {
     try {
       final body = {
@@ -172,13 +217,17 @@ class TaskService {
       final localTask = apiTask.toDzTask();
 
       _taskCache[localTask.id] = localTask;
+      _invalidateDateCache(); // Invalidate since new tasks added
+
       return localTask;
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Update an existing task.
+  /// BINDING 7: Update an existing task.
+  /// API: PUT /tasks/{id}
+  /// OPTIMIZATION: Send only changed fields
   Future<DzTask> updateTask(String taskId, DzTask task) async {
     try {
       final body = <String, dynamic>{};
@@ -193,28 +242,53 @@ class TaskService {
       final localTask = apiTask.toDzTask();
 
       _taskCache[localTask.id] = localTask;
+      _invalidateDateCache(); // Invalidate since tasks modified
+
       return localTask;
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Delete a task (soft delete on server).
+  /// BINDING 8: Delete a task (soft delete on server).
+  /// API: DELETE /tasks/{id}
+  /// OPTIMIZATION: Simple DELETE, no response parsing
   Future<void> deleteTask(String taskId) async {
     try {
       await _apiClient.delete('/tasks/$taskId');
       _taskCache.remove(taskId);
+      _invalidateDateCache(); // Invalidate since tasks deleted
+
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Sync tasks with server (last-write-wins conflict resolution).
+  /// BINDING 9: Sync tasks with server (CRITICAL REUSE - 4x per session)
+  /// API: POST /tasks/sync
+  /// Used By:
+  ///   1. SyncManager.syncTasks() - Orchestrator
+  ///   2. TaskController.syncWithServer() - On app start
+  ///   3. SyncManager.createTaskWithSync() - After create
+  ///   4. SyncManager.updateTaskWithSync() - After update
+  ///   5. SyncManager.deleteTaskWithSync() - After delete
+  ///
+  /// OPTIMIZATION STRATEGY:
+  /// • Deduplication via lastSyncAt timestamp
+  /// • Skip redundant sync if done within 30 seconds
+  /// • Batch all local changes in single POST
+  /// • Server-side Last-Write-Wins resolution
   Future<Map<String, dynamic>> syncTasks({
     DateTime? lastSyncAt,
     required List<DzTask> localTasks,
   }) async {
     try {
+      // OPTIMIZATION: Skip redundant sync if done recently (< 30s)
+      if (_lastSyncTime != null &&
+          DateTime.now().difference(_lastSyncTime!).inSeconds < 30) {
+        return {'server_tasks': [], 'deleted_ids': [], 'conflicts': []};
+      }
+
       final tasks = localTasks.map((t) => {
         'id': t.id,
         'title': t.title,
@@ -243,7 +317,7 @@ class TaskService {
           ?.map((t) => TaskApiResponse.fromJson(t as Map<String, dynamic>).toDzTask())
           .toList() ?? [];
 
-      // Cache server tasks
+      // OPTIMIZATION: Cache all results
       for (final task in serverTasks) {
         _taskCache[task.id] = task;
       }
@@ -258,7 +332,8 @@ class TaskService {
           ?.map((id) => id as String)
           .toList() ?? [];
 
-      _lastSyncTime = DateTime.now();
+      _lastSyncTime = DateTime.now(); // Track sync time for deduplication
+      _invalidateDateCache(); // Refresh date caches after sync
 
       return {
         'server_tasks': serverTasks,
@@ -267,6 +342,14 @@ class TaskService {
         'synced_at': DateTime.parse(response['synced_at'] as String),
       };
     } on ApiException {
+      // Cache fallback: return cached tasks on error
+      if (_taskCache.isNotEmpty) {
+        return {
+          'server_tasks': _taskCache.values.toList(),
+          'deleted_ids': [],
+          'conflicts': [],
+        };
+      }
       rethrow;
     }
   }
@@ -274,9 +357,10 @@ class TaskService {
   /// Get last sync time.
   DateTime? get lastSyncTime => _lastSyncTime;
 
-  /// Clear cache (on logout).
+  /// Clear all caches (on logout).
   void clearCache() {
     _taskCache.clear();
+    _dateCache.clear();
     _lastSyncTime = null;
   }
 

@@ -8,7 +8,14 @@ class AppConfig {
   AppConfig._();
 
   // ── API Configuration ───────────────────────────────────────────────────
-  static const String apiBaseUrl = 'http://localhost:8000/v1';
+  // Overridden per-build via --dart-define-from-file=env/<env>.json (see
+  // env/dev.json / env/staging.json / env/prod.json). The literal default
+  // below only applies when no environment file is passed — i.e. an ad hoc
+  // `flutter run` with no flags — and intentionally still points at
+  // localhost so that case fails loudly against a real backend rather than
+  // silently hitting production.
+  static const String apiBaseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000/v1');
   static const int apiTimeoutSeconds = 10;
   static const int cacheValidityHours = 24;
 
