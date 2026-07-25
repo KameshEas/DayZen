@@ -37,7 +37,7 @@ class DzNavItem {
 ///   onTap: (i) => setState(() => _index = i),
 /// )
 /// ```
-class DzBottomNavBar extends StatelessWidget {
+class DzBottomNavBar extends StatefulWidget {
   const DzBottomNavBar({
     super.key,
     required this.items,
@@ -53,6 +53,11 @@ class DzBottomNavBar extends StatelessWidget {
   /// The index position occupied by the FAB; rendered as blank space.
   final int fabIndex;
 
+  @override
+  State<DzBottomNavBar> createState() => _DzBottomNavBarState();
+}
+
+class _DzBottomNavBarState extends State<DzBottomNavBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -74,20 +79,118 @@ class DzBottomNavBar extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: DzSizing.bottomNavHeight,
-          child: Row(
-            children: List.generate(items.length, (i) {
-              if (i == fabIndex) {
-                return const Expanded(child: SizedBox.shrink());
-              }
-              final isActive = i == currentIndex;
-              return Expanded(
-                child: _NavTile(
-                  item: items[i],
-                  isActive: isActive,
-                  onTap: () => onTap(i),
-                ),
-              );
-            }),
+          child: Stack(
+            children: [
+              _SlidingIndicator(
+                items: widget.items,
+                currentIndex: widget.currentIndex,
+                fabIndex: widget.fabIndex,
+              ),
+              Row(
+                children: List.generate(widget.items.length, (i) {
+                  if (i == widget.fabIndex) {
+                    return const Expanded(child: SizedBox.shrink());
+                  }
+                  final isActive = i == widget.currentIndex;
+                  return Expanded(
+                    child: _NavTile(
+                      item: widget.items[i],
+                      isActive: isActive,
+                      onTap: () => widget.onTap(i),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated sliding pill indicator behind nav items.
+class _SlidingIndicator extends StatefulWidget {
+  const _SlidingIndicator({
+    required this.items,
+    required this.currentIndex,
+    required this.fabIndex,
+  });
+
+  final List<DzNavItem> items;
+  final int currentIndex;
+  final int fabIndex;
+
+  @override
+  State<_SlidingIndicator> createState() => _SlidingIndicatorState();
+}
+
+class _SlidingIndicatorState extends State<_SlidingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _alignment;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _alignment = AlwaysStoppedAnimation(_getAlignment());
+  }
+
+  @override
+  void didUpdateWidget(_SlidingIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      _alignment = Tween<double>(
+        begin: _getAlignment(oldWidget.currentIndex),
+        end: _getAlignment(widget.currentIndex),
+      ).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
+      );
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double _getAlignment([int? index]) {
+    index ??= widget.currentIndex;
+    final itemCount = widget.items.length;
+    final nonFabCount = itemCount - (widget.fabIndex >= 0 ? 1 : 0);
+    final step = 2.0 / (nonFabCount - 1);
+
+    int nonFabIndex = 0;
+    for (int i = 0; i <= index; i++) {
+      if (i != widget.fabIndex) {
+        if (i == index) break;
+        nonFabIndex++;
+      }
+    }
+    return -1.0 + (nonFabIndex * step);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: AnimatedBuilder(
+        animation: _alignment,
+        builder: (context, child) => Align(
+          alignment: Alignment(_alignment.value, 0),
+          child: Container(
+            width: 56,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(DzRadius.button),
+            ),
           ),
         ),
       ),
