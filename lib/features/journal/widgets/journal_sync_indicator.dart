@@ -89,10 +89,16 @@ class JournalSyncIndicator extends StatelessWidget {
                   ),
                 ),
                 if (!isSyncing)
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () => _retry(context),
-                    tooltip: 'Retry sync',
+                  Semantics(
+                    label: 'Retry sync',
+                    button: true,
+                    enabled: true,
+                    onTap: () => _retry(context),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: () => _retry(context),
+                      tooltip: 'Retry sync',
+                    ),
                   )
                 else
                   const SizedBox(width: 48),
@@ -114,12 +120,18 @@ class JournalSyncIndicator extends StatelessWidget {
                       Theme.of(context).primaryColor,
                     ),
                   )
-                : IconButton(
-                    icon: const Icon(Icons.cloud_done, size: 16),
-                    onPressed: () => _retry(context),
-                    iconSize: 16,
-                    padding: EdgeInsets.zero,
-                    tooltip: 'Retry sync',
+                : Semantics(
+                    label: 'Retry sync',
+                    button: true,
+                    enabled: true,
+                    onTap: () => _retry(context),
+                    child: IconButton(
+                      icon: const Icon(Icons.cloud_done, size: 16),
+                      onPressed: () => _retry(context),
+                      iconSize: 16,
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Retry sync',
+                    ),
                   ),
           ),
         );

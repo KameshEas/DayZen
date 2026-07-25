@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/routing/route_paths.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
@@ -120,16 +122,35 @@ class _PlannerPageState extends State<PlannerPage> {
 
         // ── Timeline ─────────────────────────────────────────────
         Expanded(
-          child: PlannerTimelineView(
-            events: TaskScope.of(context)
-                .forDate(_selectedDate)
-                .map(PlannerEvent.fromTask)
-                .toList(),
-            currentHour: DateTime.now().hour,
-            currentMinute: DateTime.now().minute,
-          ),
+          child: _buildTimeline(context),
         ),
       ],
+    );
+  }
+
+  Widget _buildTimeline(BuildContext context) {
+    final tasks = TaskScope.of(context).forDate(_selectedDate);
+    final events = tasks.map(PlannerEvent.fromTask).toList();
+
+    if (events.isEmpty) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
+          child: DzEmptyState(
+            icon: Icons.schedule_outlined,
+            title: 'No tasks scheduled',
+            subtitle: 'Your day is clear. Create a task to get started.',
+            actionLabel: 'Add a task',
+            onAction: () => context.push(RoutePaths.newTask),
+          ),
+        ),
+      );
+    }
+
+    return PlannerTimelineView(
+      events: events,
+      currentHour: DateTime.now().hour,
+      currentMinute: DateTime.now().minute,
     );
   }
 }

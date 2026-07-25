@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
@@ -85,7 +86,7 @@ class SettingsPrivacySection extends StatelessWidget {
             'This will permanently delete all your task and journal logs. This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => ctx.pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -94,7 +95,7 @@ class SettingsPrivacySection extends StatelessWidget {
               final journal = JournalScope.of(context);
               await tasks.clearAll();
               await journal.clearAll();
-              if (ctx.mounted) Navigator.pop(ctx);
+              if (ctx.mounted) ctx.pop();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('All history cleared.')),

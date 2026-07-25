@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,7 +221,7 @@ void showSettingsOptionSheet(
       selected: current,
       onSelect: (v) {
         onSelect(v);
-        Navigator.pop(context);
+        context.pop();
       },
     ),
   );

@@ -90,11 +90,16 @@ class _JournalPageState extends State<JournalPage> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
-          child: Center(
-            child: Text(
-              'No entries yet. Tap + to write your first.',
-              style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
-              textAlign: TextAlign.center,
+          child: DzEmptyState(
+            icon: Icons.edit_note_outlined,
+            title: 'No entries yet',
+            subtitle: 'Start journaling to reflect on your day',
+            actionLabel: 'Write your first entry',
+            onAction: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => const JournalNewEntrySheet(),
             ),
           ),
         ),
