@@ -169,7 +169,6 @@ class NotificationService {
         'Task Reminders',
         channelDescription: 'Notifications for your planned activities',
         importance: Importance.high,
-import '../../core/logging/app_logger.dart';
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
