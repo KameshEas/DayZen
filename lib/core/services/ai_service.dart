@@ -6,6 +6,7 @@
 /// - BINDING 22: GET /ai/insights/productivity (getProductivityInsights) - REUSED 3x with range cache
 /// - BINDING 23: GET /ai/reminders/smart (getSmartReminders) - Per-date cache
 /// - BINDING 24: POST /ai/sync (syncAIData) - Bulk refresh
+/// - BINDING 25: POST /ai/schedule (getScheduleSuggestions) - Task scheduling with availability
 library;
 
 import '../api/api_client.dart';
@@ -141,6 +142,79 @@ class SmartReminder {
       reminderType: json['reminder_type'] as String,
       message: json['message'] as String,
       confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
+    );
+  }
+}
+
+/// Scheduled task suggestion (part of schedule suggestions).
+class ScheduledTask {
+  final String taskId;
+  final String suggestedStartTime; // HH:MM format
+  final String suggestedEndTime; // HH:MM format
+  final String reason;
+  final double confidence; // 0-1.0
+
+  ScheduledTask({
+    required this.taskId,
+    required this.suggestedStartTime,
+    required this.suggestedEndTime,
+    required this.reason,
+    required this.confidence,
+  });
+
+  factory ScheduledTask.fromJson(Map<String, dynamic> json) {
+    return ScheduledTask(
+      taskId: json['task_id'] as String,
+      suggestedStartTime: json['suggested_start_time'] as String,
+      suggestedEndTime: json['suggested_end_time'] as String,
+      reason: json['reason'] as String,
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.7,
+    );
+  }
+}
+
+/// Break recommendation (part of schedule suggestions).
+class BreakRecommendation {
+  final String startTime; // HH:MM format
+  final int durationMinutes;
+  final String type; // stretch, walk, meditate, etc.
+
+  BreakRecommendation({
+    required this.startTime,
+    required this.durationMinutes,
+    required this.type,
+  });
+
+  factory BreakRecommendation.fromJson(Map<String, dynamic> json) {
+    return BreakRecommendation(
+      startTime: json['start_time'] as String,
+      durationMinutes: json['duration_minutes'] as int? ?? 10,
+      type: json['type'] as String? ?? 'break',
+    );
+  }
+}
+
+/// Complete schedule suggestions with tasks and breaks.
+class ScheduleSuggestions {
+  final List<ScheduledTask> scheduledTasks;
+  final int totalFocusMinutes;
+  final List<BreakRecommendation> recommendedBreaks;
+
+  ScheduleSuggestions({
+    required this.scheduledTasks,
+    required this.totalFocusMinutes,
+    required this.recommendedBreaks,
+  });
+
+  factory ScheduleSuggestions.fromJson(Map<String, dynamic> json) {
+    return ScheduleSuggestions(
+      scheduledTasks: (json['scheduled_tasks'] as List<dynamic>?)
+          ?.map((t) => ScheduledTask.fromJson(t as Map<String, dynamic>))
+          .toList() ?? [],
+      totalFocusMinutes: json['total_focus_minutes'] as int? ?? 0,
+      recommendedBreaks: (json['recommended_breaks'] as List<dynamic>?)
+          ?.map((b) => BreakRecommendation.fromJson(b as Map<String, dynamic>))
+          .toList() ?? [],
     );
   }
 }
@@ -352,6 +426,40 @@ class AIService {
         'reminders': reminders,
         'synced_at': DateTime.parse(response['synced_at'] as String),
       };
+    } on ApiException {
+      rethrow;
+    }
+  }
+
+  /// BINDING 25: Get task scheduling suggestions based on availability.
+  /// API: POST /ai/schedule
+  /// Request includes: tasks list, user availability (hours, peak hours), break preferences
+  /// Response: Scheduled tasks with times + recommended breaks
+  /// Used By: Planner/Schedule optimization features
+  Future<ScheduleSuggestions> getScheduleSuggestions({
+    required List<Map<String, dynamic>> tasks,
+    required int startHour,
+    required int endHour,
+    List<int>? peakHours,
+    int breakFrequencyMinutes = 90,
+    int minBreakDurationMinutes = 10,
+  }) async {
+    try {
+      final request = {
+        'tasks': tasks,
+        'user_availability': {
+          'start_hour': startHour,
+          'end_hour': endHour,
+          if (peakHours != null) 'peak_hours': peakHours,
+        },
+        'preferences': {
+          'break_frequency_minutes': breakFrequencyMinutes,
+          'min_break_duration_minutes': minBreakDurationMinutes,
+        },
+      };
+
+      final response = await _apiClient.post('/ai/schedule', request);
+      return ScheduleSuggestions.fromJson(response);
     } on ApiException {
       rethrow;
     }

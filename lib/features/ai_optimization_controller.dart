@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/services/ai_optimization_manager.dart';
 import '../core/services/ai_service.dart';
+import '../core/services/achievement_service.dart';
 import '../../core/logging/app_logger.dart';
 
 /// Controls AI optimization features.
@@ -17,6 +18,8 @@ class AIOptimizationController extends ChangeNotifier {
   List<ScheduleOptimization>? get optimizations => _manager.optimizations;
   List<ProductivityInsight>? get insights => _manager.insights;
   List<SmartReminder>? get reminders => _manager.reminders;
+  List<Achievement>? get achievements => _manager.achievements;
+  ScheduleSuggestions? get scheduleSuggestions => _manager.scheduleSuggestions;
 
   /// Load AI data for today.
   Future<void> load() async {
@@ -79,6 +82,38 @@ class AIOptimizationController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       AppLogger.debug('Failed to get reminders: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Load achievements.
+  Future<void> loadAchievements({bool forceRefresh = false}) async {
+    try {
+      await _manager.getAchievements(forceRefresh: forceRefresh);
+      notifyListeners();
+    } catch (e) {
+      AppLogger.debug('Failed to load achievements: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Get schedule suggestions for tasks.
+  Future<void> getScheduleSuggestions({
+    required List<Map<String, dynamic>> tasks,
+    required int startHour,
+    required int endHour,
+    List<int>? peakHours,
+  }) async {
+    try {
+      await _manager.getScheduleSuggestions(
+        tasks: tasks,
+        startHour: startHour,
+        endHour: endHour,
+        peakHours: peakHours,
+      );
+      notifyListeners();
+    } catch (e) {
+      AppLogger.debug('Failed to get schedule suggestions: $e');
       notifyListeners();
     }
   }

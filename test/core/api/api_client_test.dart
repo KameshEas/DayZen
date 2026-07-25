@@ -1,5 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dayzen/core/api/api_client.dart';
+import 'package:dayzen/core/api/auth_service.dart';
 
 void main() {
   group('ApiClient', () {
@@ -122,5 +127,225 @@ void main() {
         expect(message, isNotEmpty);
       });
     });
+
+    group('HTTP Request/Response with MockClient', () {
+      late _MockAuthService mockAuthService;
+
+      setUp(() {
+        mockAuthService = _MockAuthService();
+      });
+
+      test('GET request returns parsed JSON on 200 OK', () async {
+        final mockClient = MockClient((request) async {
+          expect(request.method, equals('GET'));
+          expect(request.url.path, contains('/test'));
+          return http.Response('{"result": "success"}', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.get('/test');
+
+        expect(response, equals({'result': 'success'}));
+      });
+
+      test('POST request sends JSON body', () async {
+        final mockClient = MockClient((request) async {
+          expect(request.method, equals('POST'));
+          expect(request.body, contains('test_data'));
+          return http.Response('{"id": "123"}', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.post('/create', {'test_data': 'value'});
+
+        expect(response, equals({'id': '123'}));
+      });
+
+      test('PUT request updates resource', () async {
+        final mockClient = MockClient((request) async {
+          expect(request.method, equals('PUT'));
+          return http.Response('{"updated": true}', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.put('/update/1', {'updated': true});
+
+        expect(response, equals({'updated': true}));
+      });
+
+      test('DELETE request removes resource', () async {
+        final mockClient = MockClient((request) async {
+          expect(request.method, equals('DELETE'));
+          return http.Response('{"deleted": true}', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.delete('/resource/1');
+
+        expect(response, equals({'deleted': true}));
+      });
+
+      test('publicGet request works without auth', () async {
+        final mockClient = MockClient((request) async {
+          expect(request.method, equals('GET'));
+          expect(request.headers.containsKey('Authorization'), isFalse);
+          return http.Response('{"quote": "Success"}', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.publicGet('/quotes/daily');
+
+        expect(response, equals({'quote': 'Success'}));
+      });
+
+      test('400 status code throws validationError', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"detail": "Invalid input"}', 400);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.get('/test'),
+          throwsA(isA<ApiException>().having(
+            (e) => e.errorType,
+            'errorType',
+            ApiErrorType.validationError,
+          )),
+        );
+      });
+
+      test('401 status code throws authenticationError', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"detail": "Unauthorized"}', 401);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.get('/protected'),
+          throwsA(isA<ApiException>().having(
+            (e) => e.errorType,
+            'errorType',
+            ApiErrorType.authenticationError,
+          )),
+        );
+      });
+
+      test('404 status code throws notFoundError', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"detail": "Not found"}', 404);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.get('/missing'),
+          throwsA(isA<ApiException>().having(
+            (e) => e.errorType,
+            'errorType',
+            ApiErrorType.notFoundError,
+          )),
+        );
+      });
+
+      test('409 status code throws conflictError', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"detail": "Conflict"}', 409);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.post('/sync', {'data': 'test'}),
+          throwsA(isA<ApiException>().having(
+            (e) => e.errorType,
+            'errorType',
+            ApiErrorType.conflictError,
+          )),
+        );
+      });
+
+      test('500+ status code throws serverError', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"detail": "Server error"}', 500);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.get('/error'),
+          throwsA(isA<ApiException>().having(
+            (e) => e.errorType,
+            'errorType',
+            ApiErrorType.serverError,
+          )),
+        );
+      });
+
+      test('empty response body returns success map', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('', 204);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+        final response = await apiClient.delete('/resource/1');
+
+        expect(response, equals({'success': true}));
+      });
+
+      test('invalid JSON throws exception', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('invalid json', 200);
+        });
+
+        final apiClient = ApiClient(client: mockClient, authService: mockAuthService);
+
+        expect(
+          () => apiClient.get('/test'),
+          throwsA(isA<ApiException>()),
+        );
+      });
+    });
   });
+}
+
+class _MockAuthService extends ChangeNotifier implements AuthService {
+  @override
+  Future<String?> getIdToken({bool forceRefresh = false}) async => 'mock-token';
+
+  @override
+  Future<Map<String, String>> getAuthHeaders() async {
+    return {'Authorization': 'Bearer mock-token'};
+  }
+
+  @override
+  Future<UserCredential?> signInWithEmail(String email, String password) async => null;
+
+  @override
+  Future<UserCredential?> signUpWithEmail(String email, String password) async => null;
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  void clearCachedToken() {}
+
+  @override
+  User? get currentUser => null;
+
+  @override
+  bool get isAuthenticated => true;
+
+  @override
+  String? get userId => 'mock-user-id';
+
+  @override
+  String? get userEmail => 'test@example.com';
+
+  @override
+  bool get isTokenValid => true;
+
+  @override
+  DateTime? get tokenExpiryTime => DateTime.now().add(const Duration(hours: 1));
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
+import '../../features/app_data.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
 import '../../features/debug/test_notification_page.dart';
@@ -159,29 +160,23 @@ class AppRouter {
           builder: (context, state) => const SettingsPage(),
         ),
 
-        // ── Task detail (placeholder for future implementation) ────────
+        // ── Task detail ────────────────────────────────────────────────
         GoRoute(
           path: RoutePaths.taskDetail,
           name: RouteNames.taskDetail,
           builder: (context, state) {
             final id = state.pathParameters['id']!;
-            return Scaffold(
-              appBar: AppBar(title: Text('Task: $id')),
-              body: const Center(child: Text('Task detail — not yet implemented')),
-            );
+            return _TaskDetailPage(taskId: id);
           },
         ),
 
-        // ── Journal detail (placeholder for future implementation) ────
+        // ── Journal detail ────────────────────────────────────────────
         GoRoute(
           path: RoutePaths.journalDetail,
           name: RouteNames.journalDetail,
           builder: (context, state) {
             final id = state.pathParameters['id']!;
-            return Scaffold(
-              appBar: AppBar(title: Text('Entry: $id')),
-              body: const Center(child: Text('Journal detail — not yet implemented')),
-            );
+            return _JournalDetailPage(journalId: id);
           },
         ),
 
@@ -212,5 +207,133 @@ class AppRouter {
     if (biometricEnabled) return '/biometric-unlock';
     if (hasPin) return '/pin-unlock';
     return RoutePaths.login;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Detail Pages
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TaskDetailPage extends StatelessWidget {
+  const _TaskDetailPage({required this.taskId});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context) {
+    final taskCtrl = TaskScope.of(context);
+    final tasks = taskCtrl.all;
+    final task = tasks.isEmpty ? null : tasks.cast<dynamic>().fold(
+      null,
+      (prev, t) => (t.id as String) == taskId ? t : prev,
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Task Details')),
+      body: task == null
+          ? const Center(child: Text('Task not found'))
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      task.title as String,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Priority badge
+                    Chip(label: Text((task.priority as dynamic).label as String)),
+                    const SizedBox(height: 16),
+
+                    // Details
+                    Text('Category: ${(task.category as dynamic).label as String}'),
+                    Text('Date: ${task.date}'),
+                    Text('Start: ${task.startTime}'),
+                    Text('Duration: ${task.estimatedDurationMinutes} min'),
+                    const SizedBox(height: 16),
+
+                    // Completion status
+                    CheckboxListTile(
+                      title: const Text('Completed'),
+                      value: task.isCompleted as bool,
+                      onChanged: null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+class _JournalDetailPage extends StatelessWidget {
+  const _JournalDetailPage({required this.journalId});
+
+  final String journalId;
+
+  @override
+  Widget build(BuildContext context) {
+    final journalCtrl = JournalScope.of(context);
+    final entries = journalCtrl.all;
+    final entry = entries.isEmpty ? null : entries.cast<dynamic>().fold(
+      null,
+      (prev, e) => (e.id as String) == journalId ? e : prev,
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Journal Entry')),
+      body: entry == null
+          ? const Center(child: Text('Entry not found'))
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Mood indicator
+                    Row(
+                      children: [
+                        Icon(
+                          (entry.mood as dynamic).icon as IconData,
+                          color: (entry.mood as dynamic).iconColor as Color,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          (entry.mood as dynamic).name as String,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Title
+                    Text(
+                      entry.title as String,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Timestamp
+                    Text(
+                      '${entry.timestamp}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Body
+                    Text(
+                      entry.body as String,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
   }
 }
