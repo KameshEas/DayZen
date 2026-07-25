@@ -44,3 +44,14 @@ jobs:
         # fixes the Firebase test bootstrap.
         run: flutter test
         continue-on-error: true
+
+      - name: Test with Coverage
+        run: flutter test --coverage
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: flutter
+          fail_ci_if_error: false

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/routing/route_paths.dart';
 import '../app_data.dart';
 import 'widgets/insights_ai_suggestion_card.dart';
 import 'widgets/insights_data.dart';
@@ -26,6 +28,29 @@ class InsightsPage extends StatelessWidget {
           [TaskScope.of(context), JournalScope.of(context), insightsCtrl]),
       builder: (context, _) {
         final d = InsightsData.from(context);
+        final hasData = TaskScope.of(context).all.isNotEmpty ||
+            JournalScope.of(context).all.isNotEmpty;
+
+        if (!hasData) {
+          return ListView(
+            padding: const EdgeInsets.symmetric(
+                horizontal: DzSpacing.lg, vertical: DzSpacing.md),
+            children: [
+              const SizedBox(height: DzSpacing.lg),
+              const InsightsGreeting(),
+              const SizedBox(height: DzSpacing.xl),
+              DzEmptyState(
+                icon: Icons.analytics_outlined,
+                title: 'No insights yet',
+                subtitle:
+                    'Create tasks and journal entries to see your insights.',
+                actionLabel: 'Create a task',
+                onAction: () => context.push(RoutePaths.newTask),
+              ),
+            ],
+          );
+        }
+
         return ListView(
           padding: const EdgeInsets.symmetric(
               horizontal: DzSpacing.lg, vertical: DzSpacing.md),

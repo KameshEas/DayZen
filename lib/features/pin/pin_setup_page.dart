@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/pin_pad.dart';
@@ -71,10 +72,17 @@ class _PinSetupPageState extends State<PinSetupPage> {
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    color: Theme.of(context).colorScheme.primary,
-                    onPressed: () => Navigator.of(context).maybePop(),
+                  Semantics(
+                    label: 'Go back',
+                    button: true,
+                    enabled: true,
+                    onTap: () => context.pop(),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: Theme.of(context).colorScheme.primary,
+                      tooltip: 'Back',
+                      onPressed: () => context.pop(),
+                    ),
                   ),
                   Text(
                     'Secure Your Space',

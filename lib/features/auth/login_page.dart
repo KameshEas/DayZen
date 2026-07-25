@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
+import '../app_data.dart';
 import 'auth_controller.dart';
 import 'sign_up_page.dart';
 import 'widgets/auth_shared_widgets.dart';
@@ -47,7 +48,10 @@ class _LoginPageState extends State<LoginPage> {
     _controller.signIn(
       email: email,
       password: _passwordCtrl.text,
-      onSuccess: () => widget.onSignedIn(email),
+      onSuccess: () {
+        SettingsScope.of(context).setSignedIn(true, email);
+        widget.onSignedIn(email);
+      },
     );
   }
 
@@ -128,12 +132,19 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   // ── Back button (when pushed from Settings) ────
                   if (widget.canGoBack)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Semantics(
+                      label: 'Go back',
+                      button: true,
+                      enabled: true,
+                      onTap: () => Navigator.of(context).maybePop(),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: Theme.of(context).colorScheme.primary,
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                     ),
 
                   // ── Brand ─────────────────────────────────────────

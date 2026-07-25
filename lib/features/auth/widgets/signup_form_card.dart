@@ -87,14 +87,21 @@ class SignUpFormCard extends StatelessWidget {
               Icons.lock_outline_rounded,
               size: 20,
             ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                size: 20,
+            suffixIcon: Semantics(
+              label: obscurePassword ? 'Show password' : 'Hide password',
+              button: true,
+              enabled: true,
+              onTap: onToggleObscurePassword,
+              child: IconButton(
+                icon: Icon(
+                  obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 20,
+                ),
+                tooltip: obscurePassword ? 'Show password' : 'Hide password',
+                onPressed: onToggleObscurePassword,
               ),
-              onPressed: onToggleObscurePassword,
             ),
             onSubmitted: (_) => onSubmit(),
             onChanged: (_) => controller.clearError(),

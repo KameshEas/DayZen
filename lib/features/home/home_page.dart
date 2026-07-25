@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../../core/routing/route_paths.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
@@ -68,27 +70,35 @@ class _HomeBody extends StatelessWidget {
         HomeGreetingHeader(
           dateLabel: dateLabel,
           greeting: greeting,
-          subtitle: tasks.isEmpty
-              ? 'Add your first task to get started.'
-              : remaining == 0
-                  ? 'All tasks done. Great work!'
-                  : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
+          subtitle: remaining == 0 && tasks.isNotEmpty
+              ? 'All tasks done. Great work!'
+              : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
         ),
         const SizedBox(height: DzSpacing.lg),
-        SyncStatusIndicator(
-          taskController: taskCtrl,
-          showFullStatus: true,
-        ),
-        const SizedBox(height: DzSpacing.md),
-        AIRecommendationsCard(
-          aiController: AIOptimizationScope.of(context),
-        ),
-        const SizedBox(height: DzSpacing.md),
-        HomeFocusScoreCard(score: score, hasTasks: tasks.isNotEmpty),
-        const SizedBox(height: DzSpacing.md),
-        HomeStatsRow(focusLabel: focusLabel, zenSessionsCount: zenDone),
-        const SizedBox(height: DzSpacing.md),
-        const HomeDailyReflectionCard(),
+        if (tasks.isEmpty)
+          DzEmptyState(
+            icon: Icons.task_alt_outlined,
+            title: "You're all set for today",
+            subtitle: 'No tasks scheduled. Create one to get started.',
+            actionLabel: 'Add a task',
+            onAction: () => context.push(RoutePaths.newTask),
+          )
+        else ...[
+          SyncStatusIndicator(
+            taskController: taskCtrl,
+            showFullStatus: true,
+          ),
+          const SizedBox(height: DzSpacing.md),
+          AIRecommendationsCard(
+            aiController: AIOptimizationScope.of(context),
+          ),
+          const SizedBox(height: DzSpacing.md),
+          HomeFocusScoreCard(score: score, hasTasks: tasks.isNotEmpty),
+          const SizedBox(height: DzSpacing.md),
+          HomeStatsRow(focusLabel: focusLabel, zenSessionsCount: zenDone),
+          const SizedBox(height: DzSpacing.md),
+          const HomeDailyReflectionCard(),
+        ],
         const SizedBox(height: DzSpacing.xl),
       ],
     );

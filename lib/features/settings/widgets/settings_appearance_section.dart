@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/design_system.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
@@ -79,7 +80,7 @@ class SettingsAppearanceSection extends StatelessWidget {
             .key,
         onSelect: (label) {
           ctrl.setThemeMode(options[label]!);
-          Navigator.pop(context);
+          context.pop();
         },
       ),
     );
@@ -128,7 +129,7 @@ class SettingsAppearanceSection extends StatelessWidget {
                         color: DzColors.borderLight, size: 22),
                 onTap: () {
                   ctrl.setAccent(opt);
-                  Navigator.pop(context);
+                  context.pop();
                 },
               );
             }),

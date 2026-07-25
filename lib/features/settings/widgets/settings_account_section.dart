@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/design_system.dart';
-import '../../auth/login_page.dart';
+import '../../../core/routing/route_paths.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
@@ -48,20 +49,7 @@ class SettingsAccountSection extends StatelessWidget {
   }
 
   void _navigateToSignIn(BuildContext context, SettingsController ctrl) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LoginPage(
-          canGoBack: true,
-          onSignedIn: (email) {
-            ctrl.setSignedIn(true, email);
-            Navigator.of(context).pop();
-          },
-          onContinueOffline: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-    );
+    context.push(RoutePaths.login);
   }
 
   void _showAccountSheet(BuildContext context, SettingsController ctrl) {
@@ -136,7 +124,7 @@ class SettingsAccountSection extends StatelessWidget {
                 ),
                 onPressed: () {
                   ctrl.signOut();
-                  Navigator.pop(context);
+                  context.pop();
                 },
               ),
             ),
