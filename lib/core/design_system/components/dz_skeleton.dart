@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 import '../design_system.dart';
 
 /// Skeleton loader component for async operations.
 /// Displays a shimmer animation while data is loading.
-class DzSkeletonLoader extends StatelessWidget {
+class DzSkeletonLoader extends StatefulWidget {
   final double width;
   final double height;
   final BorderRadius borderRadius;
@@ -49,6 +48,32 @@ class DzSkeletonLoader extends StatelessWidget {
         borderRadius: BorderRadius.circular(DzRadius.card),
       );
 
+  @override
+  State<DzSkeletonLoader> createState() => _DzSkeletonLoaderState();
+}
+
+class _DzSkeletonLoaderState extends State<DzSkeletonLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _shimmerPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _shimmerPosition = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,17 +87,41 @@ class DzSkeletonLoader extends StatelessWidget {
         ? Colors.grey[700]!
         : Colors.grey[100]!;
 
-    return Shimmer.fromColors(
-      baseColor: baseColor,
-      highlightColor: highlightColor,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: baseColor,
-          borderRadius: borderRadius,
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _shimmerPosition,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              tileMode: TileMode.clamp,
+              stops: const [0.0, 0.3, 0.5, 1.0],
+              colors: [
+                baseColor,
+                highlightColor,
+                highlightColor,
+                baseColor,
+              ],
+            ).createShader(
+              Rect.fromLTWH(
+                bounds.width * _shimmerPosition.value,
+                0,
+                bounds.width,
+                bounds.height,
+              ),
+            );
+          },
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: widget.borderRadius,
+            ),
+          ),
+        );
+      },
     );
   }
 }

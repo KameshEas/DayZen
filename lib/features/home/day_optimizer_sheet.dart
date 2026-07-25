@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/ai/day_optimizer.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
@@ -36,17 +37,25 @@ class _OptimizerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      minChildSize: 0.4,
-      maxChildSize: 0.95,
-      builder: (_, controller) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(DzRadius.card),
+    return Stack(
+      children: [
+        BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.2),
           ),
         ),
+        DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (_, controller) => Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(DzRadius.card),
+              ),
+            ),
         child: Column(
           children: [
             // ── Handle ────────────────────────────────────────────
@@ -159,6 +168,8 @@ class _OptimizerSheet extends StatelessWidget {
           ],
         ),
       ),
+        ),
+    ],
     );
   }
 }
