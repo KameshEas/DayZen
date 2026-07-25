@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/services/insights_sync_manager.dart';
 import '../core/services/insights_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Controls insights data and sync state.
 /// Insights are read-only from client (computed by server).
@@ -32,7 +33,7 @@ class InsightsController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to load today insights: $e');
+      AppLogger.debug('Failed to load today insights: $e');
       notifyListeners();
     }
   }
@@ -47,7 +48,7 @@ class InsightsController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to load week insights: $e');
+      AppLogger.debug('Failed to load week insights: $e');
       notifyListeners();
     }
   }
@@ -73,7 +74,7 @@ class InsightsController extends ChangeNotifier {
       }
       return insights;
     } catch (e) {
-      debugPrint('Failed to get date insights: $e');
+      AppLogger.debug('Failed to get date insights: $e');
       return null;
     }
   }
@@ -94,7 +95,7 @@ class InsightsController extends ChangeNotifier {
       }
       return insights;
     } catch (e) {
-      debugPrint('Failed to get range insights: $e');
+      AppLogger.debug('Failed to get range insights: $e');
       return [];
     }
   }
@@ -112,7 +113,7 @@ class InsightsController extends ChangeNotifier {
         loadWeekInsights(),
       ]);
     } catch (e) {
-      debugPrint('Failed to sync insights: $e');
+      AppLogger.debug('Failed to sync insights: $e');
       notifyListeners();
     }
   }
@@ -129,7 +130,7 @@ class InsightsController extends ChangeNotifier {
         loadWeekInsights(),
       ]);
     } catch (e) {
-      debugPrint('Retry sync failed: $e');
+      AppLogger.debug('Retry sync failed: $e');
       notifyListeners();
     }
   }
@@ -144,3 +145,5 @@ class InsightsController extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+

@@ -5,10 +5,15 @@ import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
-
+import 'widgets/new_task_bottom_bar.dart';
+import 'widgets/new_task_focus_privacy.dart';
+import 'widgets/new_task_form_fields.dart';
+import 'widgets/new_task_shared_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// New Task Page — full-screen design matching the DayZen UI spec
+// New Task Page — full-screen design matching the DayZen UI spec. Split
+// from a single 624-line file into features/tasks/widgets/ subcomponents
+// in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class NewTaskPage extends StatefulWidget {
@@ -30,7 +35,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
   late TimeOfDay _endTime;
 
   TaskCategory _category = TaskCategory.work;
-  _PriorityLevel _priority = _PriorityLevel.medium;
+  NewTaskPriorityLevel _priority = NewTaskPriorityLevel.medium;
 
   @override
   void initState() {
@@ -75,9 +80,9 @@ class _NewTaskPageState extends State<NewTaskPage> {
   }
 
   TaskPriority _toDzPriority() => switch (_priority) {
-        _PriorityLevel.low => TaskPriority.low,
-        _PriorityLevel.medium => TaskPriority.routine,
-        _PriorityLevel.high => TaskPriority.high,
+        NewTaskPriorityLevel.low => TaskPriority.low,
+        NewTaskPriorityLevel.medium => TaskPriority.routine,
+        NewTaskPriorityLevel.high => TaskPriority.high,
       };
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -127,7 +132,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
       date: _scheduledDate,
     );
 
-    final tasks = AppData.of(context).tasks;
+    final tasks = TaskScope.of(context);
     await tasks.addTask(task);
 
     if (mounted) Navigator.of(context).pop(task);
@@ -208,9 +213,9 @@ class _NewTaskPageState extends State<NewTaskPage> {
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── SCHEDULED FOR ────────────────────────────────
-                  _SectionLabel('SCHEDULED FOR'),
+                  const TaskSectionLabel('SCHEDULED FOR'),
                   const SizedBox(height: DzSpacing.sm),
-                  _ScheduledTile(
+                  ScheduledTile(
                     label: _formatScheduled(),
                     onTap: _pickSchedule,
                     primary: primary,
@@ -218,9 +223,9 @@ class _NewTaskPageState extends State<NewTaskPage> {
                   const SizedBox(height: DzSpacing.lg),
 
                   // ── CATEGORY ─────────────────────────────────────
-                  _SectionLabel('CATEGORY'),
+                  const TaskSectionLabel('CATEGORY'),
                   const SizedBox(height: DzSpacing.sm),
-                  _CategoryChips(
+                  CategoryChips(
                     selected: _category,
                     primary: primary,
                     onSelect: (c) => setState(() => _category = c),
@@ -228,9 +233,9 @@ class _NewTaskPageState extends State<NewTaskPage> {
                   const SizedBox(height: DzSpacing.lg),
 
                   // ── PRIORITY ─────────────────────────────────────
-                  _SectionLabel('PRIORITY'),
+                  const TaskSectionLabel('PRIORITY'),
                   const SizedBox(height: DzSpacing.sm),
-                  _PrioritySegment(
+                  PrioritySegment(
                     selected: _priority,
                     primary: primary,
                     onSelect: (p) => setState(() => _priority = p),
@@ -238,7 +243,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
                   const SizedBox(height: DzSpacing.lg),
 
                   // ── CURRENT FOCUS card ───────────────────────────
-                  _CurrentFocusCard(
+                  CurrentFocusCard(
                     label: _focusLabel(),
                     initials: _focusInitials(),
                     color: _focusColor(),
@@ -246,7 +251,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
                   const SizedBox(height: DzSpacing.md),
 
                   // ── Privacy note ─────────────────────────────────
-                  _PrivacyNote(primary: primary),
+                  PrivacyNote(primary: primary),
                   const SizedBox(height: DzSpacing.xl),
                 ],
               ),
@@ -254,371 +259,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            DzSpacing.lg,
-            DzSpacing.sm,
-            DzSpacing.lg,
-            DzSpacing.md + MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Add to My Day ──────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: DzSizing.buttonHeight + 4,
-                child: ElevatedButton.icon(
-                  onPressed: _save,
-                  icon: const Icon(Icons.check_circle_outline_rounded,
-                      color: DzColors.white, size: 20),
-                  label: Text(
-                    'Add to My Day',
-                    style: DzTextStyles.body.copyWith(
-                      color: DzColors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primary,
-                    foregroundColor: DzColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(DzRadius.button + 2),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
-              const SizedBox(height: DzSpacing.sm),
-              // ── Enter hint ────────────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Press ', style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: DzColors.cardBackground,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: DzColors.borderLight),
-                      boxShadow: DzShadows.soft,
-                    ),
-                    child: Text('Enter',
-                        style: DzTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: DzColors.textPrimary,
-                        )),
-                  ),
-                  Text(' to save quickly',
-                      style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Section label
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: DzTextStyles.caption.copyWith(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.0,
-        color: DzColors.textSecondary,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Scheduled tile
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ScheduledTile extends StatelessWidget {
-  const _ScheduledTile({
-    required this.label,
-    required this.onTap,
-    required this.primary,
-  });
-  final String label;
-  final VoidCallback onTap;
-  final Color primary;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DzSpacing.md,
-          vertical: DzSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: DzColors.cardBackground,
-          borderRadius: BorderRadius.circular(DzRadius.card),
-          boxShadow: DzShadows.soft,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.access_time_rounded, color: primary, size: 17),
-            ),
-            const SizedBox(width: DzSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w500),
-              ),
-            ),
-            Icon(Icons.edit_outlined, color: DzColors.textSecondary, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Category chips
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
-    required this.selected,
-    required this.primary,
-    required this.onSelect,
-  });
-  final TaskCategory selected;
-  final Color primary;
-  final ValueChanged<TaskCategory> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: DzSpacing.sm,
-      runSpacing: DzSpacing.sm,
-      children: TaskCategory.values.map((cat) {
-        final isSelected = cat == selected;
-        return AnimatedContainer(
-          duration: DzDuration.fast,
-          child: GestureDetector(
-            onTap: () => onSelect(cat),
-            child: AnimatedContainer(
-              duration: DzDuration.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? primary : DzColors.cardBackground,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isSelected ? primary : DzColors.borderLight,
-                  width: 1.5,
-                ),
-                boxShadow: isSelected ? null : DzShadows.soft,
-              ),
-              child: Text(
-                cat.label,
-                style: DzTextStyles.body.copyWith(
-                  color: isSelected ? DzColors.white : DzColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Priority segmented control
-// ─────────────────────────────────────────────────────────────────────────────
-
-enum _PriorityLevel { low, medium, high }
-
-class _PrioritySegment extends StatelessWidget {
-  const _PrioritySegment({
-    required this.selected,
-    required this.primary,
-    required this.onSelect,
-  });
-  final _PriorityLevel selected;
-  final Color primary;
-  final ValueChanged<_PriorityLevel> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: DzColors.cardBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-        boxShadow: DzShadows.soft,
-      ),
-      child: Row(
-        children: _PriorityLevel.values.map((level) {
-          final isSelected = level == selected;
-          final label = switch (level) {
-            _PriorityLevel.low => 'Low',
-            _PriorityLevel.medium => 'Medium',
-            _PriorityLevel.high => 'High',
-          };
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onSelect(level),
-              child: AnimatedContainer(
-                duration: DzDuration.fast,
-                margin: const EdgeInsets.all(4),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFF0F0F0) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(DzRadius.card - 4),
-                ),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: DzTextStyles.body.copyWith(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                    color: isSelected ? DzColors.textPrimary : DzColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Current Focus card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CurrentFocusCard extends StatelessWidget {
-  const _CurrentFocusCard({
-    required this.label,
-    required this.initials,
-    required this.color,
-  });
-  final String label;
-  final String initials;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: DzDuration.normal,
-      padding: const EdgeInsets.all(DzSpacing.md),
-      decoration: BoxDecoration(
-        color: DzColors.cardBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-        boxShadow: DzShadows.soft,
-      ),
-      child: Row(
-        children: [
-          // Avatar with initials
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: DzTextStyles.body.copyWith(
-                  color: DzColors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: DzSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'CURRENT FOCUS',
-                style: DzTextStyles.caption.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: DzTextStyles.body.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: DzColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Privacy note
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PrivacyNote extends StatelessWidget {
-  const _PrivacyNote({required this.primary});
-  final Color primary;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DzSpacing.md,
-        vertical: DzSpacing.sm + 2,
-      ),
-      decoration: BoxDecoration(
-        color: primary.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(DzRadius.card),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.verified_user_rounded, color: primary, size: 18),
-          const SizedBox(width: DzSpacing.sm),
-          Expanded(
-            child: Text(
-              'Your data is stored locally and stays private.',
-              style: DzTextStyles.caption.copyWith(
-                color: primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: NewTaskBottomBar(primary: primary, onSave: _save),
     );
   }
 }

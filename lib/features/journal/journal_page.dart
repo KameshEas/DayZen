@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
-import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../journal_controller.dart';
-import 'models/journal_entry.dart';
+import 'widgets/journal_entry_card.dart';
+import 'widgets/journal_new_entry_sheet.dart';
+import 'widgets/journal_recent_entries_header.dart';
 import 'widgets/journal_sync_indicator.dart';
+import 'widgets/journal_weekly_reflection_banner.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// JournalPage
+// JournalPage — composes the individual card/sheet widgets under
+// features/journal/widgets/. Split from a single 417-line file (grown from
+// the Phase 4 CustomScrollView conversion) in Phase 5.1 of
+// docs/DEVELOPMENT_PLAN.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class JournalPage extends StatefulWidget {
@@ -24,13 +28,13 @@ class _JournalPageState extends State<JournalPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _NewEntrySheet(),
+      builder: (_) => const JournalNewEntrySheet(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final journalCtrl = AppData.of(context).journal;
+    final journalCtrl = JournalScope.of(context);
     return ListenableBuilder(
       listenable: journalCtrl,
       builder: (context, _) => Scaffold(
@@ -40,32 +44,51 @@ class _JournalPageState extends State<JournalPage> {
           onPressed: _openNewEntry,
           child: const Icon(Icons.add, color: Colors.white),
         ),
-        body: ListView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: DzSpacing.lg, vertical: DzSpacing.md),
-          children: [
-            _WeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
-            const SizedBox(height: DzSpacing.xl),
-            JournalSyncIndicator(
-              journalController: journalCtrl,
-              showFullStatus: true,
+        // CustomScrollView + SliverList.separated so the (unbounded-growth)
+        // entry list is lazily built — only visible entries (plus a small
+        // buffer) are constructed, rather than every entry a user has ever
+        // written. See docs/PERFORMANCE_TESTING.md (Phase 4 of
+        // docs/DEVELOPMENT_PLAN.md). The header content above the list
+        // stays as a plain sliver since it's fixed-size regardless of
+        // entry count.
+        body: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                  DzSpacing.lg, DzSpacing.md, DzSpacing.lg, 0),
+              sliver: SliverList.list(
+                children: [
+                  JournalWeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
+                  const SizedBox(height: DzSpacing.xl),
+                  JournalSyncIndicator(
+                    journalController: journalCtrl,
+                    showFullStatus: true,
+                  ),
+                  const SizedBox(height: DzSpacing.md),
+                  const JournalRecentEntriesHeader(),
+                  const SizedBox(height: DzSpacing.md),
+                ],
+              ),
             ),
-            const SizedBox(height: DzSpacing.md),
-            const _RecentEntriesHeader(),
-            const SizedBox(height: DzSpacing.md),
-            ..._buildEntries(journalCtrl),
-            const SizedBox(height: DzSpacing.xl),
+            SliverPadding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
+              sliver: _buildEntriesSliver(journalCtrl),
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: DzSpacing.xl),
+            ),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildEntries(JournalController journalCtrl) {
+  Widget _buildEntriesSliver(JournalController journalCtrl) {
     final entries = journalCtrl.all;
     if (entries.isEmpty) {
-      return [
-        Padding(
+      return SliverToBoxAdapter(
+        child: Padding(
           padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
           child: Center(
             child: Text(
@@ -75,325 +98,12 @@ class _JournalPageState extends State<JournalPage> {
             ),
           ),
         ),
-      ];
+      );
     }
-    final widgets = <Widget>[];
-    for (final entry in entries) {
-      widgets.add(_JournalEntryCard(entry: entry));
-      widgets.add(const SizedBox(height: DzSpacing.md));
-    }
-    return widgets;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Weekly reflection banner
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _WeeklyReflectionBanner extends StatelessWidget {
-  const _WeeklyReflectionBanner({required this.count});
-  final int count;
-
-  String get _headline {
-    if (count == 0) {
-      return AppConfig.journalReflectionMessages[0] ?? AppConfig.journalReflectionDefault;
-    } else if (count <= 2) {
-      return AppConfig.journalReflectionMessages[2] ?? AppConfig.journalReflectionDefault;
-    } else if (count <= 4) {
-      return AppConfig.journalReflectionMessages[4] ?? AppConfig.journalReflectionDefault;
-    }
-    return AppConfig.journalReflectionDefault;
-  }
-
-  String get _subtitle {
-    if (count == 0) {
-      return AppConfig.journalSubtitleMessages[0] ?? 'Write your first entry today.';
-    }
-    return 'You\'ve logged $count entr${count == 1 ? 'y' : 'ies'} this week.\nConsistency is the key to mindfulness.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-      ),
-      padding: const EdgeInsets.all(DzSpacing.lg),
-      child: Stack(
-        children: [
-          Positioned(
-            right: 8,
-            top: 4,
-            child: Opacity(
-              opacity: 0.18,
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 80),
-            ),
-          ),
-          Positioned(
-            right: 40,
-            bottom: 4,
-            child: Opacity(
-              opacity: 0.12,
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 48),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Weekly Reflection',
-                style: DzTextStyles.caption.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _headline,
-                style: DzTextStyles.heading2.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 26,
-                ),
-              ),
-              const SizedBox(height: DzSpacing.sm),
-              Text(
-                _subtitle,
-                style: DzTextStyles.body
-                    .copyWith(color: Colors.white.withValues(alpha: 0.88)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Recent Entries header row
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _RecentEntriesHeader extends StatelessWidget {
-  const _RecentEntriesHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final monthYear = DateFormatter.formatMonthYear(now);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Recent Entries',
-          style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
-        ),
-        Text(
-          monthYear,
-          style: DzTextStyles.caption.copyWith(
-            color: DzColors.textSecondary,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Journal entry card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _JournalEntryCard extends StatelessWidget {
-  const _JournalEntryCard({required this.entry});
-  final JournalEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = entry.accentColor;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: DzColors.cardBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-        boxShadow: DzShadows.soft,
-        border: accent != null
-            ? Border(left: BorderSide(color: accent, width: 3))
-            : null,
-      ),
-      padding: const EdgeInsets.all(DzSpacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: entry.mood.bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(entry.mood.icon,
-                color: entry.mood.iconColor, size: 22),
-          ),
-          const SizedBox(width: DzSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        entry.title,
-                        style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      entry.dateLabel,
-                      style: DzTextStyles.caption.copyWith(
-                          color: DzColors.textSecondary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  entry.body,
-                  style: DzTextStyles.body.copyWith(
-                      color: DzColors.textSecondary, height: 1.5),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// New entry bottom sheet
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _NewEntrySheet extends StatefulWidget {
-  const _NewEntrySheet();
-
-  @override
-  State<_NewEntrySheet> createState() => _NewEntrySheetState();
-}
-
-class _NewEntrySheetState extends State<_NewEntrySheet> {
-  final _titleController = TextEditingController();
-  final _bodyController = TextEditingController();
-  JournalMood _selectedMood = JournalMood.happy;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: DzColors.cardBackground,
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(DzRadius.modal)),
-        ),
-        padding: const EdgeInsets.fromLTRB(
-            DzSpacing.lg, DzSpacing.lg, DzSpacing.lg, DzSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: DzColors.borderLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: DzSpacing.lg),
-            Text('New Entry',
-                style: DzTextStyles.heading3
-                    .copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: DzSpacing.md),
-            // Mood picker
-            Row(
-              children: JournalMood.values.map((mood) {
-                final selected = _selectedMood == mood;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedMood = mood),
-                    child: AnimatedContainer(
-                      duration: DzDuration.fast,
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: selected ? mood.bg : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: selected
-                            ? Border.all(color: mood.iconColor, width: 1.5)
-                            : Border.all(
-                                color: DzColors.borderLight, width: 1),
-                      ),
-                      child: Icon(mood.icon,
-                          color: mood.iconColor,
-                          size: selected ? 24 : 20),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: DzSpacing.md),
-            DzTextField(
-              controller: _titleController,
-              label: 'Title',
-              hint: 'What\'s on your mind?',
-            ),
-            const SizedBox(height: DzSpacing.md),
-            DzTextField(
-              controller: _bodyController,
-              label: 'Write your thoughts…',
-              hint: '',
-              maxLines: 4,
-            ),
-            const SizedBox(height: DzSpacing.lg),
-            DzPrimaryButton(
-              label: 'Save Entry',
-              onPressed: () {
-                final title = _titleController.text.trim();
-                final body = _bodyController.text.trim();
-                if (title.isEmpty) return;
-                final entry = JournalEntry(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  title: title,
-                  body: body.isEmpty ? '' : body,
-                  mood: _selectedMood,
-                  timestamp: DateTime.now(),
-                  accentColor: _selectedMood.iconColor,
-                );
-                AppData.of(context).journal.addEntry(entry);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
-      ),
+    return SliverList.separated(
+      itemCount: entries.length,
+      itemBuilder: (context, i) => JournalEntryCard(entry: entries[i]),
+      separatorBuilder: (context, i) => const SizedBox(height: DzSpacing.md),
     );
   }
 }

@@ -1,9 +1,10 @@
-/// Helper to sync user settings between backend API and local SettingsController.
+﻿/// Helper to sync user settings between backend API and local SettingsController.
 library;
 
 import 'package:flutter/material.dart';
 import 'user_service.dart';
 import '../../features/settings/settings_controller.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Syncs user settings from backend to local controller.
 Future<void> syncSettingsFromBackend(SettingsController controller) async {
@@ -37,7 +38,7 @@ Future<void> syncSettingsFromBackend(SettingsController controller) async {
     controller.setAnalysisDepth(settings.analysisDepth);
   } catch (e) {
     // Silently fail - use local settings if sync fails
-    print('Failed to sync settings from backend: $e');
+    AppLogger.info('Failed to sync settings from backend: $e');
   }
 }
 
@@ -59,7 +60,7 @@ Future<void> syncSettingsToBackend(SettingsController controller) async {
       analysisDepth: controller.analysisDepth,
     );
   } catch (e) {
-    print('Failed to sync settings to backend: $e');
+    AppLogger.info('Failed to sync settings to backend: $e');
     rethrow;
   }
 }
@@ -88,3 +89,5 @@ String _themeModeToString(ThemeMode mode) {
       return 'system';
   }
 }
+
+

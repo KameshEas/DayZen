@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        # Hard gate: fails the build on any analyzer *error*. Warnings/info
+        # (currently 4 warnings, 12 info — see docs/BASELINE_METRICS.md) are
+        # intentionally not gated yet — note that `flutter analyze`'s
+        # --fatal-warnings/--fatal-infos default to ON, so the flags below
+        # are required, not optional, to get error-only gating. Phase 5 of
+        # docs/DEVELOPMENT_PLAN.md tightens the lint ruleset and should
+        # remove these flags in favor of a zero-issues gate.
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Test
+        # NOT a hard gate yet, by design: as of the Phase 0 baseline
+        # (docs/BASELINE_METRICS.md §2), 8 of 9 integration tests fail
+        # because Firebase isn't initialized/mocked in test setup — a
+        # pre-existing issue unrelated to any given PR's changes, tracked as
+        # an explicit Phase 6 prerequisite in docs/DEVELOPMENT_PLAN.md.
+        # Gating merges on this today would block all Phase 1-5 work behind
+        # Phase 6 test infrastructure that hasn't been built yet. Test
+        # output is still captured and visible on every run so regressions
+        # are visible; flip `continue-on-error` to `false` once Phase 6
+        # fixes the Firebase test bootstrap.
+        run: flutter test
+        continue-on-error: true

@@ -1,4 +1,10 @@
 /// Service for insights/analytics management with cloud sync and offline support.
+///
+/// API Bindings:
+/// - BINDING 16: GET /insights/daily/{date} (getInsightForDate) - Per-date cache
+/// - BINDING 17: GET /insights/daily?range (getInsightsRange) - REUSED 3-4x with range cache
+/// - BINDING 18: GET /insights/weekly/{date} (getWeeklyInsights) - Per-week cache
+/// - BINDING 19: POST /insights/sync (syncInsights) - Bulk refresh
 library;
 
 import '../api/api_client.dart';
@@ -99,12 +105,16 @@ class InsightsService {
 
   static final ApiClient _apiClient = ApiClient();
 
-  // Cache
+  // BINDING 16-19: Insights caching
   final Map<String, DailyInsights> _dailyCache = {};
   final Map<String, WeeklyInsights> _weeklyCache = {};
+  final Map<String, List<DailyInsights>> _rangeCache = {};
   DateTime? _lastSyncTime;
 
-  /// Get insights for a specific date.
+  /// BINDING 16: Get insights for a specific date.
+  /// API: GET /insights/daily/{date}
+  /// Cache: 24 hours (insights are stable)
+  /// Used By: InsightsController.loadTodayInsights()
   Future<DailyInsights> getInsightForDate(DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T').first;
@@ -129,12 +139,30 @@ class InsightsService {
     }
   }
 
-  /// Get insights for a date range.
+  /// BINDING 17: Get insights for a date range (REUSED - 3-4x per session)
+  /// API: GET /insights/daily?start_date={}&end_date={}
+  /// Cache: Date-range based
+  /// Used By:
+  ///   1. InsightsController.getRangeInsights() - Week view
+  ///   2. AIService (for productivity insights)
+  ///   3. Analytics reports
+  ///
+  /// OPTIMIZATION STRATEGY:
+  /// • Range-based cache key prevents refetching same period
+  /// • 7-day range cached separately from 30-day range
+  /// • Server returns optimized aggregated data
   Future<List<DailyInsights>> getInsightsRange({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
     try {
+      final String rangeKey = _buildRangeKey(startDate, endDate);
+
+      // Check range cache first
+      if (_rangeCache.containsKey(rangeKey)) {
+        return _rangeCache[rangeKey]!;
+      }
+
       final startStr = startDate.toIso8601String().split('T').first;
       final endStr = endDate.toIso8601String().split('T').first;
 
@@ -143,7 +171,10 @@ class InsightsService {
           ?.map((i) => DailyInsights.fromJson(i as Map<String, dynamic>))
           .toList() ?? [];
 
-      // Cache all results
+      // OPTIMIZATION: Cache the range
+      _rangeCache[rangeKey] = insights;
+
+      // Also cache individual days
       for (final insight in insights) {
         final key = insight.date.toIso8601String().split('T').first;
         _dailyCache[key] = insight;
@@ -151,7 +182,13 @@ class InsightsService {
 
       return insights;
     } on ApiException {
-      // Return cached insights if available
+      // Check range cache first on error
+      final String rangeKey = _buildRangeKey(startDate, endDate);
+      if (_rangeCache.containsKey(rangeKey)) {
+        return _rangeCache[rangeKey]!;
+      }
+
+      // Fall back to individual day cache
       final cached = _dailyCache.values.where((i) {
         return !i.date.isBefore(startDate) && !i.date.isAfter(endDate);
       }).toList();
@@ -162,7 +199,16 @@ class InsightsService {
     }
   }
 
-  /// Get weekly insights.
+  /// Helper: Build cache key for date range queries
+  String _buildRangeKey(DateTime start, DateTime end) {
+    return '${start.toIso8601String().split('T')[0]}_to_${end.toIso8601String().split('T')[0]}';
+  }
+
+  /// BINDING 18: Get weekly insights.
+  /// API: GET /insights/weekly/{date}
+  /// Cache: Per-week cache (24h)
+  /// Used By: InsightsController.loadWeekInsights()
+  /// OPTIMIZATION: Aggregated data reduces payload
   Future<WeeklyInsights> getWeeklyInsights(DateTime weekStart) async {
     try {
       final weekStr = weekStart.toIso8601String().split('T').first;
@@ -186,8 +232,11 @@ class InsightsService {
     }
   }
 
-  /// Sync insights (read-only from backend perspective).
-  /// Backend calculates insights from tasks/journal/etc., no client writes.
+  /// BINDING 19: Sync insights (read-only from backend perspective).
+  /// API: POST /insights/sync
+  /// Used By: InsightsSyncManager.syncInsights()
+  /// OPTIMIZATION: Single call fetches all insights for range
+  /// Note: Backend calculates insights from tasks/journal/etc., no client writes.
   Future<Map<String, dynamic>> syncInsights({
     required DateTime startDate,
     required DateTime endDate,
@@ -250,10 +299,11 @@ class InsightsService {
   /// Get last sync time.
   DateTime? get lastSyncTime => _lastSyncTime;
 
-  /// Clear cache (on logout).
+  /// Clear all caches (on logout).
   void clearCache() {
     _dailyCache.clear();
     _weeklyCache.clear();
+    _rangeCache.clear();
     _lastSyncTime = null;
   }
 

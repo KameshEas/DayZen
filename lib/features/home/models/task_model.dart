@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/design_system/tokens/dz_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Task priority
@@ -15,17 +16,17 @@ extension TaskPriorityX on TaskPriority {
       };
 
   Color get color => switch (this) {
-        TaskPriority.high => const Color(0xFFEF4444),
-        TaskPriority.zen => const Color(0xFF10B981),
-        TaskPriority.routine => const Color(0xFF94A3B8),
-        TaskPriority.low => const Color(0xFF3B82F6),
+        TaskPriority.high => DzColors.error,
+        TaskPriority.zen => DzColors.zenGreen,
+        TaskPriority.routine => DzColors.slateGray,
+        TaskPriority.low => DzColors.primary,
       };
 
   Color get bg => switch (this) {
-        TaskPriority.high => const Color(0xFFFEE2E2),
-        TaskPriority.zen => const Color(0xFFD1FAE5),
-        TaskPriority.routine => const Color(0xFFF1F5F9),
-        TaskPriority.low => const Color(0xFFDBEAFE),
+        TaskPriority.high => DzColors.errorTint,
+        TaskPriority.zen => DzColors.successTint,
+        TaskPriority.routine => DzColors.neutralTint,
+        TaskPriority.low => DzColors.skyTint,
       };
 }
 

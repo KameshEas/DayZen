@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/design_system/tokens/dz_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Journal mood
@@ -15,17 +16,17 @@ extension JournalMoodX on JournalMood {
       };
 
   Color get iconColor => switch (this) {
-        JournalMood.happy => const Color(0xFF10B981),
-        JournalMood.peaceful => const Color(0xFF3B82F6),
-        JournalMood.inspired => const Color(0xFFF59E0B),
-        JournalMood.overwhelmed => const Color(0xFFEF4444),
+        JournalMood.happy => DzColors.zenGreen,
+        JournalMood.peaceful => DzColors.primary,
+        JournalMood.inspired => DzColors.warning,
+        JournalMood.overwhelmed => DzColors.error,
       };
 
   Color get bg => switch (this) {
-        JournalMood.happy => const Color(0xFFD1FAE5),
-        JournalMood.peaceful => const Color(0xFFDBEAFE),
-        JournalMood.inspired => const Color(0xFFFEF3C7),
-        JournalMood.overwhelmed => const Color(0xFFFEE2E2),
+        JournalMood.happy => DzColors.successTint,
+        JournalMood.peaceful => DzColors.skyTint,
+        JournalMood.inspired => DzColors.warningTint,
+        JournalMood.overwhelmed => DzColors.errorTint,
       };
 }
 

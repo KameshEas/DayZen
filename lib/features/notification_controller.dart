@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/services/notification_sync_manager.dart';
 import '../core/services/notification_sync_service.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Controls notification preferences and delivery tracking.
 class NotificationController extends ChangeNotifier {
@@ -47,7 +48,7 @@ class NotificationController extends ChangeNotifier {
     try {
       await _manager.syncNotifications();
     } catch (e) {
-      debugPrint('Failed to sync notifications: $e');
+      AppLogger.debug('Failed to sync notifications: $e');
       notifyListeners();
     }
   }
@@ -57,7 +58,7 @@ class NotificationController extends ChangeNotifier {
     try {
       await _manager.retrySyncNotifications();
     } catch (e) {
-      debugPrint('Retry sync failed: $e');
+      AppLogger.debug('Retry sync failed: $e');
       notifyListeners();
     }
   }
@@ -90,3 +91,5 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+

@@ -1,13 +1,19 @@
 /// Manages offline-first synchronization for journal entries.
 library;
 
-import 'package:flutter/foundation.dart';
 import 'journal_service.dart';
+import 'sync_coordinator.dart';
 import '../../features/journal/models/journal_entry.dart';
 import '../../features/journal_controller.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Handles journal sync coordination with conflict resolution.
-class JournalSyncManager extends ChangeNotifier {
+///
+/// The shared sync state machine lives in [SyncCoordinator] â€” see
+/// docs/DEVELOPMENT_PLAN.md Phase 3.2 and [SyncManager] (the task
+/// equivalent of this class). This class owns only what's journal-specific:
+/// building the sync request and reconciling the response.
+class JournalSyncManager extends SyncCoordinator<JournalController> {
   JournalSyncManager._();
 
   static final JournalSyncManager _instance = JournalSyncManager._();
@@ -16,59 +22,40 @@ class JournalSyncManager extends ChangeNotifier {
 
   static final JournalService _journalService = JournalService.instance;
 
-  bool _isSyncing = false;
-  DateTime? _lastSuccessfulSync;
-
-  bool get isSyncing => _isSyncing;
-  DateTime? get lastSuccessfulSync => _lastSuccessfulSync;
+  @override
+  String get entityLabel => 'Journal entry';
 
   /// Sync all journal entries with server (offline-first).
-  Future<void> syncEntries(JournalController journalController) async {
-    if (_isSyncing) return;
+  @override
+  Future<SyncOutcome> performSync(JournalController controller) async {
+    final localEntries = controller.all
+        .map((e) => JournalApiResponse(
+              id: e.id,
+              date: DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day),
+              content: '${e.title}\n\n${e.body}',
+              mood: e.mood.name,
+              tags: [],
+              createdAt: e.timestamp,
+              updatedAt: e.timestamp,
+            ))
+        .toList();
 
-    _isSyncing = true;
-    notifyListeners();
+    final result = await _journalService.syncEntries(
+      lastSyncAt: lastSuccessfulSync,
+      localEntries: localEntries,
+    );
 
-    try {
-      final localEntries = journalController.all
-          .map((e) => JournalApiResponse(
-                id: e.id,
-                date: DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day),
-                content: '${e.title}\n\n${e.body}',
-                mood: e.mood.name,
-                tags: [],
-                createdAt: e.timestamp,
-                updatedAt: e.timestamp,
-              ))
-          .toList();
+    final serverEntries = result['entries'] as List<JournalApiResponse>;
+    final deletedIds = result['deleted_ids'] as List<String>;
+    final conflicts = result['conflicts'] as List<JournalSyncConflict>;
 
-      final result = await _journalService.syncEntries(
-        lastSyncAt: _lastSuccessfulSync,
-        localEntries: localEntries,
-      );
+    await _applyServerEntries(controller, serverEntries, deletedIds);
 
-      final serverEntries = result['entries'] as List<JournalApiResponse>;
-      final deletedIds = result['deleted_ids'] as List<String>;
-      final conflicts = result['conflicts'] as List<JournalSyncConflict>;
-
-      await _applyServerEntries(journalController, serverEntries, deletedIds);
-
-      if (conflicts.isNotEmpty) {
-        debugPrint('Journal sync conflicts detected: ${conflicts.length}');
-        for (final conflict in conflicts) {
-          debugPrint('  - Entry ${conflict.entryId}: ${conflict.resolution}');
-        }
-      }
-
-      _lastSuccessfulSync = DateTime.now();
-      debugPrint('Journal sync successful at $_lastSuccessfulSync');
-    } catch (e) {
-      debugPrint('Journal sync failed: $e');
-      rethrow;
-    } finally {
-      _isSyncing = false;
-      notifyListeners();
+    for (final conflict in conflicts) {
+      AppLogger.debug('  - Entry ${conflict.entryId}: ${conflict.resolution}');
     }
+
+    return SyncOutcome(conflictCount: conflicts.length);
   }
 
   /// Apply server state to local controller.
@@ -126,57 +113,24 @@ class JournalSyncManager extends ChangeNotifier {
   Future<void> createEntryWithSync(
     JournalController controller,
     JournalEntry entry,
-  ) async {
-    try {
-      await controller.addEntry(entry);
-      await syncEntries(controller);
-    } catch (e) {
-      debugPrint('Entry created locally but sync failed: $e');
-    }
-  }
+  ) =>
+      withSync(controller, () => controller.addEntry(entry));
 
   /// Delete an entry locally and queue for sync.
   Future<void> deleteEntryWithSync(
     JournalController controller,
     String entryId,
-  ) async {
-    try {
-      await controller.deleteEntry(entryId);
-      await syncEntries(controller);
-    } catch (e) {
-      debugPrint('Entry deleted locally but sync failed: $e');
-    }
-  }
+  ) =>
+      withSync(controller, () => controller.deleteEntry(entryId));
 
-  /// Manual retry sync.
-  Future<void> retrySyncEntries(JournalController journalController) async {
-    try {
-      await syncEntries(journalController);
-    } catch (e) {
-      debugPrint('Journal sync retry failed: $e');
-      rethrow;
-    }
-  }
+  /// Sync entries with server. Alias for [sync] matching the original
+  /// public method name used by `JournalController`/UI call sites.
+  Future<void> syncEntries(JournalController controller) => sync(controller);
 
-  /// Clear sync state (on logout).
-  void clearSyncState() {
-    _lastSuccessfulSync = null;
-    _isSyncing = false;
-  }
-
-  /// Get sync status for UI.
-  String get syncStatus {
-    if (_isSyncing) return 'Syncing...';
-    if (_lastSuccessfulSync == null) return 'Never synced';
-
-    final minutesAgo = DateTime.now().difference(_lastSuccessfulSync!).inMinutes;
-    if (minutesAgo == 0) return 'Just now';
-    if (minutesAgo < 60) return '$minutesAgo min ago';
-
-    final hoursAgo = (minutesAgo / 60).floor();
-    if (hoursAgo < 24) return '$hoursAgo h ago';
-
-    final daysAgo = (hoursAgo / 24).floor();
-    return '$daysAgo d ago';
-  }
+  /// Manual retry sync. Alias for [retrySync] matching the original public
+  /// method name.
+  Future<void> retrySyncEntries(JournalController controller) =>
+      retrySync(controller);
 }
+
+

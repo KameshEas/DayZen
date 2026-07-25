@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/design_system/design_system.dart';
 
 /// Persisted settings for the DayZen app.
 class SettingsController extends ChangeNotifier {
@@ -30,14 +31,14 @@ class SettingsController extends ChangeNotifier {
   // ── Accent ─────────────────────────────────────────────────────────────
   static const accentOptions = ['Zen Green', 'Ocean Blue', 'Sunset Orange', 'Lavender'];
   static const accentColorMap = <String, Color>{
-    'Zen Green': Color(0xFF10B981),
-    'Ocean Blue': Color(0xFF3B82F6),
-    'Sunset Orange': Color(0xFFF97316),
-    'Lavender': Color(0xFF8B5CF6),
+    'Zen Green': DzColors.zenGreen,
+    'Ocean Blue': DzColors.primary,
+    'Sunset Orange': DzColors.sunsetOrange,
+    'Lavender': DzColors.lavender,
   };
   String _accent = 'Zen Green';
   String get accent => _accent;
-  Color get accentColor => accentColorMap[_accent] ?? const Color(0xFF10B981);
+  Color get accentColor => accentColorMap[_accent] ?? DzColors.zenGreen;
 
   // ── Font size ──────────────────────────────────────────────────────────
   static const fontSizeOptions = ['Small (14px)', 'Standard (16px)', 'Large (18px)'];

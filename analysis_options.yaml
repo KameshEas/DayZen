@@ -2,7 +2,17 @@ include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
-    # Catches Text/widgets in Row without Flexible/Expanded
+    # Custom rules from Phase 5.4
+    avoid_print: true
     avoid_unnecessary_containers: true
     sized_box_for_whitespace: true
     use_full_hex_values_for_flutter_colors: true
+
+    # Recommended stricter set
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    unnecessary_this: true
+    cascade_invocations: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    unnecessary_string_interpolations: true

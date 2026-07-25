@@ -1,4 +1,4 @@
-/// AI-powered task recommendations card.
+﻿/// AI-powered task recommendations card.
 library;
 
 import 'package:flutter/material.dart';
@@ -131,10 +131,10 @@ class _ConfidenceBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final percentage = (score * 100).toInt();
     final color = score > 0.8
-        ? const Color(0xFF10B981) // green
+        ? DzColors.zenGreen // green
         : score > 0.6
-            ? const Color(0xFFF59E0B) // orange
-            : const Color(0xFFEF4444); // red
+            ? DzColors.warning // orange
+            : DzColors.error; // red
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -193,3 +193,4 @@ class _SuggestedTimeChip extends StatelessWidget {
     );
   }
 }
+

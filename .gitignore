@@ -49,3 +49,8 @@ app.*.map.json
 /android/app/release
 /android/app/google-services.json
 docs/*
+
+# Real per-environment config (--dart-define-from-file). May accumulate real
+# hosts/keys over time — only the .example templates are tracked.
+env/staging.json
+env/prod.json

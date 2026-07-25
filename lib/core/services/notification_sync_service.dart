@@ -1,4 +1,14 @@
 /// Service for notification preferences and delivery tracking sync.
+///
+/// API Bindings:
+/// - BINDING 25: GET /notifications/preferences (getPreferences) - Batch all preferences
+/// - BINDING 26: GET /notifications/preferences/{type} (getPreference) - REUSED 2-3x with per-type cache
+/// - BINDING 27: PUT /notifications/preferences/{type} (updatePreference) - REUSED 4x per settings session
+/// - BINDING 28: GET /notifications/delivery (getDeliveryHistory) - Date-range filtered
+/// - BINDING 29: POST /notifications/{id}/read (markAsRead) - Single notification
+/// - BINDING 30: POST /notifications/sync (syncNotifications) - Bulk refresh
+/// - BINDING 31: POST /notifications/devices/register (registerDevice) - One-time registration
+/// - BINDING 32: POST /notifications/devices/unregister (unregisterDevice) - One-time cleanup
 library;
 
 import '../api/api_client.dart';
@@ -107,7 +117,11 @@ class NotificationSyncService {
   final Map<String, NotificationDelivery> _deliveryCache = {};
   DateTime? _lastSyncTime;
 
-  /// Get all notification preferences.
+  /// BINDING 25: Get all notification preferences.
+  /// API: GET /notifications/preferences
+  /// Cache: Preference cache (4h TTL)
+  /// Used By: NotificationController.load()
+  /// OPTIMIZATION: Batch load all preferences
   Future<List<NotificationPreference>> getPreferences() async {
     try {
       final response = await _apiClient.get('/notifications/preferences');
@@ -115,9 +129,10 @@ class NotificationSyncService {
           ?.map((p) => NotificationPreference.fromJson(p as Map<String, dynamic>))
           .toList() ?? [];
 
-      // Cache all preferences
+      // Cache all preferences by type
       for (final pref in preferences) {
-        _preferenceCache[pref.id] = pref;
+        _preferenceCache[pref.type] = pref; // Cache by type for quick lookup
+
       }
 
       return preferences;
@@ -130,10 +145,22 @@ class NotificationSyncService {
     }
   }
 
-  /// Get preference for specific notification type.
+  /// BINDING 26: Get preference for specific notification type (REUSED - 2-3x)
+  /// API: GET /notifications/preferences/{type}
+  /// Cache: Per-type cache
+  /// Used By:
+  ///   1. NotificationController.getPreference() - Get specific
+  ///   2. Settings UI (detail view for type)
+  ///
+  /// OPTIMIZATION: Check cache first, fall back to individual API
   Future<NotificationPreference?> getPreference(String type) async {
     try {
-      // Check cache first
+      // Check cache first (by type key)
+      if (_preferenceCache.containsKey(type)) {
+        return _preferenceCache[type];
+      }
+
+      // Check if in cache by looking through all
       for (final pref in _preferenceCache.values) {
         if (pref.type == type) {
           return pref;
@@ -142,14 +169,23 @@ class NotificationSyncService {
 
       final response = await _apiClient.get('/notifications/preferences/$type');
       final pref = NotificationPreference.fromJson(response);
-      _preferenceCache[pref.id] = pref;
+      _preferenceCache[pref.type] = pref; // Cache by type
       return pref;
     } on ApiException {
       return null;
     }
   }
 
-  /// Update notification preference.
+  /// BINDING 27: Update notification preference (REUSED - 4x per settings session)
+  /// API: PUT /notifications/preferences/{type}
+  /// Cache: Invalidate after update
+  /// Used By:
+  ///   1. NotificationPreferencesCard (toggle)
+  ///   2. Settings page (each preference toggle)
+  ///   3. NotificationController.updatePreference()
+  ///   4. Quiet hours configuration
+  ///
+  /// OPTIMIZATION: Individual updates vs batch
   Future<NotificationPreference> updatePreference(
     String type,
     NotificationPreference preference,
@@ -160,14 +196,15 @@ class NotificationSyncService {
         preference.toJson(),
       );
       final updated = NotificationPreference.fromJson(response);
-      _preferenceCache[updated.id] = updated;
+      _preferenceCache[updated.type] = updated; // Update cache by type
       return updated;
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Get notification delivery history.
+  /// BINDING 28: Get notification delivery history.
+  /// API: GET /notifications/delivery?start_date={}&end_date={}&status={}
   Future<List<NotificationDelivery>> getDeliveryHistory({
     DateTime? startDate,
     DateTime? endDate,
@@ -211,7 +248,11 @@ class NotificationSyncService {
     }
   }
 
-  /// Mark notification as read.
+  /// BINDING 29: Mark notification as read.
+  /// API: POST /notifications/{id}/read
+  /// Cache: Update cache
+  /// Used By: NotificationHistoryCard (mark as read)
+  /// OPTIMIZATION: Simple POST, single item
   Future<void> markAsRead(String notificationId) async {
     try {
       await _apiClient.post('/notifications/$notificationId/read', {});
@@ -235,7 +276,10 @@ class NotificationSyncService {
     }
   }
 
-  /// Sync all notification data.
+  /// BINDING 30: Sync all notification data.
+  /// API: POST /notifications/sync
+  /// Used By: NotificationSyncManager.syncNotifications()
+  /// OPTIMIZATION: Single call fetches all notification data
   Future<Map<String, dynamic>> syncNotifications() async {
     try {
       final response = await _apiClient.post('/notifications/sync', {
@@ -272,7 +316,12 @@ class NotificationSyncService {
     }
   }
 
-  /// Register device for push notifications.
+  /// BINDING 31: Register device for push notifications.
+  /// API: POST /notifications/devices/register
+  /// Cache: No cache (device management)
+  /// Used By: NotificationController.registerDevice()
+  /// OPTIMIZATION: One-time registration, refresh on token change
+  /// Note: Essential for push notification delivery
   Future<void> registerDevice(String deviceToken) async {
     try {
       await _apiClient.post('/notifications/devices/register', {
@@ -284,7 +333,12 @@ class NotificationSyncService {
     }
   }
 
-  /// Unregister device (on logout).
+  /// BINDING 32: Unregister device.
+  /// API: POST /notifications/devices/unregister
+  /// Cache: No cache (device cleanup)
+  /// Used By: NotificationController.unregisterDevice()
+  /// OPTIMIZATION: One-time cleanup
+  /// Note: Prevents notifications to old device
   Future<void> unregisterDevice(String deviceToken) async {
     try {
       await _apiClient.post('/notifications/devices/unregister', {

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
+import 'widgets/signup_form_card.dart';
 
+/// SignUpPage â€” composes SignUpFormCard under features/auth/widgets/.
+/// Split from a single 309-line file in Phase 5.1 of
+/// docs/DEVELOPMENT_PLAN.md.
 class SignUpPage extends StatefulWidget {
   /// Called when account is successfully created, with the email used.
   final ValueChanged<String> onSignedUp;
@@ -65,7 +69,7 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Top nav ──────────────────────────────────────
+                  // â”€â”€ Top nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Row(
                     children: [
                       IconButton(
@@ -78,26 +82,26 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // ── Avatar icon ───────────────────────────────────
+                  // â”€â”€ Avatar icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Center(
                     child: Container(
                       width: 80,
                       height: 80,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF6EE7B7), // mint green circle
+                        color: DzColors.signUpAvatarBg, // mint green circle
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.eco_rounded,
-                        color: Color(0xFF065F46),
+                        color: DzColors.signUpAvatarIcon,
                         size: 36,
                       ),
                     ),
                   ),
                   const SizedBox(height: DzSpacing.md),
 
-                  // ── Heading ────────────────────────────────────────
-                  Center(
+                  // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  const Center(
                     child: Text(
                       'Create Account',
                       style: DzTextStyles.heading1,
@@ -115,147 +119,27 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // ── Card ──────────────────────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(DzSpacing.xl),
-                    decoration: BoxDecoration(
-                      color: DzColors.cardBackground,
-                      borderRadius: BorderRadius.circular(DzRadius.card),
-                      boxShadow: DzShadows.soft,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Full Name ───────────────────────────────
-                        Text('Full Name', style: DzTextStyles.label),
-                        const SizedBox(height: DzSpacing.sm),
-                        DzTextField(
-                          controller: _nameCtrl,
-                          hint: 'Alex Doe',
-                          keyboardType: TextInputType.name,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(
-                            Icons.person_outline_rounded,
-                            size: 20,
-                          ),
-                          onChanged: (_) => _controller.clearError(),
-                        ),
-                        const SizedBox(height: DzSpacing.md),
-
-                        // ── Email ───────────────────────────────────
-                        Text('Email Address', style: DzTextStyles.label),
-                        const SizedBox(height: DzSpacing.sm),
-                        DzTextField(
-                          controller: _emailCtrl,
-                          hint: 'alex@example.com',
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(
-                            Icons.mail_outline_rounded,
-                            size: 20,
-                          ),
-                          onChanged: (_) => _controller.clearError(),
-                        ),
-                        const SizedBox(height: DzSpacing.md),
-
-                        // ── Password ────────────────────────────────
-                        Text('Password', style: DzTextStyles.label),
-                        const SizedBox(height: DzSpacing.sm),
-                        DzTextField(
-                          controller: _passwordCtrl,
-                          hint: '••••••••',
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: const Icon(
-                            Icons.lock_outline_rounded,
-                            size: 20,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              );
-                            },
-                          ),
-                          onSubmitted: (_) => _submit(),
-                          onChanged: (_) => _controller.clearError(),
-                        ),
-
-                        // ── Error ───────────────────────────────────
-                        if (_controller.error != null) ...[
-                          const SizedBox(height: DzSpacing.sm),
-                          Text(
-                            _controller.error!,
-                            style: DzTextStyles.caption.copyWith(
-                              color: DzColors.error,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: DzSpacing.xl),
-
-                        // ── Create Account button ───────────────────
-                        DzPrimaryButton(
-                          label: 'Create Account',
-                          icon: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: DzColors.white,
-                            size: 18,
-                          ),
-                          isLoading: _controller.isLoading,
-                          onPressed: _submit,
-                        ),
-                        const SizedBox(height: DzSpacing.lg),
-
-                        // ── "or choose privacy" divider ─────────────
-                        if (!widget.canGoBack) ...[
-                        Row(
-                          children: [
-                            const Expanded(child: Divider()),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: DzSpacing.md,
-                              ),
-                              child: Text(
-                                'or choose privacy',
-                                style: DzTextStyles.caption.copyWith(
-                                  color: DzColors.textSecondary,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: DzSpacing.lg),
-
-                        // ── Use Offline Instead ─────────────────────
-                        DzSecondaryButton(
-                          label: 'Use Offline Instead',
-                          icon: const Icon(
-                            Icons.cloud_off_rounded,
-                            size: 18,
-                          ),
-                          onPressed: widget.onContinueOffline,
-                        ),
-                        ],
-                      ],
-                    ),
+                  // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  SignUpFormCard(
+                    controller: _controller,
+                    nameCtrl: _nameCtrl,
+                    emailCtrl: _emailCtrl,
+                    passwordCtrl: _passwordCtrl,
+                    obscurePassword: _obscurePassword,
+                    onToggleObscurePassword: () => setState(
+                        () => _obscurePassword = !_obscurePassword),
+                    onSubmit: _submit,
+                    canGoBack: widget.canGoBack,
+                    onContinueOffline: widget.onContinueOffline,
                   ),
                   const SizedBox(height: DzSpacing.xl),
 
-                  // ── End-to-end encrypted badge ─────────────────────
+                  // â”€â”€ End-to-end encrypted badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.shield_rounded,
                           size: 14,
                           color: DzColors.textSecondary,
@@ -274,7 +158,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.md),
 
-                  // ── Log in link ────────────────────────────────────
+                  // â”€â”€ Log in link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Center(
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).maybePop(),
@@ -307,3 +191,5 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 }
+
+

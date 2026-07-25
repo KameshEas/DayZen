@@ -18,17 +18,22 @@ class UserService {
 
   static final ApiClient _apiClient = ApiClient();
 
+  // BINDING 1-2: Profile cache (24h TTL)
   UserProfileModel? _cachedProfile;
-  UserSettingsModel? _cachedSettings;
   DateTime? _lastProfileFetch;
+
+  // BINDING 3-4: Settings cache (1h TTL - settings change frequently)
+  UserSettingsModel? _cachedSettings;
   DateTime? _lastSettingsFetch;
 
   /// Get current user profile.
-  /// Automatically creates user on first call.
-  /// Caches for 24 hours.
+  /// BINDING 1: GET /users/me
+  /// Cache: 24 hours (user changes infrequently)
+  /// Used By: SettingsController, UserService.loadProfile()
+  /// OPTIMIZATION: Cache prevents repeated calls
   Future<UserProfileModel> getUserProfile({bool forceRefresh = false}) async {
     try {
-      // Check cache validity
+      // Check cache validity (24h TTL)
       if (!forceRefresh && _cachedProfile != null && _lastProfileFetch != null) {
         final hoursSince = DateTime.now().difference(_lastProfileFetch!).inHours;
         if (hoursSince < 24) {
@@ -43,7 +48,7 @@ class UserService {
 
       return _cachedProfile!;
     } on ApiException {
-      // Return cached if available
+      // Cache fallback: return cached if available
       if (_cachedProfile != null) {
         return _cachedProfile!;
       }
@@ -52,6 +57,10 @@ class UserService {
   }
 
   /// Update user profile (display name and/or avatar).
+  /// BINDING 2: PUT /users/me
+  /// Cache: Invalidate immediately
+  /// Used By: SettingsController.updateProfile()
+  /// OPTIMIZATION: Single PUT, no batching needed
   Future<UserProfileModel> updateUserProfile({
     String? displayName,
     String? avatarUrl,
@@ -72,11 +81,13 @@ class UserService {
   }
 
   /// Get user settings.
-  /// Auto-creates with defaults if not found.
-  /// Caches for 1 hour (settings change frequently).
+  /// BINDING 3: GET /users/me/settings
+  /// Cache: 1 hour (settings change frequently)
+  /// Used By: SettingsController.load(), All controllers
+  /// OPTIMIZATION: Shorter TTL due to user preference changes
   Future<UserSettingsModel> getUserSettings({bool forceRefresh = false}) async {
     try {
-      // Check cache validity (1 hour for settings)
+      // Check cache validity (1 hour for settings - more frequent updates)
       if (!forceRefresh && _cachedSettings != null && _lastSettingsFetch != null) {
         final minutesSince = DateTime.now().difference(_lastSettingsFetch!).inMinutes;
         if (minutesSince < 60) {
@@ -91,7 +102,7 @@ class UserService {
 
       return _cachedSettings!;
     } on ApiException {
-      // Return cached if available
+      // Cache fallback: return cached if available
       if (_cachedSettings != null) {
         return _cachedSettings!;
       }
@@ -100,7 +111,10 @@ class UserService {
   }
 
   /// Update user settings.
-  /// Only provided fields are updated (partial update).
+  /// BINDING 4: PUT /users/me/settings
+  /// Cache: Invalidate immediately
+  /// Used By: SettingsController.updateSetting()
+  /// OPTIMIZATION: Send only changed fields (partial update)
   Future<UserSettingsModel> updateUserSettings({
     bool? quietHoursEnabled,
     bool? focusAlertsEnabled,

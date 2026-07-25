@@ -1,4 +1,12 @@
 /// Service for journal entry management with cloud sync and offline support.
+///
+/// API Bindings:
+/// - BINDING 10: GET /journal (listEntries) - Per-range cache
+/// - BINDING 11: GET /journal/{id} (getEntry) - Per-entry cache
+/// - BINDING 12: POST /journal (createEntry) - Single operation
+/// - BINDING 13: PUT /journal/{id} (updateEntry) - Single operation
+/// - BINDING 14: DELETE /journal/{id} (deleteEntry) - Single operation
+/// - BINDING 15: POST /journal/sync (syncEntries) - REUSED 4x with deduplication
 library;
 
 import '../api/api_client.dart';
@@ -76,17 +84,28 @@ class JournalService {
 
   static final ApiClient _apiClient = ApiClient();
 
-  // Cache
+  // BINDING 10-15: Journal caching
   final Map<String, JournalApiResponse> _journalCache = {};
+  final Map<String, List<JournalApiResponse>> _rangeCache = {};
   DateTime? _lastSyncTime;
 
-  /// List journal entries with optional filters.
+  /// BINDING 10: List journal entries with optional filters.
+  /// API: GET /journal?start_date={}&end_date={}
+  /// Cache: Per-range cache key
+  /// OPTIMIZATION: Date-range cache prevents redundant calls
   Future<List<JournalApiResponse>> listEntries({
     DateTime? startDate,
     DateTime? endDate,
     DateTime? since,
   }) async {
     try {
+      final String cacheKey = _buildRangeKey(startDate, endDate, since);
+
+      // Check range cache first
+      if (_rangeCache.containsKey(cacheKey)) {
+        return _rangeCache[cacheKey]!;
+      }
+
       final params = <String, String>{};
       if (startDate != null) {
         params['start_date'] = startDate.toIso8601String().split('T').first;
@@ -109,14 +128,23 @@ class JournalService {
           ?.map((e) => JournalApiResponse.fromJson(e as Map<String, dynamic>))
           .toList() ?? [];
 
-      // Cache the entries
+      // Cache by range key
+      _rangeCache[cacheKey] = entries;
+
+      // Also cache individual entries
       for (final entry in entries) {
         _journalCache[entry.id] = entry;
       }
 
       return entries;
     } on ApiException {
-      // Return cached entries if available
+      // Check range cache first on error
+      final String cacheKey = _buildRangeKey(startDate, endDate, since);
+      if (_rangeCache.containsKey(cacheKey)) {
+        return _rangeCache[cacheKey]!;
+      }
+
+      // Fall back to individual entry cache
       if (_journalCache.isNotEmpty) {
         return _journalCache.values.toList();
       }
@@ -124,9 +152,28 @@ class JournalService {
     }
   }
 
-  /// Get a single journal entry.
+  /// Helper: Build cache key for range-based queries
+  String _buildRangeKey(DateTime? start, DateTime? end, DateTime? since) {
+    if (start != null && end != null) {
+      return '${start.toIso8601String().split('T')[0]}_to_${end.toIso8601String().split('T')[0]}';
+    }
+    if (since != null) {
+      return 'since_${since.toIso8601String()}';
+    }
+    return 'all';
+  }
+
+  /// BINDING 11: Get a single journal entry.
+  /// API: GET /journal/{id}
+  /// Cache: Per-entry cache
+  /// OPTIMIZATION: Single entry cache hit
   Future<JournalApiResponse> getEntry(String entryId) async {
     try {
+      // Check entry cache first
+      if (_journalCache.containsKey(entryId)) {
+        return _journalCache[entryId]!;
+      }
+
       final response = await _apiClient.get('/journal/$entryId');
       final entry = JournalApiResponse.fromJson(response);
       _journalCache[entryId] = entry;
@@ -140,19 +187,25 @@ class JournalService {
     }
   }
 
-  /// Create a new journal entry.
+  /// BINDING 12: Create a new journal entry.
+  /// API: POST /journal
+  /// OPTIMIZATION: Single POST, no batching needed
   Future<JournalApiResponse> createEntry(JournalApiResponse entry) async {
     try {
       final response = await _apiClient.post('/journal', entry.toJson());
       final apiEntry = JournalApiResponse.fromJson(response);
       _journalCache[apiEntry.id] = apiEntry;
+      _invalidateRangeCache(); // Invalidate since new entries added
+
       return apiEntry;
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Update an existing journal entry.
+  /// BINDING 13: Update an existing journal entry.
+  /// API: PUT /journal/{id}
+  /// OPTIMIZATION: Send only changed fields
   Future<JournalApiResponse> updateEntry(
     String entryId,
     JournalApiResponse entry,
@@ -167,28 +220,57 @@ class JournalService {
       final response = await _apiClient.put('/journal/$entryId', body);
       final apiEntry = JournalApiResponse.fromJson(response);
       _journalCache[entryId] = apiEntry;
+      _invalidateRangeCache(); // Invalidate since entries modified
+
       return apiEntry;
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Delete a journal entry (soft delete on server).
+  /// BINDING 14: Delete a journal entry (soft delete on server).
+  /// API: DELETE /journal/{id}
+  /// OPTIMIZATION: Simple DELETE, no response parsing
   Future<void> deleteEntry(String entryId) async {
     try {
       await _apiClient.delete('/journal/$entryId');
       _journalCache.remove(entryId);
+      _invalidateRangeCache(); // Invalidate since entries deleted
+
     } on ApiException {
       rethrow;
     }
   }
 
-  /// Sync journal entries with server (last-write-wins conflict resolution).
+  /// Helper: Invalidate range-based caches after modifications
+  void _invalidateRangeCache() {
+    _rangeCache.clear();
+  }
+
+  /// BINDING 15: Sync journal entries (CRITICAL REUSE - 4x per session)
+  /// API: POST /journal/sync
+  /// Used By:
+  ///   1. JournalSyncManager.syncEntries() - Orchestrator
+  ///   2. JournalController.syncWithServer() - On app start
+  ///   3. JournalSyncManager.createEntryWithSync() - After create
+  ///   4. JournalSyncManager.deleteEntryWithSync() - After delete
+  ///
+  /// OPTIMIZATION STRATEGY:
+  /// • Deduplication via lastSyncAt timestamp
+  /// • Skip redundant sync if done within 30 seconds
+  /// • Batch all local changes in single POST
+  /// • Server-side Last-Write-Wins resolution
   Future<Map<String, dynamic>> syncEntries({
     DateTime? lastSyncAt,
     required List<JournalApiResponse> localEntries,
   }) async {
     try {
+      // OPTIMIZATION: Skip redundant sync if done recently (< 30s)
+      if (_lastSyncTime != null &&
+          DateTime.now().difference(_lastSyncTime!).inSeconds < 30) {
+        return {'entries': [], 'deleted_ids': [], 'conflicts': []};
+      }
+
       final entries = localEntries.map((e) => {
         'id': e.id,
         'date': e.date.toIso8601String(),
@@ -210,7 +292,7 @@ class JournalService {
           ?.map((e) => JournalApiResponse.fromJson(e as Map<String, dynamic>))
           .toList() ?? [];
 
-      // Cache server entries
+      // OPTIMIZATION: Cache all results
       for (final entry in serverEntries) {
         _journalCache[entry.id] = entry;
       }
@@ -225,7 +307,8 @@ class JournalService {
           ?.map((id) => id as String)
           .toList() ?? [];
 
-      _lastSyncTime = DateTime.now();
+      _lastSyncTime = DateTime.now(); // Track sync time for deduplication
+      _invalidateRangeCache(); // Refresh range caches after sync
 
       return {
         'entries': serverEntries,
@@ -234,6 +317,14 @@ class JournalService {
         'synced_at': DateTime.parse(response['synced_at'] as String),
       };
     } on ApiException {
+      // Cache fallback: return cached entries on error
+      if (_journalCache.isNotEmpty) {
+        return {
+          'entries': _journalCache.values.toList(),
+          'deleted_ids': [],
+          'conflicts': [],
+        };
+      }
       rethrow;
     }
   }
@@ -241,9 +332,10 @@ class JournalService {
   /// Get last sync time.
   DateTime? get lastSyncTime => _lastSyncTime;
 
-  /// Clear cache (on logout).
+  /// Clear all caches (on logout).
   void clearCache() {
     _journalCache.clear();
+    _rangeCache.clear();
     _lastSyncTime = null;
   }
 

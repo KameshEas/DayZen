@@ -10,7 +10,7 @@ class TestNotificationPage extends StatelessWidget {
   Future<void> _scheduleTestMeeting(BuildContext context) async {
     final now = DateTime.now();
     final candidate = DateTime(now.year, now.month, now.day, 9, 30);
-    final scheduledDay = candidate.isAfter(now) ? candidate : candidate.add(Duration(days: 1));
+    final scheduledDay = candidate.isAfter(now) ? candidate : candidate.add(const Duration(days: 1));
 
     final task = DzTask(
       id: 'test-0930-${scheduledDay.millisecondsSinceEpoch}',
@@ -22,7 +22,7 @@ class TestNotificationPage extends StatelessWidget {
     );
 
     try {
-      await AppData.of(context).tasks.addTask(task);
+      await TaskScope.of(context).addTask(task);
       final dayLabel = '${task.date.year}-${task.date.month.toString().padLeft(2, '0')}-${task.date.day.toString().padLeft(2, '0')}';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Scheduled test meeting for $dayLabel 09:30')),
@@ -119,7 +119,7 @@ class TestNotificationPage extends StatelessWidget {
                   date: DateTime(now.year, now.month, now.day),
                 );
                 try {
-                  await AppData.of(context).tasks.addTask(task);
+                  await TaskScope.of(context).addTask(task);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Scheduled 1-minute test meeting')),
                   );

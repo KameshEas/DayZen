@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
-import '../../core/services/content_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
-import '../tasks/new_task_page.dart';
-import 'day_optimizer_sheet.dart';
 import 'models/task_model.dart';
-import 'widgets/sync_status_indicator.dart';
 import 'widgets/ai_recommendations_card.dart';
+import 'widgets/home_daily_reflection_card.dart';
+import 'widgets/home_focus_score_card.dart';
+import 'widgets/home_greeting_header.dart';
+import 'widgets/home_stats_row.dart';
+import 'widgets/sync_status_indicator.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HomePage — composes the individual card widgets under
+// features/home/widgets/. Split from a single 409-line file in Phase 5.1
+// of docs/DEVELOPMENT_PLAN.md. Also removed `_showAddTaskSheet`/`_TaskItem`
+// here — confirmed genuinely dead code (zero references anywhere in the
+// codebase) flagged since the docs/BASELINE_METRICS.md Phase 0 audit and
+// explicitly deferred to this phase rather than fixed opportunistically.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final taskCtrl = AppData.of(context).tasks;
+    final taskCtrl = TaskScope.of(context);
     return ListenableBuilder(
       listenable: taskCtrl,
       builder: (context, _) => _HomeBody(taskCtrl: taskCtrl),
@@ -54,356 +64,33 @@ class _HomeBody extends StatelessWidget {
         vertical: DzSpacing.md,
       ),
       children: [
-        // ── Date + Greeting ──────────────────────────────────────
         const SizedBox(height: DzSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    dateLabel,
-                    style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(greeting, style: DzTextStyles.heading1),
-                  const SizedBox(height: 4),
-                  Text(
-                    tasks.isEmpty
-                        ? 'Add your first task to get started.'
-                        : remaining == 0
-                            ? 'All tasks done. Great work!'
-                            : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
-                    style: DzTextStyles.body.copyWith(
-                      color: DzColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-              child: Icon(
-                Icons.person_rounded,
-                color: Theme.of(context).colorScheme.primary,
-                size: 28,
-              ),
-            ),
-          ],
+        HomeGreetingHeader(
+          dateLabel: dateLabel,
+          greeting: greeting,
+          subtitle: tasks.isEmpty
+              ? 'Add your first task to get started.'
+              : remaining == 0
+                  ? 'All tasks done. Great work!'
+                  : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
         ),
         const SizedBox(height: DzSpacing.lg),
-
-        // ── Sync Status ──────────────────────────────────────────
         SyncStatusIndicator(
           taskController: taskCtrl,
           showFullStatus: true,
         ),
         const SizedBox(height: DzSpacing.md),
-
-        // ── AI Recommendations ───────────────────────────────────
         AIRecommendationsCard(
-          aiController: AppData.of(context).aiOptimization,
+          aiController: AIOptimizationScope.of(context),
         ),
         const SizedBox(height: DzSpacing.md),
-
-        // ── Focus Score Card ─────────────────────────────────────
-        DzCard(
-          padding: const EdgeInsets.all(DzSpacing.md),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Focus Score',
-                    style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.trending_up_rounded,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20,
-                  ),
-                ],
-              ),
-              const SizedBox(height: DzSpacing.md),
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      height: 120,
-                      child: CircularProgressIndicator(
-                        value: tasks.isEmpty ? 0 : score / 100,
-                        strokeWidth: 10,
-                        backgroundColor: DzColors.borderLight,
-                        valueColor:
-                            AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
-                        strokeCap: StrokeCap.round,
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$score',
-                          style: const TextStyle(
-                            fontFamily: 'InterDisplay',
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
-                            color: DzColors.textPrimary,
-                            height: 1,
-                          ),
-                        ),
-                        Text(
-                          'ZEN INDEX',
-                          style: DzTextStyles.small.copyWith(
-                            letterSpacing: 0.8,
-                            color: DzColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: DzSpacing.md),
-              Text(
-                tasks.isEmpty
-                    ? 'Add tasks to track your focus score.'
-                    : score >= AppConfig.excellentScoreThreshold
-                        ? AppConfig.messageExcellent
-                        : score >= AppConfig.goodScoreThreshold
-                            ? AppConfig.messageGood
-                            : AppConfig.messageNeedImprovement,
-                style: DzTextStyles.body.copyWith(
-                  color: DzColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
+        HomeFocusScoreCard(score: score, hasTasks: tasks.isNotEmpty),
         const SizedBox(height: DzSpacing.md),
-
-        // ── Stats Row ────────────────────────────────────────────
-        Row(
-          children: [
-            Expanded(
-              child: DzCard(
-                padding: const EdgeInsets.all(DzSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius:
-                            BorderRadius.circular(DzRadius.small),
-                      ),
-                      child: Icon(Icons.timer_rounded,
-                          color: Theme.of(context).colorScheme.primary, size: 20),
-                    ),
-                    const SizedBox(height: DzSpacing.sm),
-                    Text(
-                      'Focus Time',
-                      style: DzTextStyles.small
-                          .copyWith(color: DzColors.textSecondary),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      focusLabel,
-                      style: DzTextStyles.heading2.copyWith(
-                        color: DzColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: DzSpacing.md),
-            Expanded(
-              child: DzCard(
-                padding: const EdgeInsets.all(DzSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: DzColors.zenGreen.withValues(alpha: 0.12),
-                        borderRadius:
-                            BorderRadius.circular(DzRadius.small),
-                      ),
-                      child: const Icon(Icons.self_improvement_rounded,
-                          color: DzColors.zenGreen, size: 20),
-                    ),
-                    const SizedBox(height: DzSpacing.sm),
-                    Text(
-                      'Zen Sessions',
-                      style: DzTextStyles.small
-                          .copyWith(color: DzColors.textSecondary),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$zenDone',
-                      style: DzTextStyles.heading2.copyWith(
-                        color: DzColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+        HomeStatsRow(focusLabel: focusLabel, zenSessionsCount: zenDone),
         const SizedBox(height: DzSpacing.md),
-
-        // ── Daily Reflection ─────────────────────────────────────
-        FutureBuilder<String>(
-          future: ContentService.instance.getDailyReflectionQuote(),
-          builder: (context, snapshot) {
-            final quote = snapshot.data ?? AppConfig.defaultDailyReflectionQuote;
-            return DzCard(
-              padding: const EdgeInsets.all(DzSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.format_quote_rounded,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 22,
-                      ),
-                      const SizedBox(width: DzSpacing.sm),
-                      Text('Daily Reflection', style: DzTextStyles.heading3),
-                    ],
-                  ),
-                  const SizedBox(height: DzSpacing.md),
-                  Text(
-                    quote,
-                    style: DzTextStyles.body.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: DzColors.textPrimary,
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: DzSpacing.sm),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '\u2014 ${AppConfig.defaultDailyReflectionAuthor}',
-                      style: DzTextStyles.small.copyWith(
-                        color: DzColors.textSecondary,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+        const HomeDailyReflectionCard(),
         const SizedBox(height: DzSpacing.xl),
       ],
-    );
-  }
-
-  void _showAddTaskSheet(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NewTaskPage()),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Task item row
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TaskItem extends StatelessWidget {
-  const _TaskItem({required this.task, required this.onToggle});
-  final DzTask task;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: DzSpacing.sm),
-      padding: const EdgeInsets.symmetric(
-          horizontal: DzSpacing.sm, vertical: DzSpacing.sm),
-      decoration: BoxDecoration(
-        color: DzColors.appBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-      ),
-      child: Row(
-        children: [
-          Checkbox(
-            value: task.isCompleted,
-            onChanged: (_) => onToggle(),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            side: const BorderSide(color: DzColors.borderLight, width: 1.5),
-          ),
-          const SizedBox(width: DzSpacing.xs),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: DzTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w500,
-                    decoration: task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
-                    color: task.isCompleted
-                        ? DzColors.textSecondary
-                        : DzColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  task.timeRange,
-                  style: DzTextStyles.small
-                      .copyWith(color: DzColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: DzSpacing.sm),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: task.priority.bg,
-              borderRadius: BorderRadius.circular(DzRadius.small),
-            ),
-            child: Text(
-              task.priority.label,
-              style: DzTextStyles.small.copyWith(
-                color: task.priority.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 10,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
