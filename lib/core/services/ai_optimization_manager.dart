@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'ai_service.dart';
+import 'achievement_service.dart';
 import '../../core/logging/app_logger.dart';
 
 /// Handles AI-powered optimization coordination.
@@ -14,6 +15,7 @@ class AIOPtimizationManager extends ChangeNotifier {
   static AIOPtimizationManager get instance => _instance;
 
   static final AIService _aiService = AIService.instance;
+  static final AchievementService _achievementService = AchievementService.instance;
 
   bool _isSyncing = false;
   DateTime? _lastSuccessfulSync;
@@ -24,6 +26,8 @@ class AIOPtimizationManager extends ChangeNotifier {
   List<ScheduleOptimization>? _optimizations;
   List<ProductivityInsight>? _insights;
   List<SmartReminder>? _reminders;
+  List<Achievement>? _achievements;
+  ScheduleSuggestions? _scheduleSuggestions;
 
   bool get isSyncing => _isSyncing;
   DateTime? get lastSuccessfulSync => _lastSuccessfulSync;
@@ -33,6 +37,8 @@ class AIOPtimizationManager extends ChangeNotifier {
   List<ScheduleOptimization>? get optimizations => _optimizations;
   List<ProductivityInsight>? get insights => _insights;
   List<SmartReminder>? get reminders => _reminders;
+  List<Achievement>? get achievements => _achievements;
+  ScheduleSuggestions? get scheduleSuggestions => _scheduleSuggestions;
 
   /// Sync all AI data.
   Future<void> syncAIData({
@@ -133,6 +139,48 @@ class AIOPtimizationManager extends ChangeNotifier {
     }
   }
 
+  /// Get all achievements for current user.
+  Future<List<Achievement>> getAchievements({
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final achievements = await _achievementService.getAchievements(forceRefresh: forceRefresh);
+      _achievements = achievements;
+      notifyListeners();
+      return achievements;
+    } catch (e) {
+      AppLogger.debug('Failed to get achievements: $e');
+      return [];
+    }
+  }
+
+  /// Get schedule suggestions based on tasks and availability.
+  Future<ScheduleSuggestions> getScheduleSuggestions({
+    required List<Map<String, dynamic>> tasks,
+    required int startHour,
+    required int endHour,
+    List<int>? peakHours,
+    int breakFrequencyMinutes = 90,
+    int minBreakDurationMinutes = 10,
+  }) async {
+    try {
+      final suggestions = await _aiService.getScheduleSuggestions(
+        tasks: tasks,
+        startHour: startHour,
+        endHour: endHour,
+        peakHours: peakHours,
+        breakFrequencyMinutes: breakFrequencyMinutes,
+        minBreakDurationMinutes: minBreakDurationMinutes,
+      );
+      _scheduleSuggestions = suggestions;
+      notifyListeners();
+      return suggestions;
+    } catch (e) {
+      AppLogger.debug('Failed to get schedule suggestions: $e');
+      rethrow;
+    }
+  }
+
   /// Manual retry sync.
   Future<void> retrySyncAI({
     required DateTime startDate,
@@ -152,6 +200,8 @@ class AIOPtimizationManager extends ChangeNotifier {
     _optimizations = null;
     _insights = null;
     _reminders = null;
+    _achievements = null;
+    _scheduleSuggestions = null;
     _lastSuccessfulSync = null;
     _syncError = null;
     _isSyncing = false;

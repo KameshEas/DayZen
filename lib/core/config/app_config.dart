@@ -47,6 +47,8 @@ class AppConfig {
   static const String messageNeedImprovement = 'Let\'s try to improve focus today.';
 
   // ── Category Configuration ───────────────────────────────────────────
+  // Categories are currently hardcoded client-side (not server-managed).
+  // If categories should become user-customizable/dynamic in future, migrate to /categories endpoint.
   static const Map<String, String> categoryLabels = {
     'work': 'Work',
     'personal': 'Personal',
