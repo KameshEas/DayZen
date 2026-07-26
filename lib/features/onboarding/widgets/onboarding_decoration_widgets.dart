@@ -7,6 +7,41 @@ import '../../../core/design_system/design_system.dart';
 // exceeded the Phase 5.1 ~300-line target â€” see docs/DEVELOPMENT_PLAN.md.
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+/// Wraps a slide's hero graphic so it drifts slightly during a page swipe,
+/// without rebuilding anything outside itself (scoped to [controller]'s own
+/// notifications via [AnimatedBuilder] — no parent `setState` involved, so
+/// this stays smooth even while the PageView is actively scrolling).
+class OnboardingParallax extends StatelessWidget {
+  const OnboardingParallax({
+    super.key,
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
+
+  final PageController controller;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, c) {
+          var page = index.toDouble();
+          if (controller.hasClients && controller.position.haveDimensions) {
+            page = controller.page ?? index.toDouble();
+          }
+          final drift = (page - index).clamp(-1.0, 1.0);
+          return Transform.translate(offset: Offset(drift * -18, 0), child: c);
+        },
+        child: child,
+      ),
+    );
+  }
+}
+
 /// White elevated card container.
 class OnboardingWhiteCard extends StatelessWidget {
   const OnboardingWhiteCard({
@@ -187,8 +222,8 @@ class OnboardingPageDots extends StatelessWidget {
       children: List.generate(total, (i) {
         final active = i == current;
         return AnimatedContainer(
-          duration: DzDuration.fast,
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.elasticOut,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           width: active ? 28 : 8,
           height: 8,

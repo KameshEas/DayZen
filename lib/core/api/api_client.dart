@@ -4,7 +4,7 @@ library;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-import 'auth_service.dart';
+import '../services/jwt_auth_service.dart';
 import '../config/app_config.dart';
 
 /// Exception thrown when API communication fails.
@@ -45,10 +45,10 @@ class TimeoutException implements Exception {
   String toString() => message;
 }
 
-/// HTTP client for making API requests with retry logic and Firebase auth.
+/// HTTP client for making API requests with retry logic and JWT auth.
 class ApiClient {
   late final http.Client _client;
-  late final AuthService _authService;
+  late final JwtAuthService _authService;
 
   final Map<String, String> _defaultHeaders = {
     'Content-Type': 'application/json',
@@ -57,10 +57,10 @@ class ApiClient {
 
   ApiClient({
     http.Client? client,
-    AuthService? authService,
+    JwtAuthService? authService,
   }) {
     _client = client ?? http.Client();
-    _authService = authService ?? AuthService.instance;
+    _authService = authService ?? JwtAuthService();
   }
 
   /// Get the base URL from config
@@ -73,7 +73,7 @@ class ApiClient {
   static const int maxRetries = 2;
 
   /// Make a GET request with automatic retry on failure.
-  /// Automatically includes Firebase authentication token.
+  /// Automatically includes JWT authentication token.
   Future<Map<String, dynamic>> get(
     String endpoint, {
     Map<String, String>? headers,
@@ -113,7 +113,7 @@ class ApiClient {
   }
 
   /// Make a POST request with automatic retry on failure.
-  /// Automatically includes Firebase authentication token.
+  /// Automatically includes JWT authentication token.
   Future<Map<String, dynamic>> post(
     String endpoint,
     Map<String, dynamic> body, {

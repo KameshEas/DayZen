@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
 import 'onboarding_decoration_widgets.dart';
 import 'onboarding_text_widgets.dart';
 
 /// Slide 3 — "Ready to Plan Your Day?" (final)
 class OnboardingSlide3 extends StatelessWidget {
-  const OnboardingSlide3({super.key});
+  const OnboardingSlide3({super.key, required this.controller, required this.index});
+
+  final PageController controller;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +18,10 @@ class OnboardingSlide3 extends StatelessWidget {
       child: Column(
         children: [
           // Hero: task card with floating circular badges
-          SizedBox(
+          OnboardingParallax(
+            controller: controller,
+            index: index,
+            child: SizedBox(
             height: 240,
             child: Stack(
               clipBehavior: Clip.none,
@@ -75,16 +82,20 @@ class OnboardingSlide3 extends StatelessWidget {
                 ),
               ],
             ),
+            ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          const OnboardingSlideText(
-            title: 'Ready to Plan\nYour Day?',
-            subtitle: 'Start offline instantly or enable sync anytime.',
+          OnboardingSlideText(
+            title: AppConfig.onboardingSlide3Title,
+            subtitle:
+                "Next, you'll set a quick PIN to keep your tasks and "
+                'journal private. Start offline instantly, or enable sync '
+                'to back up your data.',
           ),
           const SizedBox(height: DzSpacing.lg),
-          const OnboardingPillBadge(
+          OnboardingPillBadge(
             icon: Icons.shield_rounded,
-            label: 'YOUR DATA STAYS ON DEVICE',
+            label: AppConfig.onboardingSlide3Badge,
             style: OnboardingPillStyle.gray,
           ),
         ],

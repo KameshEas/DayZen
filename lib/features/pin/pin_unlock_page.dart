@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'widgets/pin_pad.dart';
@@ -167,10 +168,10 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             const SizedBox(height: DzSpacing.xl),
 
             // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            const Text('Unlock DayZen', style: DzTextStyles.heading1),
+            Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Text(
-              'Enter your security PIN to continue',
+              AppConfig.pinUnlockSubtitle,
               style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
             ),
 

@@ -1,8 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
@@ -11,6 +8,7 @@ import 'core/data/legacy_data_migrator.dart';
 import 'core/design_system/design_system.dart';
 import 'core/notification_service.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/jwt_auth_service.dart';
 import 'features/app_data.dart';
 import 'features/journal_controller.dart';
 import 'features/insights_controller.dart';
@@ -19,37 +17,16 @@ import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
-void main() {
-  // Wrapped in runZonedGuarded so crashes during bootstrap — before
-  // Crashlytics' own error hooks are wired below — are still caught and
-  // reported rather than silently killing the app with no record.
-  runZonedGuarded<Future<void>>(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp();
-    await _initCrashReporting();
-    await _runApp();
-  }, (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-  });
-}
-
-/// Wires Flutter framework errors and uncaught platform errors to
-/// Crashlytics. Collection is left enabled in debug builds too (not just
-/// release) so the Phase 1 "trigger a test crash, confirm it in console"
-/// verification step actually works during development; revisit once the
-/// team wants a quieter debug Crashlytics console.
-Future<void> _initCrashReporting() async {
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _runApp();
 }
 
 Future<void> _runApp() async {
+  // Initialize JWT auth service
+  final authService = JwtAuthService();
+  await authService.initialize();
+
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();

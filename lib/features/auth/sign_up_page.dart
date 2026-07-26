@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
 import 'widgets/signup_form_card.dart';
@@ -101,9 +102,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: DzSpacing.md),
 
                   // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  const Center(
+                  Center(
                     child: Text(
-                      'Create Account',
+                      AppConfig.signupTitle,
                       style: DzTextStyles.heading1,
                     ),
                   ),

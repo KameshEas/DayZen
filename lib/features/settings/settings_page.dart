@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'widgets/settings_account_section.dart';
@@ -59,7 +60,7 @@ class _SettingsFooter extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(bottom: DzSpacing.xl),
         child: Text(
-          'DayZen Offline AI • Your data stays on this device.',
+          AppConfig.settingsFooter,
           style: DzTextStyles.caption.copyWith(
             color: DzColors.textSecondary,
           ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/routing/route_paths.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
+import 'schedule_suggestions_widget.dart';
 import 'widgets/planner_timeline_view.dart';
 
 /// PlannerPage — composes PlannerTimelineView under features/planner/widgets/.
@@ -19,6 +21,7 @@ class PlannerPage extends StatefulWidget {
 class _PlannerPageState extends State<PlannerPage> {
   late DateTime _selectedDate;
   late List<DateTime> _weekDays;
+  bool _showAiSuggestions = false;
 
   @override
   void initState() {
@@ -120,6 +123,28 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
         const SizedBox(height: DzSpacing.md),
 
+        // ── AI schedule suggestions (opt-in) ────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: DzGhostButton(
+              label: _showAiSuggestions ? AppConfig.plannerHideAiSuggestions : AppConfig.plannerShowAiSuggestions,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              onPressed: () => setState(() => _showAiSuggestions = !_showAiSuggestions),
+            ),
+          ),
+        ),
+        if (_showAiSuggestions) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+            child: ScheduleSuggestionsWidget(
+              tasks: TaskScope.of(context).forDate(_selectedDate),
+            ),
+          ),
+          const SizedBox(height: DzSpacing.md),
+        ],
+
         // ── Timeline ─────────────────────────────────────────────
         Expanded(
           child: _buildTimeline(context),
@@ -138,9 +163,9 @@ class _PlannerPageState extends State<PlannerPage> {
           padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
           child: DzEmptyState(
             icon: Icons.schedule_outlined,
-            title: 'No tasks scheduled',
-            subtitle: 'Your day is clear. Create a task to get started.',
-            actionLabel: 'Add a task',
+            title: AppConfig.plannerEmptyTitle,
+            subtitle: AppConfig.plannerEmptyBody,
+            actionLabel: AppConfig.plannerEmptyAction,
             onAction: () => context.push(RoutePaths.newTask),
           ),
         ),

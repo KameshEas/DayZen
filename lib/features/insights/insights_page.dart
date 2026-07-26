@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/routing/route_paths.dart';
 import '../app_data.dart';
@@ -41,10 +42,9 @@ class InsightsPage extends StatelessWidget {
               const SizedBox(height: DzSpacing.xl),
               DzEmptyState(
                 icon: Icons.analytics_outlined,
-                title: 'No insights yet',
-                subtitle:
-                    'Create tasks and journal entries to see your insights.',
-                actionLabel: 'Create a task',
+                title: AppConfig.insightsEmptyTitle,
+                subtitle: AppConfig.insightsEmptyBody,
+                actionLabel: AppConfig.insightsEmptyAction,
                 onAction: () => context.push(RoutePaths.newTask),
               ),
             ],

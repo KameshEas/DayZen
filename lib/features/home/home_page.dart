@@ -71,16 +71,16 @@ class _HomeBody extends StatelessWidget {
           dateLabel: dateLabel,
           greeting: greeting,
           subtitle: remaining == 0 && tasks.isNotEmpty
-              ? 'All tasks done. Great work!'
-              : 'You have $remaining task${remaining == 1 ? '' : 's'} remaining.',
+              ? AppConfig.homeAllDoneSubtitle
+              : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
         ),
         const SizedBox(height: DzSpacing.lg),
         if (tasks.isEmpty)
           DzEmptyState(
             icon: Icons.task_alt_outlined,
-            title: "You're all set for today",
-            subtitle: 'No tasks scheduled. Create one to get started.',
-            actionLabel: 'Add a task',
+            title: AppConfig.homeEmptyTitle,
+            subtitle: AppConfig.homeEmptyBody,
+            actionLabel: AppConfig.homeEmptyAction,
             onAction: () => context.push(RoutePaths.newTask),
           )
         else ...[

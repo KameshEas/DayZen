@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
 import 'onboarding_decoration_widgets.dart';
 
@@ -40,10 +41,23 @@ class OnboardingStandardBottomBar extends StatelessWidget {
                   )
                 : const SizedBox.shrink(),
           ),
-          // Dots
+          // Dots + step label
           Expanded(
-            child: Center(
-              child: OnboardingPageDots(total: totalPages, current: currentPage),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OnboardingPageDots(total: totalPages, current: currentPage),
+                const SizedBox(height: 4),
+                Semantics(
+                  label: 'Step ${currentPage + 1} of $totalPages',
+                  child: ExcludeSemantics(
+                    child: Text(
+                      '${currentPage + 1} of $totalPages',
+                      style: DzTextStyles.small,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           // Next pill button
@@ -92,22 +106,80 @@ class OnboardingFinalBottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          DzPrimaryButton(
-            label: 'Start Offline',
-            icon: const Icon(Icons.arrow_forward_rounded,
-                color: DzColors.white, size: 18),
-            onPressed: onOffline,
+          _GlowPulse(
+            child: DzPrimaryButton(
+              label: AppConfig.onboardingPrimaryCta,
+              icon: const Icon(Icons.arrow_forward_rounded,
+                  color: DzColors.white, size: 18),
+              onPressed: onOffline,
+            ),
           ),
           const SizedBox(height: DzSpacing.sm),
           DzSecondaryButton(
-            label: 'Enable Sync (Optional)',
+            label: AppConfig.onboardingSecondaryCta,
             onPressed: onSync,
           ),
           const SizedBox(height: DzSpacing.lg),
           OnboardingPageDots(total: totalPages, current: totalPages - 1),
+          const SizedBox(height: 4),
+          Semantics(
+            label: 'Step $totalPages of $totalPages',
+            child: ExcludeSemantics(
+              child: Text('$totalPages of $totalPages', style: DzTextStyles.small),
+            ),
+          ),
           const SizedBox(height: DzSpacing.sm),
         ],
       ),
+    );
+  }
+}
+
+/// Soft looping glow behind the final slide's primary CTA, to draw the
+/// eye toward the one action most users should take.
+class _GlowPulse extends StatefulWidget {
+  const _GlowPulse({required this.child});
+  final Widget child;
+
+  @override
+  State<_GlowPulse> createState() => _GlowPulseState();
+}
+
+class _GlowPulseState extends State<_GlowPulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  )..repeat(reverse: true);
+  late final Animation<double> _glow =
+      Tween<double>(begin: 0.15, end: 0.4).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (context, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(DzRadius.fab),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: _glow.value),
+              blurRadius: 20,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: child,
+      ),
+      child: widget.child,
     );
   }
 }

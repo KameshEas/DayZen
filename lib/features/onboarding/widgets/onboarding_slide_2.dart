@@ -5,7 +5,14 @@ import 'onboarding_text_widgets.dart';
 
 /// Slide 2 â€” "Your Data Stays With You"
 class OnboardingSlide2 extends StatelessWidget {
-  const OnboardingSlide2({super.key});
+  const OnboardingSlide2({
+    super.key,
+    required this.controller,
+    required this.index,
+  });
+
+  final PageController controller;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
