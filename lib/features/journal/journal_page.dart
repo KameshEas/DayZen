@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import '../journal_controller.dart';
@@ -92,9 +93,9 @@ class _JournalPageState extends State<JournalPage> {
           padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
           child: DzEmptyState(
             icon: Icons.edit_note_outlined,
-            title: 'No entries yet',
-            subtitle: 'Start journaling to reflect on your day',
-            actionLabel: 'Write your first entry',
+            title: AppConfig.journalEmptyTitle,
+            subtitle: AppConfig.journalEmptyBody,
+            actionLabel: AppConfig.journalEmptyAction,
             onAction: () => showModalBottomSheet(
               context: context,
               isScrollControlled: true,

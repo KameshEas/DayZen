@@ -43,6 +43,7 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/illustrations/
 
   fonts:
     # ── Inter (18pt) — body text, captions, labels ─────────────

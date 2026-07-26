@@ -131,28 +131,65 @@ class _PadKey extends StatelessWidget {
   }
 }
 
-class _ActionCell extends StatelessWidget {
+class _ActionCell extends StatefulWidget {
   const _ActionCell({required this.onTap, required this.child});
   final VoidCallback onTap;
   final Widget child;
 
   @override
+  State<_ActionCell> createState() => _ActionCellState();
+}
+
+class _ActionCellState extends State<_ActionCell>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pressController;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.90).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTapDown: (_) => _pressController.forward(),
+      onTapUp: (_) => _pressController.reverse(),
+      onTapCancel: () => _pressController.reverse(),
       onTap: () {
         HapticFeedback.lightImpact();
-        onTap();
+        widget.onTap();
       },
-      child: Container(
-        height: 76,
-        margin: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: DzColors.cardBackground,
-          borderRadius: BorderRadius.circular(DzRadius.card),
-          boxShadow: DzShadows.soft,
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (context, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
         ),
-        alignment: Alignment.center,
-        child: child,
+        child: Container(
+          height: 76,
+          margin: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: DzColors.cardBackground,
+            borderRadius: BorderRadius.circular(DzRadius.card),
+            boxShadow: DzShadows.soft,
+          ),
+          alignment: Alignment.center,
+          child: widget.child,
+        ),
       ),
     );
   }

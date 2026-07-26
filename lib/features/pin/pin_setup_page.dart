@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/pin_pad.dart';
 
@@ -39,7 +40,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
   Future<void> _confirm() async {
     if (_pin.length < _pinLength) {
-      setState(() => _errorMessage = 'Please enter all 4 digits.');
+      setState(() => _errorMessage = AppConfig.pinSetupError);
       return;
     }
     await AppPrefs.savePin(_pin);
@@ -85,7 +86,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
                     ),
                   ),
                   Text(
-                    'Secure Your Space',
+                    AppConfig.pinSetupTitle,
                     style: DzTextStyles.heading3.copyWith(
                       fontWeight: FontWeight.w700,
                       color: DzColors.textPrimary,
@@ -120,7 +121,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.xl),
               child: Text(
-                'Choose a 4-digit code to keep your personal data and daily journal private.',
+                AppConfig.pinSetupBody,
                 style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -174,7 +175,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
                     size: 14, color: DzColors.textSecondary),
                 const SizedBox(width: DzSpacing.xs),
                 Text(
-                  'Your data stays encrypted on device',
+                  AppConfig.pinSetupFooter,
                   style: DzTextStyles.caption.copyWith(
                     color: DzColors.textSecondary,
                   ),

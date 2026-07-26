@@ -71,11 +71,39 @@ class _OnboardingPageState extends State<OnboardingPage> {
               const SizedBox(height: DzSpacing.lg),
 
               // â”€â”€ Logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              AnimatedSwitcher(
-                duration: DzDuration.normal,
-                child: _currentPage == 1
-                    ? const DzLogo(key: ValueKey('wordmark'), variant: DzLogoVariant.wordmarkOnly)
-                    : const DzLogo(key: ValueKey('logo')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 56),
+                    Expanded(
+                      child: Center(
+                        child: DzLogo(
+                          variant: DzLogoVariant.wordmarkOnly,
+                          size: DzLogoSize.large,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 56,
+                      child: _currentPage < _totalPages - 1
+                          ? TextButton(
+                              onPressed: () => _goTo(_totalPages - 1),
+                              style: TextButton.styleFrom(
+                                foregroundColor: DzColors.textSecondary,
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: Text(
+                                'Skip',
+                                style: DzTextStyles.caption
+                                    .copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: DzSpacing.lg),
@@ -85,10 +113,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: PageView(
                   controller: _controller,
                   onPageChanged: (i) => setState(() => _currentPage = i),
-                  children: const [
-                    OnboardingSlide1(),
-                    OnboardingSlide2(),
-                    OnboardingSlide3(),
+                  children: [
+                    OnboardingSlide1(controller: _controller, index: 0),
+                    OnboardingSlide2(controller: _controller, index: 1),
+                    OnboardingSlide3(controller: _controller, index: 2),
                   ],
                 ),
               ),

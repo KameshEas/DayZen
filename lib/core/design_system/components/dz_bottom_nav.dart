@@ -160,20 +160,14 @@ class _SlidingIndicatorState extends State<_SlidingIndicator>
     super.dispose();
   }
 
+  // Each tile (including the blank FAB slot) occupies an equal-width
+  // Expanded cell in the Row below, so the pill must center on that same
+  // 1/itemCount grid rather than re-packing only the non-FAB tiles —
+  // otherwise it drifts away from the icon it's supposed to sit behind.
   double _getAlignment([int? index]) {
     index ??= widget.currentIndex;
     final itemCount = widget.items.length;
-    final nonFabCount = itemCount - (widget.fabIndex >= 0 ? 1 : 0);
-    final step = 2.0 / (nonFabCount - 1);
-
-    int nonFabIndex = 0;
-    for (int i = 0; i <= index; i++) {
-      if (i != widget.fabIndex) {
-        if (i == index) break;
-        nonFabIndex++;
-      }
-    }
-    return -1.0 + (nonFabIndex * step);
+    return -1.0 + (2 * index + 1) / itemCount;
   }
 
   @override

@@ -202,9 +202,19 @@ class _BiometricSheetState extends State<_BiometricSheet> {
       }
     } catch (e) {
       if (!mounted) return;
+      String errorMsg = 'Biometric error. Please try again.';
+
+      if (e.toString().contains('no_fragment_activity')) {
+        errorMsg = 'Biometric setup required. Please restart the app.';
+      } else if (e.toString().contains('NotEnrolledException')) {
+        errorMsg = 'No biometric enrolled. Set up biometric in device settings.';
+      } else if (e.toString().contains('HardwareUnavailableException')) {
+        errorMsg = 'Biometric hardware not available.';
+      }
+
       setState(() {
         _checking = false;
-        _error = 'Biometric error: ${e.toString().split(': ').last}';
+        _error = errorMsg;
       });
     }
   }
@@ -242,8 +252,50 @@ class _BiometricSheetState extends State<_BiometricSheet> {
             ],
           ),
           if (_error != null) ...[
-            const SizedBox(height: DzSpacing.sm),
-            Text(_error!, style: DzTextStyles.caption.copyWith(color: DzColors.error)),
+            const SizedBox(height: DzSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(DzSpacing.md),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(DzRadius.card),
+                border: Border.all(color: DzColors.error.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: DzColors.error, size: 20),
+                  const SizedBox(width: DzSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: DzTextStyles.caption.copyWith(color: DzColors.error),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (!widget.ctrl.biometricEnabled) ...[
+            const SizedBox(height: DzSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(DzSpacing.md),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(DzRadius.card),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 20),
+                  const SizedBox(width: DzSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'Enable biometric to secure your data with face or fingerprint',
+                      style: DzTextStyles.caption
+                          .copyWith(color: Theme.of(context).colorScheme.primary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           if (widget.ctrl.biometricEnabled) ...[
             const SizedBox(height: DzSpacing.lg),

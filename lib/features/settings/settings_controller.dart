@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/services/jwt_auth_service.dart';
 
 /// Persisted settings for the DayZen app.
 class SettingsController extends ChangeNotifier {
@@ -197,11 +198,13 @@ class SettingsController extends ChangeNotifier {
     _save();
   }
 
-  void signOut() {
+  Future<void> signOut() async {
     _isSignedIn = false;
     _userEmail = null;
     notifyListeners();
     _save();
+    final authService = JwtAuthService();
+    await authService.signOut();
   }
 
   void setBiometricEnabled(bool value) {

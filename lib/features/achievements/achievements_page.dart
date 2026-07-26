@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/services/achievement_service.dart';
 import '../app_data.dart';
@@ -42,46 +43,23 @@ class _AchievementsPageState extends State<AchievementsPage> {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Failed to load achievements: ${snapshot.error}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => setState(() => _loadAchievements()),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return DzEmptyState(
+              icon: Icons.error_outline_rounded,
+              iconColor: DzColors.error,
+              title: AppConfig.achievementsErrorTitle,
+              subtitle: '${snapshot.error}',
+              actionLabel: 'Retry',
+              onAction: () => setState(() => _loadAchievements()),
             );
           }
 
           final achievements = snapshot.data ?? [];
           if (achievements.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.emoji_events_outlined,
-                    size: 64,
-                    color: DzColors.primary.withOpacity(0.3),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No achievements yet',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Start completing tasks to unlock achievements',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
+            return DzEmptyState(
+              icon: Icons.emoji_events_outlined,
+              iconColor: DzColors.primary.withValues(alpha: 0.3),
+              title: AppConfig.achievementsEmptyTitle,
+              subtitle: AppConfig.achievementsEmptyBody,
             );
           }
 
@@ -102,9 +80,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                     padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
                     child: Text(
                       'Unlocked (${unlocked.length})',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(height: DzSpacing.sm),
@@ -118,9 +94,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                     padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
                     child: Text(
                       'Locked (${locked.length})',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(height: DzSpacing.sm),
@@ -142,9 +116,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
       margin: const EdgeInsets.all(DzSpacing.md),
       padding: const EdgeInsets.all(DzSpacing.lg),
       decoration: BoxDecoration(
-        color: DzColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: DzColors.primary.withOpacity(0.1)),
+        color: DzColors.primaryTint.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(DzRadius.card),
+        border: Border.all(color: DzColors.primary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,15 +130,13 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Overall Progress',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    AppConfig.achievementsProgressHeader,
+                    style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$unlocked of $total achievements unlocked',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: DzTextStyles.caption,
                   ),
                 ],
               ),
@@ -172,27 +144,23 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: DzColors.primary,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(DzRadius.small),
                 ),
                 child: Text(
                   '$percentage%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: DzTextStyles.button.copyWith(color: DzColors.white),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(DzRadius.small),
             child: LinearProgressIndicator(
               value: total > 0 ? unlocked / total : 0,
               minHeight: 8,
-              backgroundColor: DzColors.primary.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(DzColors.primary),
+              backgroundColor: DzColors.primary.withValues(alpha: 0.1),
+              valueColor: const AlwaysStoppedAnimation<Color>(DzColors.primary),
             ),
           ),
         ],
@@ -223,77 +191,66 @@ class _AchievementsPageState extends State<AchievementsPage> {
   }
 
   Widget _buildAchievementCard(BuildContext context, Achievement achievement, {required bool isUnlocked}) {
-    return Card(
-      elevation: isUnlocked ? 2 : 0,
-      color: isUnlocked ? Colors.white : Colors.grey.shade100,
-      child: Padding(
-        padding: const EdgeInsets.all(DzSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isUnlocked ? DzColors.primary.withOpacity(0.1) : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(12),
+    return DzCard(
+      color: isUnlocked ? DzColors.cardBackground : DzColors.neutralTint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isUnlocked ? DzColors.primary.withValues(alpha: 0.1) : DzColors.borderLight,
+              borderRadius: BorderRadius.circular(DzRadius.button),
+            ),
+            child: Text(
+              achievement.icon,
+              style: const TextStyle(fontSize: 32),
+            ),
+          ),
+          const SizedBox(height: DzSpacing.sm),
+
+          // Title
+          Text(
+            achievement.title,
+            textAlign: TextAlign.center,
+            style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+
+          // Progress
+          Text(
+            '${achievement.progress.current}/${achievement.progress.target}',
+            style: DzTextStyles.caption,
+          ),
+          const SizedBox(height: DzSpacing.sm),
+
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: achievement.progress.percentageComplete / 100,
+              minHeight: 4,
+              backgroundColor: DzColors.borderLight,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isUnlocked ? DzColors.primary : DzColors.primary.withValues(alpha: 0.3),
               ),
+            ),
+          ),
+
+          // Unlock date (if unlocked)
+          if (isUnlocked && achievement.unlockedAt != null)
+            Padding(
+              padding: const EdgeInsets.only(top: DzSpacing.xs),
               child: Text(
-                achievement.icon,
-                style: const TextStyle(fontSize: 32),
+                'Unlocked ${_formatDate(achievement.unlockedAt!)}',
+                style: DzTextStyles.small.copyWith(color: DzColors.primary),
+                textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: DzSpacing.sm),
-
-            // Title
-            Text(
-              achievement.title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-
-            // Progress
-            Text(
-              '${achievement.progress.current}/${achievement.progress.target}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  ),
-            ),
-            const SizedBox(height: DzSpacing.sm),
-
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: achievement.progress.percentageComplete / 100,
-                minHeight: 4,
-                backgroundColor: Colors.grey.shade300,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isUnlocked ? DzColors.primary : DzColors.primary.withOpacity(0.3),
-                ),
-              ),
-            ),
-
-            // Unlock date (if unlocked)
-            if (isUnlocked && achievement.unlockedAt != null)
-              Padding(
-                padding: const EdgeInsets.only(top: DzSpacing.xs),
-                child: Text(
-                  'Unlocked ${_formatDate(achievement.unlockedAt!)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: DzColors.primary,
-                        fontSize: 10,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }

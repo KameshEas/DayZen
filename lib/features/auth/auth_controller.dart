@@ -1,9 +1,15 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import '../../core/services/jwt_auth_service.dart';
+import '../../core/config/app_config.dart';
+import '../../core/logging/app_logger.dart';
 
-/// Auth state controller backed by Firebase Authentication.
+/// Auth state controller backed by JWT authentication.
 class AuthController extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final JwtAuthService _authService;
+
+  /// Creates an [AuthController] with a [JwtAuthService] instance.
+  AuthController({JwtAuthService? authService})
+      : _authService = authService ?? JwtAuthService();
 
   bool _isLoading = false;
   String? _error;
@@ -28,7 +34,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Signs in with [email] and [password] via Firebase Auth.
+  /// Signs in with [email] and [password] via JWT auth.
   Future<bool> signIn({
     required String email,
     required String password,
@@ -38,25 +44,32 @@ class AuthController extends ChangeNotifier {
       _setError('Please fill in all fields.');
       return false;
     }
+
     _setLoading(true);
     try {
-      await _auth.signInWithEmailAndPassword(
+      final success = await _authService.signIn(
         email: email.trim(),
         password: password,
+        apiBaseUrl: AppConfig.apiBaseUrl,
       );
-      _setLoading(false);
-      onSuccess();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _setError(_friendlyMessage(e.code));
-      return false;
-    } catch (_) {
+
+      if (success) {
+        _setLoading(false);
+        notifyListeners();
+        onSuccess();
+        return true;
+      } else {
+        _setError('Incorrect email or password.');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.debug('Sign in error: $e');
       _setError('An unexpected error occurred. Please try again.');
       return false;
     }
   }
 
-  /// Creates a new account via Firebase Auth.
+  /// Creates a new account via JWT auth.
   Future<bool> signUp({
     required String fullName,
     required String email,
@@ -71,26 +84,45 @@ class AuthController extends ChangeNotifier {
       _setError('Password must be at least 6 characters.');
       return false;
     }
+
     _setLoading(true);
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
+      final success = await _authService.signUp(
+        name: fullName.trim(),
         email: email.trim(),
         password: password,
+        apiBaseUrl: AppConfig.apiBaseUrl,
       );
-      await credential.user?.updateDisplayName(fullName.trim());
-      _setLoading(false);
-      onSuccess();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _setError(_friendlyMessage(e.code));
-      return false;
-    } catch (_) {
+
+      if (success) {
+        _setLoading(false);
+        notifyListeners();
+        onSuccess();
+        return true;
+      } else {
+        _setError('Failed to create account. Please try again.');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.debug('Sign up error: $e');
       _setError('An unexpected error occurred. Please try again.');
       return false;
     }
   }
 
-  /// Sends a password-reset email to [email].
+  /// Sign out
+  Future<void> signOut() async {
+    try {
+      await _authService.signOut();
+      notifyListeners();
+    } catch (e) {
+      AppLogger.debug('Sign out error: $e');
+      _setError('Failed to sign out. Please try again.');
+    }
+  }
+
+  /// Send password reset email (not yet implemented in JWT auth)
+  /// This would be handled by backend password reset endpoint
   Future<bool> sendPasswordReset({required String email}) async {
     if (email.trim().isEmpty) {
       _setError('Please enter your email address.');
@@ -98,37 +130,15 @@ class AuthController extends ChangeNotifier {
     }
     _setLoading(true);
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      // TODO: Implement password reset via backend endpoint
+      // For now, just show a placeholder message
       _setLoading(false);
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _setError(_friendlyMessage(e.code));
+      _setError('Password reset functionality coming soon.');
       return false;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.debug('Password reset error: $e');
       _setError('An unexpected error occurred. Please try again.');
       return false;
     }
   }
-
-  String _friendlyMessage(String code) {
-    switch (code) {
-      case 'user-not-found':
-      case 'wrong-password':
-      case 'invalid-credential':
-        return 'Incorrect email or password.';
-      case 'email-already-in-use':
-        return 'An account with this email already exists.';
-      case 'invalid-email':
-        return 'Please enter a valid email address.';
-      case 'weak-password':
-        return 'Password must be at least 6 characters.';
-      case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
-      case 'network-request-failed':
-        return 'No internet connection.';
-      default:
-        return 'Authentication failed. Please try again.';
-    }
-  }
 }
-

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/design_system/design_system.dart';
 import '../settings_controller.dart';
@@ -93,49 +94,183 @@ class SettingsAppearanceSection extends StatelessWidget {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(DzSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SettingsSheetHandle(),
-            const SizedBox(height: DzSpacing.md),
-            Text('Theme Accent',
-                style:
-                    DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: DzSpacing.md),
-            ...SettingsController.accentOptions.map((opt) {
-              final color = SettingsController.accentColorMap[opt]!;
-              final isSelected = opt == ctrl.accent;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 32,
-                  height: 32,
+      builder: (_) => _AccentPickerSheet(ctrl: ctrl),
+    );
+  }
+}
+
+/// Enhanced accent picker with live preview and spring-physics selection.
+class _AccentPickerSheet extends StatefulWidget {
+  const _AccentPickerSheet({required this.ctrl});
+  final SettingsController ctrl;
+
+  @override
+  State<_AccentPickerSheet> createState() => _AccentPickerSheetState();
+}
+
+class _AccentPickerSheetState extends State<_AccentPickerSheet>
+    with SingleTickerProviderStateMixin {
+  late String _previewAccent;
+  late AnimationController _scaleController;
+  late Map<String, Animation<double>> _scaleAnimations;
+
+  @override
+  void initState() {
+    super.initState();
+    _previewAccent = widget.ctrl.accent;
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _buildScaleAnimations();
+  }
+
+  void _buildScaleAnimations() {
+    _scaleAnimations = {
+      for (var opt in SettingsController.accentOptions)
+        opt: Tween<double>(begin: 1.0, end: 1.15).animate(
+          CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+        ),
+    };
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  void _onAccentTap(String accent) {
+    HapticFeedback.lightImpact();
+    setState(() => _previewAccent = accent);
+    _scaleController.forward(from: 0);
+  }
+
+  void _onAccentConfirm() {
+    widget.ctrl.setAccent(_previewAccent);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(DzSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SettingsSheetHandle(),
+          const SizedBox(height: DzSpacing.md),
+          Text('Theme Accent',
+              style:
+                  DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: DzSpacing.md),
+          // Live preview card
+          Container(
+            padding: const EdgeInsets.all(DzSpacing.md),
+            decoration: BoxDecoration(
+              color: SettingsController.accentColorMap[_previewAccent]
+                  ?.withValues(alpha: 0.1),
+              border: Border.all(
+                color: SettingsController.accentColorMap[_previewAccent]!,
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(DzRadius.card),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
                   decoration: BoxDecoration(
-                    color: color,
+                    color: SettingsController.accentColorMap[_previewAccent],
                     shape: BoxShape.circle,
-                    border: isSelected
-                        ? Border.all(color: DzColors.textPrimary, width: 2.5)
-                        : null,
                   ),
                 ),
-                title: Text(opt, style: DzTextStyles.body),
-                trailing: isSelected
-                    ? Icon(Icons.check_circle_rounded,
-                        color: color, size: 22)
-                    : const Icon(Icons.circle_outlined,
-                        color: DzColors.borderLight, size: 22),
-                onTap: () {
-                  ctrl.setAccent(opt);
-                  context.pop();
-                },
-              );
-            }),
-            const SizedBox(height: DzSpacing.sm),
-          ],
-        ),
+                const SizedBox(width: DzSpacing.sm),
+                Text(
+                  'Preview: $_previewAccent',
+                  style: DzTextStyles.caption.copyWith(
+                    color: SettingsController.accentColorMap[_previewAccent],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: DzSpacing.md),
+          // Swatch list
+          ...SettingsController.accentOptions.map((opt) {
+            final color = SettingsController.accentColorMap[opt]!;
+            final isSelected = opt == _previewAccent;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: DzSpacing.sm),
+              child: AnimatedBuilder(
+                animation: _scaleAnimations[opt]!,
+                builder: (context, child) => Transform.scale(
+                  scale: isSelected ? _scaleAnimations[opt]!.value : 1.0,
+                  child: GestureDetector(
+                    onTap: () => _onAccentTap(opt),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DzSpacing.md,
+                        vertical: DzSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? color.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected ? color : DzColors.borderLight,
+                          width: isSelected ? 2.0 : 1.0,
+                        ),
+                        borderRadius: BorderRadius.circular(DzRadius.button),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: DzSpacing.md),
+                          Expanded(
+                            child: Text(opt, style: DzTextStyles.body),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check_circle_rounded,
+                                color: color, size: 22),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: DzSpacing.md),
+          // Confirm button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _onAccentConfirm,
+              child: const Text('Apply Theme'),
+            ),
+          ),
+          const SizedBox(height: DzSpacing.sm),
+        ],
       ),
     );
   }
