@@ -144,17 +144,36 @@ class JwtAuthService extends ChangeNotifier {
 
         // Parse token response (adjust field names based on your API)
         final tokenData = data['data'] ?? data;
+
+        // Safely extract access token
+        final accessToken = (tokenData['access_token'] as String?) ??
+                           (tokenData['accessToken'] as String?) ??
+                           '';
+
+        // Safely extract refresh token (optional)
+        final refreshToken = (tokenData['refresh_token'] as String?) ??
+                            (tokenData['refreshToken'] as String?);
+
+        if (accessToken.isEmpty) {
+          AppLogger.debug('Sign in failed: No access token in response');
+          return false;
+        }
+
         _currentToken = JwtToken(
-          accessToken: tokenData['access_token'] as String? ?? tokenData['accessToken'] as String,
-          refreshToken: tokenData['refresh_token'] as String? ?? tokenData['refreshToken'] as String?,
-          expiresAt: _parseTokenExpiry(tokenData['access_token'] as String? ?? tokenData['accessToken'] as String),
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          expiresAt: _parseTokenExpiry(accessToken),
         );
 
         // Parse user data
+        final userId = (tokenData['user_id'] as String?) ??
+                      (tokenData['userId'] as String?) ??
+                      '';
+
         _currentUser = AuthUser(
-          id: tokenData['user_id'] as String? ?? tokenData['userId'] as String,
-          email: tokenData['email'] as String? ?? email.trim(),
-          name: tokenData['name'] as String? ?? tokenData['full_name'] as String?,
+          id: userId,
+          email: (tokenData['email'] as String?) ?? email.trim(),
+          name: (tokenData['name'] as String?) ?? (tokenData['full_name'] as String?),
         );
 
         await _saveSession();

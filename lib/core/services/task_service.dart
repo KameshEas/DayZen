@@ -50,25 +50,45 @@ class TaskApiResponse {
 
   /// Parse from API response.
   factory TaskApiResponse.fromJson(Map<String, dynamic> json) {
-    return TaskApiResponse(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      dateMs: DateTime.parse(json['date_ms'].toString()),
-      startHour: json['start_hour'] as int,
-      startMinute: json['start_minute'] as int,
-      endHour: json['end_hour'] as int,
-      endMinute: json['end_minute'] as int,
-      priority: json['priority'] as String? ?? 'routine',
-      category: json['category'] as String? ?? 'work',
-      iconCode: json['icon_code'] as int?,
-      subtitle: json['subtitle'] as String?,
-      isCompleted: json['is_completed'] as bool? ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      deletedAt: json['deleted_at'] != null
-        ? DateTime.parse(json['deleted_at'] as String)
-        : null,
-    );
+    try {
+      return TaskApiResponse(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Untitled Task',
+        dateMs: DateTime.parse(json['date_ms'] as String? ?? DateTime.now().toIso8601String()),
+        startHour: json['start_hour'] as int? ?? 9,
+        startMinute: json['start_minute'] as int? ?? 0,
+        endHour: json['end_hour'] as int? ?? 10,
+        endMinute: json['end_minute'] as int? ?? 0,
+        priority: json['priority'] as String? ?? 'routine',
+        category: json['category'] as String? ?? 'work',
+        iconCode: json['icon_code'] as int?,
+        subtitle: json['subtitle'] as String?,
+        isCompleted: json['is_completed'] as bool? ?? false,
+        createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+        updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
+        deletedAt: json['deleted_at'] != null && (json['deleted_at'] as String?)?.isNotEmpty == true
+          ? DateTime.parse(json['deleted_at'] as String? ?? DateTime.now().toIso8601String())
+          : null,
+      );
+    } catch (e) {
+      return TaskApiResponse(
+        id: json['id'] as String? ?? '',
+        title: 'Error loading task',
+        dateMs: DateTime.now(),
+        startHour: 9,
+        startMinute: 0,
+        endHour: 10,
+        endMinute: 0,
+        priority: 'routine',
+        category: 'work',
+        iconCode: null,
+        subtitle: 'Failed to parse task data',
+        isCompleted: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        deletedAt: null,
+      );
+    }
   }
 
   /// Convert to local DzTask model.
@@ -97,8 +117,8 @@ class SyncConflict {
 
   factory SyncConflict.fromJson(Map<String, dynamic> json) {
     return SyncConflict(
-      taskId: json['id'] as String,
-      resolution: json['resolution'] as String,
+      taskId: json['id'] as String? ?? '',
+      resolution: json['resolution'] as String? ?? 'server_wins',
     );
   }
 }

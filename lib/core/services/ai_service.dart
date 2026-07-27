@@ -37,11 +37,11 @@ class TaskRecommendation {
 
   factory TaskRecommendation.fromJson(Map<String, dynamic> json) {
     return TaskRecommendation(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      reason: json['reason'] as String,
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Recommended Task',
+      reason: json['reason'] as String? ?? 'Based on your patterns',
       priorityScore: json['priority_score'] as int? ?? 50,
-      suggestedDate: DateTime.parse(json['suggested_date'] as String),
+      suggestedDate: DateTime.parse(json['suggested_date'] as String? ?? DateTime.now().toIso8601String()),
       suggestedStartHour: json['suggested_start_hour'] as int? ?? 9,
       suggestedStartMinute: json['suggested_start_minute'] as int? ?? 0,
       category: json['category'] as String? ?? 'work',
@@ -74,13 +74,13 @@ class ScheduleOptimization {
 
   factory ScheduleOptimization.fromJson(Map<String, dynamic> json) {
     return ScheduleOptimization(
-      taskId: json['task_id'] as String,
-      taskTitle: json['task_title'] as String,
-      currentStartHour: json['current_start_hour'] as int,
-      currentStartMinute: json['current_start_minute'] as int,
-      recommendedStartHour: json['recommended_start_hour'] as int,
-      recommendedStartMinute: json['recommended_start_minute'] as int,
-      reason: json['reason'] as String,
+      taskId: json['task_id'] as String? ?? '',
+      taskTitle: json['task_title'] as String? ?? 'Task',
+      currentStartHour: json['current_start_hour'] as int? ?? 9,
+      currentStartMinute: json['current_start_minute'] as int? ?? 0,
+      recommendedStartHour: json['recommended_start_hour'] as int? ?? 10,
+      recommendedStartMinute: json['recommended_start_minute'] as int? ?? 0,
+      reason: json['reason'] as String? ?? 'Optimization suggested',
       confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
     );
   }
@@ -135,12 +135,12 @@ class SmartReminder {
 
   factory SmartReminder.fromJson(Map<String, dynamic> json) {
     return SmartReminder(
-      id: json['id'] as String,
-      taskId: json['task_id'] as String,
-      taskTitle: json['task_title'] as String,
-      reminderTime: DateTime.parse(json['reminder_time'] as String),
-      reminderType: json['reminder_type'] as String,
-      message: json['message'] as String,
+      id: json['id'] as String? ?? '',
+      taskId: json['task_id'] as String? ?? '',
+      taskTitle: json['task_title'] as String? ?? 'Reminder',
+      reminderTime: DateTime.parse(json['reminder_time'] as String? ?? DateTime.now().toIso8601String()),
+      reminderType: json['reminder_type'] as String? ?? 'reminder',
+      message: json['message'] as String? ?? 'You have a reminder',
       confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.7,
     );
   }

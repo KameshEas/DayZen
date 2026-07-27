@@ -20,14 +20,25 @@ class UserProfileModel {
   });
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
-    return UserProfileModel(
-      firebaseUid: json['firebase_uid'] as String,
-      email: json['email'] as String,
-      displayName: json['display_name'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-    );
+    try {
+      return UserProfileModel(
+        firebaseUid: json['firebase_uid'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        displayName: json['display_name'] as String?,
+        avatarUrl: json['avatar_url'] as String?,
+        createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+        updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
+      );
+    } catch (e) {
+      return UserProfileModel(
+        firebaseUid: json['firebase_uid'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        displayName: null,
+        avatarUrl: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() => {

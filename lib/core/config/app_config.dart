@@ -15,7 +15,7 @@ class AppConfig {
   // localhost so that case fails loudly against a real backend rather than
   // silently hitting production.
   static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://import-pants-worldcat-custody.trycloudflare.com/api/v1/dayzen');
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://expanded-cuts-bus-jerry.trycloudflare.com/api/v1/dayzen');
   static const int apiTimeoutSeconds = 10;
   static const int cacheValidityHours = 24;
 

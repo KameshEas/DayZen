@@ -35,18 +35,31 @@ class JournalApiResponse {
 
   /// Parse from API response.
   factory JournalApiResponse.fromJson(Map<String, dynamic> json) {
-    return JournalApiResponse(
-      id: json['id'] as String,
-      date: DateTime.parse(json['date'] as String),
-      content: json['content'] as String,
-      mood: json['mood'] as String?,
-      tags: List<String>.from(json['tags'] as List<dynamic>? ?? []),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      deletedAt: json['deleted_at'] != null
-          ? DateTime.parse(json['deleted_at'] as String)
-          : null,
-    );
+    try {
+      return JournalApiResponse(
+        id: json['id'] as String? ?? '',
+        date: DateTime.parse(json['date'] as String? ?? DateTime.now().toIso8601String()),
+        content: json['content'] as String? ?? '',
+        mood: json['mood'] as String?,
+        tags: List<String>.from(json['tags'] as List<dynamic>? ?? []),
+        createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+        updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
+        deletedAt: json['deleted_at'] != null && (json['deleted_at'] as String?)?.isNotEmpty == true
+            ? DateTime.parse(json['deleted_at'] as String? ?? DateTime.now().toIso8601String())
+            : null,
+      );
+    } catch (e) {
+      return JournalApiResponse(
+        id: json['id'] as String? ?? '',
+        date: DateTime.now(),
+        content: 'Error loading entry',
+        mood: null,
+        tags: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        deletedAt: null,
+      );
+    }
   }
 
   /// Convert to JSON for API requests.
@@ -68,8 +81,8 @@ class JournalSyncConflict {
 
   factory JournalSyncConflict.fromJson(Map<String, dynamic> json) {
     return JournalSyncConflict(
-      entryId: json['id'] as String,
-      resolution: json['resolution'] as String,
+      entryId: json['id'] as String? ?? '',
+      resolution: json['resolution'] as String? ?? 'server_wins',
     );
   }
 }

@@ -271,13 +271,16 @@ class ApiClient {
     String errorMessage = 'HTTP ${response.statusCode}';
     try {
       final errorData = jsonDecode(response.body);
-      if (errorData is Map && errorData.containsKey('detail')) {
-        errorMessage = errorData['detail'] as String;
-      } else if (errorData is Map && errorData.containsKey('message')) {
-        errorMessage = errorData['message'] as String;
+      if (errorData is Map) {
+        if (errorData.containsKey('detail')) {
+          errorMessage = (errorData['detail'] as String?) ?? errorMessage;
+        } else if (errorData.containsKey('message')) {
+          errorMessage = (errorData['message'] as String?) ?? errorMessage;
+        }
       }
-    } catch (_) {
-      // Use default error message
+    } catch (e) {
+      // Use default error message if JSON parsing fails
+      // Don't rethrow - we'll use the HTTP status code error message
     }
 
     throw ApiException(

@@ -83,15 +83,37 @@ class JournalEntry {
         'accentColorValue': accentColor?.toARGB32(),
       };
 
-  factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        body: json['body'] as String,
-        mood: JournalMood.values.byName(json['mood'] as String),
-        timestamp: DateTime.fromMillisecondsSinceEpoch(
-            json['timestampMs'] as int),
-        accentColor: json['accentColorValue'] != null
+  factory JournalEntry.fromJson(Map<String, dynamic> json) {
+    try {
+      final moodStr = json['mood'] as String? ?? 'peaceful';
+      JournalMood mood;
+      try {
+        mood = JournalMood.values.byName(moodStr);
+      } catch (_) {
+        mood = JournalMood.peaceful;
+      }
+
+      return JournalEntry(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Untitled Entry',
+        body: json['body'] as String? ?? '',
+        mood: mood,
+        timestamp: json['timestampMs'] != null && json['timestampMs'] is int
+            ? DateTime.fromMillisecondsSinceEpoch(json['timestampMs'] as int)
+            : DateTime.now(),
+        accentColor: json['accentColorValue'] != null && json['accentColorValue'] is int
             ? Color(json['accentColorValue'] as int)
             : null,
       );
+    } catch (e) {
+      return JournalEntry(
+        id: json['id'] as String? ?? '',
+        title: 'Error loading entry',
+        body: 'Failed to parse journal entry',
+        mood: JournalMood.peaceful,
+        timestamp: DateTime.now(),
+        accentColor: null,
+      );
+    }
+  }
 }

@@ -38,7 +38,7 @@ class DailyInsights {
   /// Parse from API response.
   factory DailyInsights.fromJson(Map<String, dynamic> json) {
     return DailyInsights(
-      date: DateTime.parse(json['date'] as String),
+      date: DateTime.parse(json['date'] as String? ?? DateTime.now().toIso8601String()),
       taskCompletionCount: json['task_completion_count'] as int? ?? 0,
       taskTotalCount: json['task_total_count'] as int? ?? 0,
       focusMinutes: json['focus_minutes'] as int? ?? 0,
@@ -46,8 +46,8 @@ class DailyInsights {
       mostCommonMood: json['most_common_mood'] as String?,
       productivityScore: json['productivity_score'] as int? ?? 0,
       tags: List<String>.from(json['tags'] as List<dynamic>? ?? []),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
     );
   }
 }
@@ -79,18 +79,18 @@ class WeeklyInsights {
     final moodData = json['mood_distribution'] as Map<String, dynamic>? ?? {};
     final moodMap = <String, int>{};
     moodData.forEach((key, value) {
-      moodMap[key] = value as int;
+      moodMap[key] = value as int? ?? 0;
     });
 
     return WeeklyInsights(
-      weekStart: DateTime.parse(json['week_start'] as String),
+      weekStart: DateTime.parse(json['week_start'] as String? ?? DateTime.now().toIso8601String()),
       totalTaskCompletions: json['total_task_completions'] as int? ?? 0,
       totalFocusMinutes: json['total_focus_minutes'] as int? ?? 0,
       totalJournalEntries: json['total_journal_entries'] as int? ?? 0,
       averageProductivityScore: json['average_productivity_score'] as int? ?? 0,
       moodDistribution: moodMap,
       streakDays: json['streak_days'] as int? ?? 0,
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
     );
   }
 }

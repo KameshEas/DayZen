@@ -41,9 +41,9 @@ class SyncManager extends SyncCoordinator<TaskController> {
       localTasks: localTasks,
     );
 
-    final serverTasks = result['server_tasks'] as List<DzTask>;
-    final deletedIds = result['deleted_ids'] as List<String>;
-    final conflicts = result['conflicts'] as List<SyncConflict>;
+    final serverTasks = (result['server_tasks'] as List<dynamic>?)?.cast<DzTask>() ?? [];
+    final deletedIds = (result['deleted_ids'] as List<dynamic>?)?.cast<String>() ?? [];
+    final conflicts = (result['conflicts'] as List<dynamic>?)?.cast<SyncConflict>() ?? [];
 
     await _applyServerTasks(controller, serverTasks, deletedIds);
 
