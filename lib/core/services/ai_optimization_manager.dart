@@ -57,10 +57,10 @@ class AIOPtimizationManager extends ChangeNotifier {
         endDate: endDate,
       );
 
-      _recommendations = result['recommendations'] as List<TaskRecommendation>;
-      _optimizations = result['optimizations'] as List<ScheduleOptimization>;
-      _insights = result['insights'] as List<ProductivityInsight>;
-      _reminders = result['reminders'] as List<SmartReminder>;
+      _recommendations = (result['recommendations'] as List<dynamic>?)?.cast<TaskRecommendation>() ?? [];
+      _optimizations = (result['optimizations'] as List<dynamic>?)?.cast<ScheduleOptimization>() ?? [];
+      _insights = (result['insights'] as List<dynamic>?)?.cast<ProductivityInsight>() ?? [];
+      _reminders = (result['reminders'] as List<dynamic>?)?.cast<SmartReminder>() ?? [];
 
       _lastSuccessfulSync = DateTime.now();
       _syncError = null;
@@ -68,7 +68,10 @@ class AIOPtimizationManager extends ChangeNotifier {
     } catch (e) {
       _syncError = e.toString();
       AppLogger.debug('AI optimization sync failed: $e');
-      rethrow;
+      _recommendations = [];
+      _optimizations = [];
+      _insights = [];
+      _reminders = [];
     } finally {
       _isSyncing = false;
       notifyListeners();

@@ -124,27 +124,62 @@ class DzTask {
         'dateMs': date.millisecondsSinceEpoch,
       };
 
-  factory DzTask.fromJson(Map<String, dynamic> json) => DzTask(
-        id: json['id'] as String,
-        title: json['title'] as String,
+  factory DzTask.fromJson(Map<String, dynamic> json) {
+    try {
+      final priorityStr = json['priority'] as String? ?? 'routine';
+      final categoryStr = json['category'] as String? ?? 'work';
+
+      TaskPriority priority;
+      try {
+        priority = TaskPriority.values.byName(priorityStr);
+      } catch (_) {
+        priority = TaskPriority.routine;
+      }
+
+      TaskCategory category;
+      try {
+        category = TaskCategory.values.byName(categoryStr);
+      } catch (_) {
+        category = TaskCategory.work;
+      }
+
+      return DzTask(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Untitled Task',
         startTime: TimeOfDay(
-            hour: json['startHour'] as int,
-            minute: json['startMinute'] as int),
+          hour: (json['startHour'] as int?) ?? 9,
+          minute: (json['startMinute'] as int?) ?? 0,
+        ),
         endTime: TimeOfDay(
-            hour: json['endHour'] as int, minute: json['endMinute'] as int),
-        priority: TaskPriority.values.byName(json['priority'] as String),
-        category: json['category'] != null
-            ? TaskCategory.values.byName(json['category'] as String)
-            : TaskCategory.work,
-        icon: json['iconCode'] != null
+          hour: (json['endHour'] as int?) ?? 10,
+          minute: (json['endMinute'] as int?) ?? 0,
+        ),
+        priority: priority,
+        category: category,
+        icon: json['iconCode'] != null && json['iconCode'] is int
             ? IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons')
             : null,
         subtitle: json['subtitle'] as String?,
         isCompleted: json['isCompleted'] as bool? ?? false,
-        date: json['dateMs'] != null
+        date: json['dateMs'] != null && json['dateMs'] is int
             ? DateTime.fromMillisecondsSinceEpoch(json['dateMs'] as int)
             : DateTime.now(),
       );
+    } catch (e) {
+      return DzTask(
+        id: json['id'] as String? ?? '',
+        title: 'Error loading task',
+        startTime: const TimeOfDay(hour: 9, minute: 0),
+        endTime: const TimeOfDay(hour: 10, minute: 0),
+        priority: TaskPriority.routine,
+        category: TaskCategory.work,
+        icon: null,
+        subtitle: 'Failed to parse task',
+        isCompleted: false,
+        date: DateTime.now(),
+      );
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

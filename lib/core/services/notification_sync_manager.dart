@@ -108,8 +108,8 @@ class NotificationSyncManager extends ChangeNotifier {
     try {
       final result = await _service.syncNotifications();
 
-      _preferences = result['preferences'] as List<NotificationPreference>;
-      _deliveryHistory = result['deliveries'] as List<NotificationDelivery>;
+      _preferences = (result['preferences'] as List<dynamic>?)?.cast<NotificationPreference>() ?? [];
+      _deliveryHistory = (result['deliveries'] as List<dynamic>?)?.cast<NotificationDelivery>() ?? [];
 
       _lastSuccessfulSync = DateTime.now();
       _syncError = null;
@@ -117,7 +117,8 @@ class NotificationSyncManager extends ChangeNotifier {
     } catch (e) {
       _syncError = e.toString();
       AppLogger.debug('Notification sync failed: $e');
-      rethrow;
+      _preferences = [];
+      _deliveryHistory = [];
     } finally {
       _isSyncing = false;
       notifyListeners();

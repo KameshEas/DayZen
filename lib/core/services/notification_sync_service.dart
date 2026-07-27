@@ -37,14 +37,14 @@ class NotificationPreference {
 
   factory NotificationPreference.fromJson(Map<String, dynamic> json) {
     return NotificationPreference(
-      id: json['id'] as String,
-      type: json['type'] as String,
+      id: json['id'] as String? ?? '',
+      type: json['type'] as String? ?? 'notification',
       enabled: json['enabled'] as bool? ?? true,
       minHour: json['quiet_hours_start'] as int?,
       maxHour: json['quiet_hours_end'] as int?,
       channel: json['channel'] as String?,
       advanceMinutes: json['advance_minutes'] as int? ?? 15,
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -86,16 +86,16 @@ class NotificationDelivery {
 
   factory NotificationDelivery.fromJson(Map<String, dynamic> json) {
     return NotificationDelivery(
-      id: json['id'] as String,
-      notificationType: json['notification_type'] as String,
-      targetId: json['target_id'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
-      scheduledTime: DateTime.parse(json['scheduled_time'] as String),
+      id: json['id'] as String? ?? '',
+      notificationType: json['notification_type'] as String? ?? 'notification',
+      targetId: json['target_id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Notification',
+      message: json['message'] as String? ?? '',
+      scheduledTime: DateTime.parse(json['scheduled_time'] as String? ?? DateTime.now().toIso8601String()),
       deliveredTime: json['delivered_time'] != null
-          ? DateTime.parse(json['delivered_time'] as String)
+          ? DateTime.parse(json['delivered_time'] as String? ?? DateTime.now().toIso8601String())
           : null,
-      status: json['status'] as String,
+      status: json['status'] as String? ?? 'scheduled',
       failureReason: json['failure_reason'] as String?,
       clickedAt: json['clicked_at'] as int?,
     );

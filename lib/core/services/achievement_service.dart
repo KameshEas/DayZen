@@ -27,14 +27,28 @@ class Achievement {
   bool get isUnlocked => unlockedAt != null;
 
   factory Achievement.fromJson(Map<String, dynamic> json) {
-    return Achievement(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      icon: json['icon'] as String,
-      progress: AchievementProgress.fromJson(json['progress'] as Map<String, dynamic>),
-      unlockedAt: json['unlocked_at'] != null ? DateTime.parse(json['unlocked_at'] as String) : null,
-    );
+    try {
+      final progressData = json['progress'] as Map<String, dynamic>?;
+      return Achievement(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Achievement',
+        description: json['description'] as String? ?? '',
+        icon: json['icon'] as String? ?? '🏆',
+        progress: progressData != null ? AchievementProgress.fromJson(progressData) : AchievementProgress(current: 0, target: 1),
+        unlockedAt: json['unlocked_at'] != null && (json['unlocked_at'] as String?)?.isNotEmpty == true
+            ? DateTime.parse(json['unlocked_at'] as String? ?? DateTime.now().toIso8601String())
+            : null,
+      );
+    } catch (e) {
+      return Achievement(
+        id: json['id'] as String? ?? '',
+        title: 'Error loading achievement',
+        description: 'Failed to parse achievement data',
+        icon: '❌',
+        progress: AchievementProgress(current: 0, target: 1),
+        unlockedAt: null,
+      );
+    }
   }
 }
 
