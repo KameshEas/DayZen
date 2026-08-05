@@ -14,20 +14,24 @@ import '../api/api_client.dart';
 /// Journal entry response from API (with server timestamps).
 class JournalApiResponse {
   final String id;
-  final DateTime date;
-  final String content;
+  final String title;
+  final String body;
   final String? mood;
-  final List<String> tags;
+  final int timestampMs;
+  final String entryTimestamp;
+  final int? accentColorValue;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
   JournalApiResponse({
     required this.id,
-    required this.date,
-    required this.content,
+    required this.title,
+    required this.body,
     this.mood,
-    required this.tags,
+    required this.timestampMs,
+    required this.entryTimestamp,
+    this.accentColorValue,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -38,10 +42,12 @@ class JournalApiResponse {
     try {
       return JournalApiResponse(
         id: json['id'] as String? ?? '',
-        date: DateTime.parse(json['date'] as String? ?? DateTime.now().toIso8601String()),
-        content: json['content'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        body: json['body'] as String? ?? '',
         mood: json['mood'] as String?,
-        tags: List<String>.from(json['tags'] as List<dynamic>? ?? []),
+        timestampMs: json['timestamp_ms'] as int? ?? 0,
+        entryTimestamp: json['entry_timestamp'] as String? ?? DateTime.now().toIso8601String(),
+        accentColorValue: json['accent_color_value'] as int?,
         createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
         updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
         deletedAt: json['deleted_at'] != null && (json['deleted_at'] as String?)?.isNotEmpty == true
@@ -51,10 +57,12 @@ class JournalApiResponse {
     } catch (e) {
       return JournalApiResponse(
         id: json['id'] as String? ?? '',
-        date: DateTime.now(),
-        content: 'Error loading entry',
+        title: 'Error loading entry',
+        body: 'Failed to parse journal entry',
         mood: null,
-        tags: [],
+        timestampMs: 0,
+        entryTimestamp: DateTime.now().toIso8601String(),
+        accentColorValue: null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         deletedAt: null,
@@ -65,10 +73,12 @@ class JournalApiResponse {
   /// Convert to JSON for API requests.
   Map<String, dynamic> toJson() => {
         'id': id,
-        'date': date.toIso8601String(),
-        'content': content,
+        'title': title,
+        'body': body,
         'mood': mood,
-        'tags': tags,
+        'timestamp_ms': timestampMs,
+        'entry_timestamp': entryTimestamp,
+        'accent_color_value': accentColorValue,
       };
 }
 
@@ -225,9 +235,12 @@ class JournalService {
   ) async {
     try {
       final body = <String, dynamic>{
-        'content': entry.content,
+        'title': entry.title,
+        'body': entry.body,
         'mood': entry.mood,
-        'tags': entry.tags,
+        'timestamp_ms': entry.timestampMs,
+        'entry_timestamp': entry.entryTimestamp,
+        'accent_color_value': entry.accentColorValue,
       };
 
       final response = await _apiClient.put('/journal/$entryId', body);
@@ -286,11 +299,12 @@ class JournalService {
 
       final entries = localEntries.map((e) => {
         'id': e.id,
-        'date': e.date.toIso8601String(),
-        'content': e.content,
+        'title': e.title,
+        'body': e.body,
         'mood': e.mood,
-        'tags': e.tags,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'timestamp_ms': e.timestampMs,
+        'entry_timestamp': e.entryTimestamp,
+        'accent_color_value': e.accentColorValue,
       }).toList();
 
       final body = {

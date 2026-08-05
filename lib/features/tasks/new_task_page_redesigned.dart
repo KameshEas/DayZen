@@ -7,7 +7,6 @@ import '../app_data.dart';
 import '../home/models/task_model.dart';
 import 'widgets/new_task_bottom_bar.dart';
 import 'widgets/new_task_focus_privacy.dart';
-import 'widgets/new_task_form_fields.dart';
 import 'widgets/new_task_shared_widgets.dart';
 import 'widgets/new_task_redesigned_widgets.dart';
 
