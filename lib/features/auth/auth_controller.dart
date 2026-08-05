@@ -121,8 +121,8 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Send password reset email (not yet implemented in JWT auth)
-  /// This would be handled by backend password reset endpoint
+  /// Send password reset email via backend
+  /// Backend will send a reset email with a link/token
   Future<bool> sendPasswordReset({required String email}) async {
     if (email.trim().isEmpty) {
       _setError('Please enter your email address.');
@@ -130,14 +130,16 @@ class AuthController extends ChangeNotifier {
     }
     _setLoading(true);
     try {
-      // TODO: Implement password reset via backend endpoint
-      // For now, just show a placeholder message
+      await _authService.requestPasswordReset(
+        email: email.trim(),
+        apiBaseUrl: AppConfig.apiBaseUrl,
+      );
       _setLoading(false);
-      _setError('Password reset functionality coming soon.');
-      return false;
+      notifyListeners();
+      return true;
     } catch (e) {
       AppLogger.debug('Password reset error: $e');
-      _setError('An unexpected error occurred. Please try again.');
+      _setError('Failed to send reset email. Please try again.');
       return false;
     }
   }

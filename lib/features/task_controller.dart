@@ -147,6 +147,8 @@ class TaskController extends ChangeNotifier {
         await NotificationService.instance.scheduleForTask(updatedTask);
       }
     }
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
   }
 
   Future<void> deleteTask(String id) async {

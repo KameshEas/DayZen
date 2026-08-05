@@ -158,7 +158,7 @@ class ApiClient {
   }
 
   /// Make a PUT request.
-  /// Automatically includes Firebase authentication token.
+  /// Automatically includes JWT authentication token.
   Future<Map<String, dynamic>> put(
     String endpoint,
     Map<String, dynamic> body, {
@@ -203,7 +203,7 @@ class ApiClient {
   }
 
   /// Make a DELETE request.
-  /// Automatically includes Firebase authentication token.
+  /// Automatically includes JWT authentication token.
   Future<Map<String, dynamic>> delete(
     String endpoint, {
     Map<String, String>? headers,

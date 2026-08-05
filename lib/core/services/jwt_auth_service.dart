@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import '../logging/app_logger.dart';
 import '../config/app_config.dart';
@@ -62,12 +62,13 @@ class AuthUser {
 }
 
 /// Service for managing JWT authentication tokens and auth state.
+/// Tokens are stored securely in platform keychain/keystore.
 class JwtAuthService extends ChangeNotifier {
   static const String _tokenKey = 'jwt_token';
   static const String _userKey = 'auth_user';
   static const String _refreshTokenKey = 'jwt_refresh_token';
 
-  late SharedPreferences _prefs;
+  late FlutterSecureStorage _secureStorage;
   JwtToken? _currentToken;
   AuthUser? _currentUser;
   bool _initialized = false;
@@ -90,11 +91,15 @@ class JwtAuthService extends ChangeNotifier {
   /// Initialize the auth service and restore previous session if available
   Future<void> initialize() async {
     try {
-      _prefs = await SharedPreferences.getInstance();
+      _secureStorage = const FlutterSecureStorage(
+        aOptions: AndroidOptions(
+          resetOnError: true,
+        ),
+      );
 
-      // Try to restore previous session
-      final tokenJson = _prefs.getString(_tokenKey);
-      final userJson = _prefs.getString(_userKey);
+      // Try to restore previous session from secure storage
+      final tokenJson = await _secureStorage.read(key: _tokenKey);
+      final userJson = await _secureStorage.read(key: _userKey);
 
       if (tokenJson != null && userJson != null) {
         try {
@@ -314,6 +319,33 @@ class JwtAuthService extends ChangeNotifier {
     };
   }
 
+  /// Request password reset email
+  /// Backend will send an email with reset link/token
+  Future<void> requestPasswordReset({
+    required String email,
+    required String apiBaseUrl,
+  }) async {
+    try {
+      final url = Uri.parse('$apiBaseUrl/auth/request-password-reset');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim()}),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        AppLogger.debug('Password reset email sent');
+        return;
+      } else {
+        throw Exception('Failed to send password reset email: ${response.statusCode}');
+      }
+    } catch (e) {
+      AppLogger.debug('Password reset error: $e');
+      rethrow;
+    }
+  }
+
   /// Sign out and clear session
   Future<void> signOut() async {
     try {
@@ -324,31 +356,34 @@ class JwtAuthService extends ChangeNotifier {
     }
   }
 
-  /// Save session to persistent storage
+  /// Save session to secure storage
   Future<void> _saveSession() async {
     try {
-      if (!_initialized) {
-        _prefs = await SharedPreferences.getInstance();
-      }
       if (_currentToken != null) {
-        await _prefs.setString(_tokenKey, jsonEncode(_currentToken!.toJson()));
+        await _secureStorage.write(
+          key: _tokenKey,
+          value: jsonEncode(_currentToken!.toJson()),
+        );
       }
       if (_currentUser != null) {
-        await _prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+        await _secureStorage.write(
+          key: _userKey,
+          value: jsonEncode(_currentUser!.toJson()),
+        );
       }
     } catch (e) {
       AppLogger.debug('Error saving session: $e');
     }
   }
 
-  /// Clear session from persistent storage
+  /// Clear session from secure storage
   Future<void> _clearSession() async {
     try {
       _currentToken = null;
       _currentUser = null;
-      await _prefs.remove(_tokenKey);
-      await _prefs.remove(_userKey);
-      await _prefs.remove(_refreshTokenKey);
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _userKey);
+      await _secureStorage.delete(key: _refreshTokenKey);
     } catch (e) {
       AppLogger.debug('Error clearing session: $e');
     }
