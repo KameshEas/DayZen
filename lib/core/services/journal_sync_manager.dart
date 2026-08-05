@@ -1,6 +1,7 @@
 /// Manages offline-first synchronization for journal entries.
 library;
 
+import 'package:flutter/material.dart';
 import 'journal_service.dart';
 import 'sync_coordinator.dart';
 import '../../features/journal/models/journal_entry.dart';
@@ -31,10 +32,12 @@ class JournalSyncManager extends SyncCoordinator<JournalController> {
     final localEntries = controller.all
         .map((e) => JournalApiResponse(
               id: e.id,
-              date: DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day),
-              content: '${e.title}\n\n${e.body}',
+              title: e.title,
+              body: e.body,
               mood: e.mood.name,
-              tags: [],
+              timestampMs: e.timestamp.millisecondsSinceEpoch,
+              entryTimestamp: e.timestamp.toIso8601String(),
+              accentColorValue: e.accentColor?.toARGB32(),
               createdAt: e.timestamp,
               updatedAt: e.timestamp,
             ))
@@ -72,35 +75,32 @@ class JournalSyncManager extends SyncCoordinator<JournalController> {
     // Update local entries with server versions
     for (final serverEntry in serverEntries) {
       final localIdx = controller.all.indexWhere((e) => e.id == serverEntry.id);
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(serverEntry.timestampMs);
+      final accentColor = serverEntry.accentColorValue != null
+          ? Color(serverEntry.accentColorValue!)
+          : null;
 
       if (localIdx == -1) {
-        // New entry from server - parse content back into title/body
-        final parts = serverEntry.content.split('\n\n');
-        final title = parts.first;
-        final body = parts.length > 1 ? parts.sublist(1).join('\n\n') : '';
-
+        // New entry from server
         final newEntry = JournalEntry(
           id: serverEntry.id,
-          title: title,
-          body: body,
+          title: serverEntry.title,
+          body: serverEntry.body,
           mood: JournalMood.values.asNameMap()[serverEntry.mood] ?? JournalMood.peaceful,
-          timestamp: serverEntry.date,
+          timestamp: timestamp,
+          accentColor: accentColor,
         );
         await controller.addEntry(newEntry);
       } else {
         // Update existing entry - for now, server wins
-        final parts = serverEntry.content.split('\n\n');
-        final title = parts.first;
-        final body = parts.length > 1 ? parts.sublist(1).join('\n\n') : '';
-
         final updatedEntry = JournalEntry(
           id: serverEntry.id,
-          title: title,
-          body: body,
+          title: serverEntry.title,
+          body: serverEntry.body,
           mood: JournalMood.values.asNameMap()[serverEntry.mood] ??
                 controller.all[localIdx].mood,
-          timestamp: serverEntry.date,
-          accentColor: controller.all[localIdx].accentColor,
+          timestamp: timestamp,
+          accentColor: accentColor,
         );
 
         await controller.deleteEntry(serverEntry.id);

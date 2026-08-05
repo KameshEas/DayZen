@@ -74,20 +74,22 @@ void main() {
     group('Journal Sync Flow', () {
       test('complete journal creation and sync flow', () async {
         // 1. Create journal entry
+        final now = DateTime.now();
         final newEntry = JournalApiResponse(
           id: 'integration-journal-1',
-          date: DateTime.now(),
-          content: 'Integration test journal entry\n\nThis is a test entry for the sync flow.',
+          title: 'Integration Test Entry',
+          body: 'This is a test entry for the sync flow.',
           mood: 'peaceful',
-          tags: ['test', 'integration'],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          timestampMs: now.millisecondsSinceEpoch,
+          entryTimestamp: now.toIso8601String(),
+          createdAt: now,
+          updatedAt: now,
         );
 
         try {
           // 2. Create on API
           final created = await journalService.createEntry(newEntry);
-          expect(created.content, isNotEmpty);
+          expect(created.body, isNotEmpty);
 
           // 3. Fetch and verify
           final fetched = await journalService.getEntry(created.id);
