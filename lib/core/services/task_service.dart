@@ -48,13 +48,23 @@ class TaskApiResponse {
     this.deletedAt,
   });
 
-  /// Parse from API response.
+  /// Parse from API response (handles both old and new backend formats).
   factory TaskApiResponse.fromJson(Map<String, dynamic> json) {
     try {
+      // Parse date - support both old date_ms and new scheduled_date format
+      DateTime dateMs;
+      if (json['date_ms'] != null) {
+        dateMs = DateTime.parse(json['date_ms'] as String);
+      } else if (json['scheduled_date'] != null) {
+        dateMs = DateTime.parse(json['scheduled_date'] as String);
+      } else {
+        dateMs = DateTime.now();
+      }
+
       return TaskApiResponse(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? 'Untitled Task',
-        dateMs: DateTime.parse(json['date_ms'] as String? ?? DateTime.now().toIso8601String()),
+        dateMs: dateMs,
         startHour: json['start_hour'] as int? ?? 9,
         startMinute: json['start_minute'] as int? ?? 0,
         endHour: json['end_hour'] as int? ?? 10,
@@ -62,12 +72,16 @@ class TaskApiResponse {
         priority: json['priority'] as String? ?? 'routine',
         category: json['category'] as String? ?? 'work',
         iconCode: json['icon_code'] as int?,
-        subtitle: json['subtitle'] as String?,
+        subtitle: json['subtitle'] as String? ?? json['description'] as String?, // Support both field names
         isCompleted: json['is_completed'] as bool? ?? false,
-        createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
-        updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
+        createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+        updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
         deletedAt: json['deleted_at'] != null && (json['deleted_at'] as String?)?.isNotEmpty == true
-          ? DateTime.parse(json['deleted_at'] as String? ?? DateTime.now().toIso8601String())
+          ? DateTime.parse(json['deleted_at'] as String)
           : null,
       );
     } catch (e) {
@@ -309,20 +323,20 @@ class TaskService {
         return {'server_tasks': [], 'deleted_ids': [], 'conflicts': []};
       }
 
-      final tasks = localTasks.map((t) => {
-        'id': t.id,
-        'title': t.title,
-        'date_ms': t.date.millisecondsSinceEpoch,
-        'start_hour': t.startTime.hour,
-        'start_minute': t.startTime.minute,
-        'end_hour': t.endTime.hour,
-        'end_minute': t.endTime.minute,
-        'priority': t.priority.name,
-        'category': t.category.name,
-        'icon_code': t.icon?.codePoint,
-        'subtitle': t.subtitle,
-        'is_completed': t.isCompleted,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      final tasks = localTasks.map((t) {
+        // Format date as YYYY-MM-DD for backend
+        final dateStr = '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}';
+
+        return {
+          'id': t.id,
+          'title': t.title,
+          'description': t.subtitle,
+          'scheduled_date': dateStr,
+          'priority': t.priority.name,
+          'category': t.category.name,
+          'is_completed': t.isCompleted,
+          'accent_color_value': null, // TODO: Store accent color in model
+        };
       }).toList();
 
       final body = {

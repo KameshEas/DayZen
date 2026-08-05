@@ -8,6 +8,9 @@ import 'core/data/legacy_data_migrator.dart';
 import 'core/design_system/design_system.dart';
 import 'core/notification_service.dart';
 import 'core/routing/app_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
 import 'features/app_data.dart';
 import 'features/journal_controller.dart';
@@ -23,9 +26,13 @@ void main() async {
 }
 
 Future<void> _runApp() async {
-  // Initialize JWT auth service
+  // Initialize JWT auth service (restores previous session if available)
   final authService = JwtAuthService();
   await authService.initialize();
+
+  // Initialize Crashlytics for error reporting
+  await Firebase.initializeApp();
+  _initCrashReporting();
 
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
@@ -92,6 +99,17 @@ Future<void> _runApp() async {
     notifications: notifCtrl,
     child: const DayZenApp(),
   ));
+}
+
+void _initCrashReporting() {
+  // Pass all uncaught errors from the Flutter framework to Crashlytics.
+  FlutterError.onError = (error) => FirebaseCrashlytics.instance.recordFlutterError(error);
+
+  // Pass all uncaught asynchronous errors that aren't handled by Flutter to Crashlytics
+  foundation.PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 }
 
 class DayZenApp extends StatelessWidget {
