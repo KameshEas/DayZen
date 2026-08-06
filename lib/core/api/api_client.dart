@@ -53,6 +53,7 @@ class ApiClient {
   final Map<String, String> _defaultHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'X-App-ID': AppConfig.appId,
   };
 
   ApiClient({

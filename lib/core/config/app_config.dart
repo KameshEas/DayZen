@@ -16,6 +16,11 @@ class AppConfig {
   // silently hitting production.
   static const String apiBaseUrl =
       String.fromEnvironment('API_BASE_URL', defaultValue: 'https://expanded-cuts-bus-jerry.trycloudflare.com/api/v1/dayzen');
+
+  // Multi-tenant app identifier (for X-App-ID header)
+  // Defaults to 'dayzen' but can be overridden per-build
+  static const String appId = String.fromEnvironment('APP_ID', defaultValue: 'dayzen');
+
   static const int apiTimeoutSeconds = 10;
   static const int cacheValidityHours = 24;
 
