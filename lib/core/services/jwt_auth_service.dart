@@ -141,6 +141,7 @@ class JwtAuthService extends ChangeNotifier {
         body: jsonEncode({
           'email': email.trim(),
           'password': password,
+          'app_id': AppConfig.appId,
         }),
       ).timeout(const Duration(seconds: 30));
 
@@ -215,6 +216,7 @@ class JwtAuthService extends ChangeNotifier {
           'name': name.trim(),
           'email': email.trim(),
           'password': password,
+          'app_id': AppConfig.appId,
         }),
       ).timeout(const Duration(seconds: 30));
 

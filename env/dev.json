@@ -1,3 +1,4 @@
 {
-  "API_BASE_URL": "http://localhost:8001/api/v1/dayzen"
+  "API_BASE_URL": "http://localhost:8001/api/v1/dayzen",
+  "APP_ID": "dayzen"
 }

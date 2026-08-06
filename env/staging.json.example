@@ -1,3 +1,4 @@
 {
-  "API_BASE_URL": "https://REPLACE_ME_STAGING_API_HOST/v1"
+  "API_BASE_URL": "https://REPLACE_ME_STAGING_API_HOST/api/v1/dayzen",
+  "APP_ID": "dayzen"
 }
