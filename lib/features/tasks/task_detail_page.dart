@@ -21,7 +21,7 @@ class TaskDetailPage extends StatelessWidget {
     );
 
     return DzAuthScaffold(
-      appBar: DzAppBar(
+      appBar: const DzAppBar(
         title: 'Task Details',
       ),
       body: task == null
@@ -43,7 +43,7 @@ class TaskDetailPage extends StatelessWidget {
                       task.title as String,
                       style: DzTextStyles.heading2,
                     ),
-                    SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.md),
 
                     // Priority badge
                     DzCard(
@@ -59,7 +59,7 @@ class TaskDetailPage extends StatelessWidget {
                               Icons.flag_outlined,
                               size: 16,
                             ),
-                            SizedBox(width: DzSpacing.sm),
+                            const SizedBox(width: DzSpacing.sm),
                             Text(
                               (task.priority as dynamic).label as String,
                               style: DzTextStyles.label,
@@ -68,7 +68,7 @@ class TaskDetailPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.md),
 
                     // Details in a card
                     DzCard(
@@ -81,17 +81,17 @@ class TaskDetailPage extends StatelessWidget {
                               label: 'Category',
                               value: (task.category as dynamic).label as String,
                             ),
-                            Divider(height: DzSpacing.md),
+                            const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Date',
                               value: task.date.toString(),
                             ),
-                            Divider(height: DzSpacing.md),
+                            const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Start Time',
                               value: task.startTime.toString(),
                             ),
-                            Divider(height: DzSpacing.md),
+                            const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Duration',
                               value: '${task.estimatedDurationMinutes} minutes',
@@ -100,7 +100,7 @@ class TaskDetailPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.md),
 
                     // Completion status
                     DzCard(

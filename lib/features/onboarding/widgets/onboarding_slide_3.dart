@@ -85,7 +85,7 @@ class OnboardingSlide3 extends StatelessWidget {
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          OnboardingSlideText(
+          const OnboardingSlideText(
             title: AppConfig.onboardingSlide3Title,
             subtitle:
                 "Next, you'll set a quick PIN to keep your tasks and "
@@ -93,7 +93,7 @@ class OnboardingSlide3 extends StatelessWidget {
                 'to back up your data.',
           ),
           const SizedBox(height: DzSpacing.lg),
-          OnboardingPillBadge(
+          const OnboardingPillBadge(
             icon: Icons.shield_rounded,
             label: AppConfig.onboardingSlide3Badge,
             style: OnboardingPillStyle.gray,

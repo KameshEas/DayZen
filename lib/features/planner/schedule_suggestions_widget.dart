@@ -80,7 +80,7 @@ class _ScheduleSuggestionsWidgetState extends State<ScheduleSuggestionsWidget> {
             const SizedBox(height: DzSpacing.md),
             const Text('No tasks scheduled', style: DzTextStyles.body),
             const SizedBox(height: DzSpacing.sm),
-            Text(
+            const Text(
               'Add tasks to get schedule suggestions',
               style: DzTextStyles.small,
             ),
@@ -90,12 +90,12 @@ class _ScheduleSuggestionsWidgetState extends State<ScheduleSuggestionsWidget> {
     }
 
     if (_loading) {
-      return DzCard(
+      return const DzCard(
         child: Column(
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: DzSpacing.md),
-            const Text('Generating optimal schedule...', style: DzTextStyles.body),
+            CircularProgressIndicator(),
+            SizedBox(height: DzSpacing.md),
+            Text('Generating optimal schedule...', style: DzTextStyles.body),
           ],
         ),
       );

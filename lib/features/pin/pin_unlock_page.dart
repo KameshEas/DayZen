@@ -168,7 +168,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             const SizedBox(height: DzSpacing.xl),
 
             // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
+            const Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Text(
               AppConfig.pinUnlockSubtitle,

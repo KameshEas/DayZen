@@ -21,7 +21,7 @@ class JournalDetailPage extends StatelessWidget {
     );
 
     return DzAuthScaffold(
-      appBar: DzAppBar(
+      appBar: const DzAppBar(
         title: 'Journal Entry',
       ),
       body: entry == null
@@ -49,7 +49,7 @@ class JournalDetailPage extends StatelessWidget {
                               color: (entry.mood as dynamic).iconColor as Color,
                               size: 32,
                             ),
-                            SizedBox(width: DzSpacing.md),
+                            const SizedBox(width: DzSpacing.md),
                             Text(
                               (entry.mood as dynamic).name as String,
                               style: DzTextStyles.heading3,
@@ -58,21 +58,21 @@ class JournalDetailPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.md),
 
                     // Title
                     Text(
                       entry.title as String,
                       style: DzTextStyles.heading2,
                     ),
-                    SizedBox(height: DzSpacing.sm),
+                    const SizedBox(height: DzSpacing.sm),
 
                     // Timestamp
                     Text(
                       '${entry.timestamp}',
                       style: DzTextStyles.caption,
                     ),
-                    SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.md),
 
                     // Body in a card for visual separation
                     DzCard(

@@ -34,7 +34,7 @@ class ScheduleCardMinimal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today_rounded, size: 18, color: const Color(0xFF667EEA)),
+            const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF667EEA)),
             const SizedBox(width: DzSpacing.md),
             Expanded(
               child: Text(
@@ -42,7 +42,7 @@ class ScheduleCardMinimal extends StatelessWidget {
                 style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
-            Icon(Icons.edit_outlined, size: 16, color: DzColors.textSecondary),
+            const Icon(Icons.edit_outlined, size: 16, color: DzColors.textSecondary),
           ],
         ),
       ),

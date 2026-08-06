@@ -450,7 +450,7 @@ class AIService {
         'user_availability': {
           'start_hour': startHour,
           'end_hour': endHour,
-          if (peakHours != null) 'peak_hours': peakHours,
+          'peak_hours': ?peakHours,
         },
         'preferences': {
           'break_frequency_minutes': breakFrequencyMinutes,

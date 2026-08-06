@@ -7,7 +7,7 @@ Future<void> setupFirebaseForTests() async {
   try {
     // Attempt to initialize Firebase with default options
     // This may fail in test environments which is acceptable
-    if (!Firebase.apps.isEmpty) {
+    if (Firebase.apps.isNotEmpty) {
       return; // Already initialized
     }
 

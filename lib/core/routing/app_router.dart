@@ -44,7 +44,7 @@ class AppRouter {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.go(RoutePaths.home),
-                child: Text(AppConfig.routerGoHome),
+                child: const Text(AppConfig.routerGoHome),
               ),
             ],
           ),

@@ -102,7 +102,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: DzSpacing.md),
 
                   // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  Center(
+                  const Center(
                     child: Text(
                       AppConfig.signupTitle,
                       style: DzTextStyles.heading1,
