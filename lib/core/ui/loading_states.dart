@@ -70,6 +70,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
 
   Widget _buildSkeletonItem() {
     return _ShimmerWidget(
+      shimmerController: _shimmerController,
       child: Container(
         height: widget.height,
         width: widget.width,
@@ -78,7 +79,6 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      shimmerController: _shimmerController,
     );
   }
 }

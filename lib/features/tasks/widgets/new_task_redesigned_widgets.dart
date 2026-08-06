@@ -34,8 +34,8 @@ class QuickActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           gradient: isActive
-              ? LinearGradient(
-                  colors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+              ? const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -128,10 +128,10 @@ class _ScheduledCardWidgetState extends State<ScheduledCardWidget>
               vertical: DzSpacing.md,
             ),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
-                  const Color(0xFF667EEA),
-                  const Color(0xFF764BA2),
+                  Color(0xFF667EEA),
+                  Color(0xFF764BA2),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -218,10 +218,10 @@ class CategoryGridWidget extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               gradient: isSelected
-                  ? LinearGradient(
+                  ? const LinearGradient(
                       colors: [
-                        const Color(0xFF667EEA),
-                        const Color(0xFF764BA2),
+                        Color(0xFF667EEA),
+                        Color(0xFF764BA2),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../lib/features/auth/auth_controller.dart';
+import 'package:dayzen/features/auth/auth_controller.dart';
 
 /// A fake [FirebaseAuth] that throws configurable exceptions.
 /// Uses [Fake] to avoid implementing every method on [FirebaseAuth].

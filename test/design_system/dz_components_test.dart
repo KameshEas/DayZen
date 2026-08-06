@@ -10,7 +10,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: DzTheme.light(),
-            home: Scaffold(
+            home: const Scaffold(
               body: DzCard(
                 child: Text('Card Content'),
               ),
@@ -26,10 +26,10 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: DzTheme.light(),
-            home: Scaffold(
+            home: const Scaffold(
               body: DzCard(
-                padding: const EdgeInsets.all(32),
-                child: const SizedBox(width: 100, height: 100),
+                padding: EdgeInsets.all(32),
+                child: SizedBox(width: 100, height: 100),
               ),
             ),
           ),
@@ -43,9 +43,9 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: DzTheme.light(),
-            home: Scaffold(
+            home: const Scaffold(
               body: DzCard(
-                child: const SizedBox(width: 100, height: 100),
+                child: SizedBox(width: 100, height: 100),
               ),
             ),
           ),
@@ -63,9 +63,9 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: DzTheme.dark(),
-            home: Scaffold(
+            home: const Scaffold(
               body: DzCard(
-                child: const SizedBox(width: 100, height: 100),
+                child: SizedBox(width: 100, height: 100),
               ),
             ),
           ),

@@ -27,7 +27,7 @@ class OnboardingSlide1 extends StatelessWidget {
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          OnboardingSlideText(
+          const OnboardingSlideText(
             title: 'DayZen',
             subtitle: AppConfig.onboardingSlide1Subtitle,
           ),
