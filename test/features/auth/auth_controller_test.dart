@@ -1,46 +1,57 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dayzen/features/auth/auth_controller.dart';
+import 'package:dayzen/core/services/jwt_auth_service.dart';
 
-/// A fake [FirebaseAuth] that throws configurable exceptions.
-/// Uses [Fake] to avoid implementing every method on [FirebaseAuth].
-class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
-  String throwCode = 'user-not-found';
+/// A fake [JwtAuthService] whose sign-in/sign-up/reset results (or thrown
+/// error) are configured per test, so [AuthController]'s handling of each
+/// path can be exercised without a real backend.
+class _FakeJwtAuthService extends JwtAuthService {
+  bool signInResult = true;
+  bool signUpResult = true;
+  Object? throwOnNextCall;
 
   @override
-  Future<UserCredential> signInWithEmailAndPassword({
+  Future<bool> signIn({
     required String email,
     required String password,
+    required String apiBaseUrl,
   }) async {
-    throw FirebaseAuthException(code: throwCode);
+    if (throwOnNextCall != null) throw throwOnNextCall!;
+    return signInResult;
   }
 
   @override
-  Future<UserCredential> createUserWithEmailAndPassword({
+  Future<bool> signUp({
+    required String name,
     required String email,
     required String password,
+    required String apiBaseUrl,
   }) async {
-    throw FirebaseAuthException(code: throwCode);
+    if (throwOnNextCall != null) throw throwOnNextCall!;
+    return signUpResult;
   }
 
   @override
-  Future<void> sendPasswordResetEmail({
+  Future<void> requestPasswordReset({
     required String email,
-    ActionCodeSettings? actionCodeSettings,
+    required String apiBaseUrl,
   }) async {
-    throw FirebaseAuthException(code: throwCode);
+    if (throwOnNextCall != null) throw throwOnNextCall!;
   }
+
+  @override
+  Future<void> signOut() async {}
 }
 
 void main() {
-  late _FakeFirebaseAuth fakeAuth;
+  late _FakeJwtAuthService fakeAuthService;
   late AuthController controller;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    fakeAuth = _FakeFirebaseAuth();
-    controller = AuthController(auth: fakeAuth);
+    fakeAuthService = _FakeJwtAuthService();
+    controller = AuthController(authService: fakeAuthService);
   });
 
   tearDown(() {
@@ -154,9 +165,13 @@ void main() {
     });
   });
 
-  group('AuthController - error mapping', () {
-    test('user-not-found maps to friendly message', () async {
-      fakeAuth.throwCode = 'user-not-found';
+  // AuthController talks to a REST backend now (not Firebase), so it no
+  // longer maps per-error-code messages -- every backend failure collapses
+  // to one of two generic messages depending on whether the auth service
+  // returned false (a handled failure) or threw (an unexpected one).
+  group('AuthController - backend failure handling', () {
+    test('signIn returning false shows the incorrect-credentials message', () async {
+      fakeAuthService.signInResult = false;
       final result = await controller.signIn(
         email: 'test@example.com',
         password: 'password123',
@@ -167,8 +182,20 @@ void main() {
       expect(controller.error, 'Incorrect email or password.');
     });
 
-    test('email-already-in-use maps to friendly message', () async {
-      fakeAuth.throwCode = 'email-already-in-use';
+    test('signIn throwing shows the generic unexpected-error message', () async {
+      fakeAuthService.throwOnNextCall = Exception('network down');
+      final result = await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'An unexpected error occurred. Please try again.');
+    });
+
+    test('signUp returning false shows the account-creation-failed message', () async {
+      fakeAuthService.signUpResult = false;
       final result = await controller.signUp(
         fullName: 'Test User',
         email: 'test@example.com',
@@ -177,68 +204,66 @@ void main() {
       );
 
       expect(result, false);
-      expect(controller.error, 'An account with this email already exists.');
+      expect(controller.error, 'Failed to create account. Please try again.');
     });
 
-    test('invalid-email maps to friendly message', () async {
-      fakeAuth.throwCode = 'invalid-email';
-      final result = await controller.signIn(
-        email: 'not-an-email',
-        password: 'password123',
-        onSuccess: () {},
-      );
-
-      expect(result, false);
-      expect(controller.error, 'Please enter a valid email address.');
-    });
-
-    test('weak-password maps to friendly message', () async {
-      fakeAuth.throwCode = 'weak-password';
+    test('signUp throwing shows the generic unexpected-error message', () async {
+      fakeAuthService.throwOnNextCall = Exception('network down');
       final result = await controller.signUp(
         fullName: 'Test User',
         email: 'test@example.com',
-        password: 'short',
-        onSuccess: () {},
-      );
-
-      expect(result, false);
-      expect(controller.error, 'Password must be at least 6 characters.');
-    });
-
-    test('network-request-failed maps to friendly message', () async {
-      fakeAuth.throwCode = 'network-request-failed';
-      final result = await controller.signIn(
-        email: 'test@example.com',
         password: 'password123',
         onSuccess: () {},
       );
 
       expect(result, false);
-      expect(controller.error, 'No internet connection.');
+      expect(controller.error, 'An unexpected error occurred. Please try again.');
     });
 
-    test('too-many-requests maps to friendly message', () async {
-      fakeAuth.throwCode = 'too-many-requests';
+    test('sendPasswordReset throwing shows the reset-failed message', () async {
+      fakeAuthService.throwOnNextCall = Exception('network down');
+      final result = await controller.sendPasswordReset(email: 'test@example.com');
+
+      expect(result, false);
+      expect(controller.error, 'Failed to send reset email. Please try again.');
+    });
+  });
+
+  group('AuthController - success path', () {
+    test('signIn success clears loading and calls onSuccess', () async {
+      var successCalled = false;
       final result = await controller.signIn(
         email: 'test@example.com',
         password: 'password123',
-        onSuccess: () {},
+        onSuccess: () => successCalled = true,
       );
 
-      expect(result, false);
-      expect(controller.error, 'Too many attempts. Please try again later.');
+      expect(result, true);
+      expect(successCalled, true);
+      expect(controller.isLoading, false);
+      expect(controller.error, null);
     });
 
-    test('unknown error code maps to default message', () async {
-      fakeAuth.throwCode = 'unknown-error';
-      final result = await controller.signIn(
+    test('signUp success clears loading and calls onSuccess', () async {
+      var successCalled = false;
+      final result = await controller.signUp(
+        fullName: 'Test User',
         email: 'test@example.com',
         password: 'password123',
-        onSuccess: () {},
+        onSuccess: () => successCalled = true,
       );
 
-      expect(result, false);
-      expect(controller.error, 'Authentication failed. Please try again.');
+      expect(result, true);
+      expect(successCalled, true);
+      expect(controller.isLoading, false);
+      expect(controller.error, null);
+    });
+
+    test('sendPasswordReset success clears loading', () async {
+      final result = await controller.sendPasswordReset(email: 'test@example.com');
+
+      expect(result, true);
+      expect(controller.isLoading, false);
     });
   });
 
