@@ -26,6 +26,9 @@ jobs:
       ensure-env-file: true
       enable-sops-secrets: true
       sops-secrets-file: dayzen.env
+      # android/app/google-services.json is gitignored here (unlike Cashlyze,
+      # which commits its own) -- CI has no way to get it without this.
+      enable-google-services-json: true
       # See docs/DEVELOPMENT_PLAN.md / CLAUDE.md "Known Issues #1": non-const
       # IconData lookups in task_repository.dart/task_service.dart/task_model.dart
       # break Flutter's icon tree-shaker on release builds.
