@@ -1,53 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dayzen/core/api/api_client.dart';
-import 'package:dayzen/core/api/auth_service.dart';
+import 'package:dayzen/core/services/jwt_auth_service.dart';
 import 'package:dayzen/core/services/ai_service.dart';
 import 'package:dayzen/core/services/achievement_service.dart';
 import 'package:dayzen/core/services/insights_service.dart';
 
-/// Mock auth service for integration tests.
-class _MockAuthService extends ChangeNotifier implements AuthService {
-  @override
-  Future<String?> getIdToken({bool forceRefresh = false}) async => 'mock-token';
-
+// ApiClient only ever calls authService.getAuthHeaders(), so that's the only
+// method this fake needs to override.
+class _MockAuthService extends JwtAuthService {
   @override
   Future<Map<String, String>> getAuthHeaders() async {
     return {'Authorization': 'Bearer mock-token'};
   }
-
-  @override
-  Future<UserCredential?> signInWithEmail(String email, String password) async => null;
-
-  @override
-  Future<UserCredential?> signUpWithEmail(String email, String password) async => null;
-
-  @override
-  Future<void> signOut() async {}
-
-  @override
-  void clearCachedToken() {}
-
-  @override
-  User? get currentUser => null;
-
-  @override
-  bool get isAuthenticated => true;
-
-  @override
-  String? get userId => 'test-user-id';
-
-  @override
-  String? get userEmail => 'test@example.com';
-
-  @override
-  bool get isTokenValid => true;
-
-  @override
-  DateTime? get tokenExpiryTime => DateTime.now().add(const Duration(hours: 1));
 }
 
 void main() {
