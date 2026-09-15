@@ -61,7 +61,7 @@ class OnboardingSlideText extends StatelessWidget {
   }
 }
 
-enum OnboardingPillStyle { gray, green }
+enum OnboardingPillStyle { gray, green, blue, amber, purple, red, teal }
 
 class OnboardingPillBadge extends StatelessWidget {
   const OnboardingPillBadge({
@@ -75,16 +75,55 @@ class OnboardingPillBadge extends StatelessWidget {
   final String label;
   final OnboardingPillStyle style;
 
+  Color _getBackgroundColor(OnboardingPillStyle style) {
+    switch (style) {
+      case OnboardingPillStyle.green:
+        return DzColors.zenGreen.withValues(alpha: 0.15);
+      case OnboardingPillStyle.blue:
+        return const Color(0xFF3B82F6).withValues(alpha: 0.15);
+      case OnboardingPillStyle.amber:
+        return const Color(0xFFF59E0B).withValues(alpha: 0.15);
+      case OnboardingPillStyle.purple:
+        return const Color(0xFFA855F7).withValues(alpha: 0.15);
+      case OnboardingPillStyle.red:
+        return const Color(0xFFEF4444).withValues(alpha: 0.15);
+      case OnboardingPillStyle.teal:
+        return const Color(0xFF14B8A6).withValues(alpha: 0.15);
+      case OnboardingPillStyle.gray:
+        return DzColors.onboardingPillBg;
+    }
+  }
+
+  Color _getTextColor(OnboardingPillStyle style) {
+    switch (style) {
+      case OnboardingPillStyle.green:
+        return DzColors.zenGreen;
+      case OnboardingPillStyle.blue:
+        return const Color(0xFF3B82F6);
+      case OnboardingPillStyle.amber:
+        return const Color(0xFFF59E0B);
+      case OnboardingPillStyle.purple:
+        return const Color(0xFFA855F7);
+      case OnboardingPillStyle.red:
+        return const Color(0xFFEF4444);
+      case OnboardingPillStyle.teal:
+        return const Color(0xFF14B8A6);
+      case OnboardingPillStyle.gray:
+        return DzColors.textSecondary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isGreen = style == OnboardingPillStyle.green;
+    final bgColor = _getBackgroundColor(style);
+    final textColor = _getTextColor(style);
+    final isGray = style == OnboardingPillStyle.gray;
+
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: DzSpacing.md, vertical: 10),
       decoration: BoxDecoration(
-        color: isGreen
-            ? DzColors.zenGreen.withValues(alpha: 0.15)
-            : DzColors.onboardingPillBg,
+        color: bgColor,
         borderRadius: BorderRadius.circular(40),
       ),
       child: Row(
@@ -93,15 +132,15 @@ class OnboardingPillBadge extends StatelessWidget {
           Icon(
             icon,
             size: 16,
-            color: isGreen ? DzColors.zenGreen : DzColors.textSecondary,
+            color: textColor,
           ),
           const SizedBox(width: 6),
           Text(
             label,
             style: DzTextStyles.small.copyWith(
-              color: isGreen ? DzColors.zenGreen : DzColors.textPrimary,
+              color: isGray ? DzColors.textPrimary : textColor,
               fontWeight: FontWeight.w600,
-              letterSpacing: isGreen ? 0.2 : 1.1,
+              letterSpacing: isGray ? 1.1 : 0.2,
             ),
           ),
         ],
