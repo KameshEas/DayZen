@@ -45,7 +45,7 @@ class BiometricSetupGuidePage extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
       backgroundColor: DzColors.appBackground,
-      appBar: DzAppBar(
+      appBar: const DzAppBar(
         title: 'Set Up Biometrics',
         automaticallyImplyLeading: true,
       ),

@@ -1,0 +1,35 @@
+name: Build and Deploy
+
+# pull_request -> Firebase App Distribution testing build (any version)..
+# push (PR merged) -> version increments once, then Play Store deploy.
+# Shorebird OTA patches are a separate manual action: see shorebird-patch.yml.
+on:
+  push:
+    branches:
+      - development
+      - prod
+  pull_request:
+    branches:
+      - development
+      - prod
+
+jobs:
+  release:
+    uses: KameshEas/gha-templates/.github/workflows/flutter-release.yml@v1
+    with:
+      keystore-filename: dayzen-release.jks
+      artifact-prefix: dayzen
+      enable-shorebird: false
+      enable-firebase-distribution: true
+      enable-play-store: true
+      enable-auto-versioning: true
+      ensure-env-file: true
+      enable-sops-secrets: true
+      sops-secrets-file: dayzen.env
+      # google-services.json is now committed to git (same as Cashlyze) rather
+      # than transported through SOPS -- no enable-google-services-json needed.
+      # See docs/DEVELOPMENT_PLAN.md / CLAUDE.md "Known Issues #1": non-const
+      # IconData lookups in task_repository.dart/task_service.dart/task_model.dart
+      # break Flutter's icon tree-shaker on release builds.
+      no-tree-shake-icons: true
+    secrets: inherit
