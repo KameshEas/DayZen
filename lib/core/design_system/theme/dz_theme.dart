@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../tokens/dz_colors.dart';
@@ -184,7 +185,7 @@ abstract final class DzTheme {
         floatingLabelStyle: DzTextStyles.caption.copyWith(color: accent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
-          borderSide: BorderSide(color: DzColors.borderLight),
+          borderSide: const BorderSide(color: DzColors.borderLight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
