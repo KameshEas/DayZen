@@ -47,4 +47,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/android/app/google-services.json
+# google-services.json is intentionally committed (see Cashlyze/build-and-deploy.yml
+# comment) -- it's not a secret, and committing it sidesteps having to transport
+# it through the SOPS/GITHUB_ENV pipeline for CI.
+docs/*
+
+# Real per-environment config (--dart-define-from-file). May accumulate real
+# hosts/keys over time — only the .example templates are tracked.
+env/staging.json
+env/prod.json

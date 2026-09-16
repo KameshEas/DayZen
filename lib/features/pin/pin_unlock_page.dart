@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'widgets/pin_pad.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PinUnlockPage  — "Unlock DayZen"
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PinUnlockPage  â€” "Unlock DayZen"
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PinUnlockPage extends StatefulWidget {
   /// Called when the correct PIN is entered.
   final VoidCallback onUnlocked;
 
-  /// Called when the user taps CANCEL (optional — e.g. to allow biometric skip).
+  /// Called when the user taps CANCEL (optional â€” e.g. to allow biometric skip).
   final VoidCallback? onCancel;
 
   const PinUnlockPage({
@@ -88,8 +89,8 @@ class _PinUnlockPageState extends State<PinUnlockPage>
   }
 
   Future<void> _verify(String entered) async {
-    final stored = await AppPrefs.getPin();
-    if (entered == stored) {
+    final isValid = await AppPrefs.verifyPin(entered);
+    if (isValid) {
       widget.onUnlocked();
     } else {
       _attempts++;
@@ -144,7 +145,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
           children: [
             const SizedBox(height: DzSpacing.xl),
 
-            // ── Brand ──────────────────────────────────────────────
+            // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -166,17 +167,17 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const SizedBox(height: DzSpacing.xl),
 
-            // ── Heading ────────────────────────────────────────────
-            Text('Unlock DayZen', style: DzTextStyles.heading1),
+            // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            const Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Text(
-              'Enter your security PIN to continue',
+              AppConfig.pinUnlockSubtitle,
               style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
             ),
 
             const SizedBox(height: DzSpacing.xl),
 
-            // ── PIN dots with shake animation ──────────────────────
+            // â”€â”€ PIN dots with shake animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             AnimatedBuilder(
               animation: _shakeAnim,
               builder: (_, child) {
@@ -191,7 +192,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
               child: DzPinDots(filled: _pin.length),
             ),
 
-            // ── Error ──────────────────────────────────────────────
+            // â”€â”€ Error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             SizedBox(
               height: 28,
               child: _errorMessage != null
@@ -208,7 +209,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const SizedBox(height: DzSpacing.xl),
 
-            // ── PIN pad ────────────────────────────────────────────
+            // â”€â”€ PIN pad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
               child: DzPinPad(
@@ -221,8 +222,8 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const Spacer(),
 
-            // ── Biometrics button (only shown if hardware available AND user opted in) ─
-            if (_biometricAvailable && AppData.of(context).settings.biometricEnabled)
+            // â”€â”€ Biometrics button (only shown if hardware available AND user opted in) â”€
+            if (_biometricAvailable && SettingsScope.of(context).biometricEnabled)
               Column(
                 children: [
                   GestureDetector(
@@ -231,7 +232,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDDE8F8),
+                      color: DzColors.primaryTint,
                       borderRadius: BorderRadius.circular(DzRadius.card),
                     ),
                     child: Icon(
@@ -253,9 +254,9 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             ),
             const SizedBox(height: DzSpacing.xl),
 
-            // ── Footer ─────────────────────────────────────────────
+            // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Text(
-              'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+              'PRIVACY BY DESIGN  â€¢  DATA STAYS LOCAL',
               style: DzTextStyles.caption.copyWith(
                 color: DzColors.textSecondary,
                 fontSize: 10,
@@ -270,3 +271,6 @@ class _PinUnlockPageState extends State<PinUnlockPage>
     );
   }
 }
+
+
+
