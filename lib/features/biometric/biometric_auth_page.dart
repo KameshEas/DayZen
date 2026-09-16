@@ -46,7 +46,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
       final isSupported = await _auth.isDeviceSupported();
       if (!canCheck || !isSupported) {
         if (!mounted) return;
-        // Device doesn't support biometrics — fall back to PIN
+        // Device doesn't support biometrics â€” fall back to PIN
         if (widget.onFallbackToPin != null) {
           widget.onFallbackToPin!();
         } else {
@@ -94,7 +94,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
           children: [
             const SizedBox(height: DzSpacing.xl),
 
-            // ── Brand ────────────────────────────────────────────
+            // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -113,12 +113,12 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
 
             const Spacer(),
 
-            // ── Fingerprint icon ─────────────────────────────────
+            // â”€â”€ Fingerprint icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Container(
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: const Color(0xFFDDE8F8),
+                color: DzColors.primaryTint,
                 borderRadius: BorderRadius.circular(DzRadius.card),
               ),
               child: Icon(
@@ -130,7 +130,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
 
             const SizedBox(height: DzSpacing.lg),
 
-            Text('Unlock DayZen', style: DzTextStyles.heading1),
+            const Text('Unlock DayZen', style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
 
             Text(
@@ -151,7 +151,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
 
             const SizedBox(height: DzSpacing.xl),
 
-            // ── Retry button ─────────────────────────────────────
+            // â”€â”€ Retry button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (!_isAuthenticating)
               DzPrimaryButton(
                 label: 'Try Again',
@@ -160,7 +160,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
 
             const Spacer(),
 
-            // ── Fallback to PIN ──────────────────────────────────
+            // â”€â”€ Fallback to PIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (widget.onFallbackToPin != null) ...[
               TextButton.icon(
                 onPressed: widget.onFallbackToPin,
@@ -173,9 +173,9 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
               const SizedBox(height: DzSpacing.md),
             ],
 
-            // ── Footer ──────────────────────────────────────────
+            // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Text(
-              'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+              'PRIVACY BY DESIGN  â€¢  DATA STAYS LOCAL',
               style: DzTextStyles.caption.copyWith(
                 color: DzColors.textSecondary,
                 fontSize: 10,
@@ -190,3 +190,6 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
     );
   }
 }
+
+
+

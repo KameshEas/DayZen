@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/design_system/tokens/dz_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Journal mood
@@ -15,17 +16,17 @@ extension JournalMoodX on JournalMood {
       };
 
   Color get iconColor => switch (this) {
-        JournalMood.happy => const Color(0xFF10B981),
-        JournalMood.peaceful => const Color(0xFF3B82F6),
-        JournalMood.inspired => const Color(0xFFF59E0B),
-        JournalMood.overwhelmed => const Color(0xFFEF4444),
+        JournalMood.happy => DzColors.zenGreen,
+        JournalMood.peaceful => DzColors.primary,
+        JournalMood.inspired => DzColors.warning,
+        JournalMood.overwhelmed => DzColors.error,
       };
 
   Color get bg => switch (this) {
-        JournalMood.happy => const Color(0xFFD1FAE5),
-        JournalMood.peaceful => const Color(0xFFDBEAFE),
-        JournalMood.inspired => const Color(0xFFFEF3C7),
-        JournalMood.overwhelmed => const Color(0xFFFEE2E2),
+        JournalMood.happy => DzColors.successTint,
+        JournalMood.peaceful => DzColors.skyTint,
+        JournalMood.inspired => DzColors.warningTint,
+        JournalMood.overwhelmed => DzColors.errorTint,
       };
 }
 
@@ -82,15 +83,37 @@ class JournalEntry {
         'accentColorValue': accentColor?.toARGB32(),
       };
 
-  factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        body: json['body'] as String,
-        mood: JournalMood.values.byName(json['mood'] as String),
-        timestamp: DateTime.fromMillisecondsSinceEpoch(
-            json['timestampMs'] as int),
-        accentColor: json['accentColorValue'] != null
+  factory JournalEntry.fromJson(Map<String, dynamic> json) {
+    try {
+      final moodStr = json['mood'] as String? ?? 'peaceful';
+      JournalMood mood;
+      try {
+        mood = JournalMood.values.byName(moodStr);
+      } catch (_) {
+        mood = JournalMood.peaceful;
+      }
+
+      return JournalEntry(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Untitled Entry',
+        body: json['body'] as String? ?? '',
+        mood: mood,
+        timestamp: json['timestampMs'] != null && json['timestampMs'] is int
+            ? DateTime.fromMillisecondsSinceEpoch(json['timestampMs'] as int)
+            : DateTime.now(),
+        accentColor: json['accentColorValue'] != null && json['accentColorValue'] is int
             ? Color(json['accentColorValue'] as int)
             : null,
       );
+    } catch (e) {
+      return JournalEntry(
+        id: json['id'] as String? ?? '',
+        title: 'Error loading entry',
+        body: 'Failed to parse journal entry',
+        mood: JournalMood.peaceful,
+        timestamp: DateTime.now(),
+        accentColor: null,
+      );
+    }
+  }
 }

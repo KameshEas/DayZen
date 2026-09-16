@@ -232,16 +232,52 @@ dayzen/
 ```bash
 # Install dependencies
 flutter pub get
-
-# Run on a connected device or emulator
-flutter run
-
-# Build release APK
-flutter build apk --release
-
-# Build release IPA (requires macOS + Xcode)
-flutter build ipa --release
 ```
+
+### Environment configuration
+
+The API base URL is injected at build time via `--dart-define-from-file`, not
+hardcoded — see `lib/core/config/app_config.dart`. Three environment files
+live under `env/`:
+
+| File | Tracked in git? | Purpose |
+|---|---|---|
+| `env/dev.json` | Yes | Points at `http://localhost:8000/v1`. Safe default, no secrets. |
+| `env/staging.json.example` | Yes (template) | Copy to `env/staging.json` and fill in the real staging host. |
+| `env/prod.json.example` | Yes (template) | Copy to `env/prod.json` and fill in the real production host. |
+
+`env/staging.json` and `env/prod.json` themselves are gitignored — they're
+expected to accumulate real hosts/keys over time, so only the `.example`
+templates are committed.
+
+```bash
+# First-time setup for staging/prod builds:
+cp env/staging.json.example env/staging.json   # then edit the real host
+cp env/prod.json.example env/prod.json         # then edit the real host
+
+# Run against dev (localhost backend)
+flutter run --dart-define-from-file=env/dev.json
+
+# Run against staging
+flutter run --dart-define-from-file=env/staging.json
+
+# Build release APK against prod
+flutter build apk --release --dart-define-from-file=env/prod.json
+
+# Build release IPA against prod (requires macOS + Xcode)
+flutter build ipa --release --dart-define-from-file=env/prod.json
+```
+
+> **Android emulator note:** the emulator can't resolve `localhost` as your
+> host machine — use `http://10.0.2.2:8000/v1` in a local copy of
+> `env/dev.json` instead when running against a local backend from the
+> Android emulator (physical devices and iOS simulators can use `localhost`
+> as-is, assuming the backend is reachable on your LAN/loopback).
+
+Running `flutter run` with **no** `--dart-define-from-file` flag falls back
+to the hardcoded `http://localhost:8000/v1` default in `app_config.dart` —
+this is intentional so an accidental unflagged build fails loudly against a
+real backend instead of silently hitting production.
 
 ---
 
