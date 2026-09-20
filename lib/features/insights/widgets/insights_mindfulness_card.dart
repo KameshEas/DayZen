@@ -16,7 +16,7 @@ class InsightsMindfulnessCard extends StatelessWidget {
             Text(
               'MINDFULNESS',
               style: DzTextStyles.caption.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w600,
               ),
@@ -46,7 +46,7 @@ class InsightsMindfulnessCard extends StatelessWidget {
                       Text(
                         'Daily mindfulness practice',
                         style: DzTextStyles.caption
-                            .copyWith(color: DzColors.textSecondary),
+                            .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

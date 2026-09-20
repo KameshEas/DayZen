@@ -45,7 +45,7 @@ class _MainShellState extends State<MainShell> {
       onFabPressed: _onFabPressed,
       appBar: DzAppBar(
         titleWidget: _currentIndex == 0
-            ? const DzLogo()
+            ? const DzLogo(width: 150)
             : Text(
                 _pageTitles[_currentIndex],
                 style: DzTextStyles.heading3.copyWith(

@@ -25,7 +25,7 @@ class HomeGreetingHeader extends StatelessWidget {
               Text(
                 dateLabel,
                 style: DzTextStyles.caption.copyWith(
-                  color: DzColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   letterSpacing: 0.6,
                 ),
               ),
@@ -35,7 +35,7 @@ class HomeGreetingHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: DzTextStyles.body.copyWith(
-                  color: DzColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

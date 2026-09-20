@@ -192,7 +192,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
 
   Widget _buildAchievementCard(BuildContext context, Achievement achievement, {required bool isUnlocked}) {
     return DzCard(
-      color: isUnlocked ? DzColors.cardBackground : DzColors.neutralTint,
+      color: isUnlocked ? Theme.of(context).colorScheme.surface : DzColors.neutralTint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

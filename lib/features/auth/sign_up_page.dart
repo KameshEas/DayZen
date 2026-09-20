@@ -57,7 +57,6 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -140,16 +139,16 @@ class _SignUpPageState extends State<SignUpPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.shield_rounded,
                           size: 14,
-                          color: DzColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: DzSpacing.xs),
                         Text(
                           'END-TO-END ENCRYPTED',
                           style: DzTextStyles.caption.copyWith(
-                            color: DzColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                             letterSpacing: 0.8,
                           ),
@@ -166,7 +165,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       child: RichText(
                         text: TextSpan(
                           style: DzTextStyles.body.copyWith(
-                            color: DzColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           children: [
                             const TextSpan(text: 'Already have an account? '),

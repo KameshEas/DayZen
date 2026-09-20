@@ -38,7 +38,7 @@ class LoginFormCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(DzSpacing.xl),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -57,7 +57,7 @@ class LoginFormCard extends StatelessWidget {
             child: Text(
               'Continue your calm planning',
               style: DzTextStyles.body.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -187,7 +187,7 @@ class _SignUpLink extends StatelessWidget {
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+          style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           children: [
             const TextSpan(text: "Don't have an account? "),
             TextSpan(

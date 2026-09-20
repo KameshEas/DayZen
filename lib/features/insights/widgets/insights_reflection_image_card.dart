@@ -17,7 +17,7 @@ class InsightsReflectionImageCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(DzRadius.card),
             gradient: const LinearGradient(
-              colors: [Color(0xFF1E3A5F), DzColors.forestGreen],
+              colors: [DzColors.reflectionCardGradientStart, DzColors.forestGreen],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

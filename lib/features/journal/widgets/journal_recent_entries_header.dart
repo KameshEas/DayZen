@@ -20,7 +20,7 @@ class JournalRecentEntriesHeader extends StatelessWidget {
         Text(
           monthYear,
           style: DzTextStyles.caption.copyWith(
-            color: DzColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.8,
           ),

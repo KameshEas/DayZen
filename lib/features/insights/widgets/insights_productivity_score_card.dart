@@ -19,7 +19,7 @@ class InsightsProductivityScoreCard extends StatelessWidget {
             Text(
               'PRODUCTIVITY SCORE',
               style: DzTextStyles.caption.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w600,
               ),
@@ -62,7 +62,7 @@ class InsightsProductivityScoreCard extends StatelessWidget {
               data.aiQuote,
               textAlign: TextAlign.center,
               style: DzTextStyles.body.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
                 fontSize: 13,
               ),

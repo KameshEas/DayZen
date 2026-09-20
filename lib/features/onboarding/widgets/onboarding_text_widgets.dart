@@ -27,11 +27,11 @@ class OnboardingSlideText extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'InterDisplay',
             fontSize: 34,
             fontWeight: FontWeight.w800,
-            color: DzColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             height: 1.15,
             letterSpacing: -0.5,
           ),
@@ -41,7 +41,7 @@ class OnboardingSlideText extends StatelessWidget {
           subtitle,
           textAlign: TextAlign.center,
           style: DzTextStyles.body.copyWith(
-            color: DzColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             height: 1.6,
           ),
         ),
@@ -80,15 +80,15 @@ class OnboardingPillBadge extends StatelessWidget {
       case OnboardingPillStyle.green:
         return DzColors.zenGreen.withValues(alpha: 0.15);
       case OnboardingPillStyle.blue:
-        return const Color(0xFF3B82F6).withValues(alpha: 0.15);
+        return DzColors.navy.withValues(alpha: 0.15);
       case OnboardingPillStyle.amber:
-        return const Color(0xFFF59E0B).withValues(alpha: 0.15);
+        return DzColors.sunriseDeep.withValues(alpha: 0.15);
       case OnboardingPillStyle.purple:
-        return const Color(0xFFA855F7).withValues(alpha: 0.15);
+        return DzColors.lavender.withValues(alpha: 0.15);
       case OnboardingPillStyle.red:
-        return const Color(0xFFEF4444).withValues(alpha: 0.15);
+        return DzColors.error.withValues(alpha: 0.15);
       case OnboardingPillStyle.teal:
-        return const Color(0xFF14B8A6).withValues(alpha: 0.15);
+        return DzColors.forestGreen.withValues(alpha: 0.15);
       case OnboardingPillStyle.gray:
         return DzColors.onboardingPillBg;
     }
@@ -99,17 +99,17 @@ class OnboardingPillBadge extends StatelessWidget {
       case OnboardingPillStyle.green:
         return DzColors.zenGreen;
       case OnboardingPillStyle.blue:
-        return const Color(0xFF3B82F6);
+        return DzColors.navy;
       case OnboardingPillStyle.amber:
-        return const Color(0xFFF59E0B);
+        return DzColors.sunriseDeep;
       case OnboardingPillStyle.purple:
-        return const Color(0xFFA855F7);
+        return DzColors.lavender;
       case OnboardingPillStyle.red:
-        return const Color(0xFFEF4444);
+        return DzColors.error;
       case OnboardingPillStyle.teal:
-        return const Color(0xFF14B8A6);
+        return DzColors.forestGreen;
       case OnboardingPillStyle.gray:
-        return DzColors.textSecondary;
+        return DzColors.slate;
     }
   }
 
@@ -138,7 +138,7 @@ class OnboardingPillBadge extends StatelessWidget {
           Text(
             label,
             style: DzTextStyles.small.copyWith(
-              color: isGray ? DzColors.textPrimary : textColor,
+              color: isGray ? Theme.of(context).colorScheme.onSurface : textColor,
               fontWeight: FontWeight.w600,
               letterSpacing: isGray ? 1.1 : 0.2,
             ),

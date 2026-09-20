@@ -117,7 +117,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -149,7 +148,9 @@ class _LoginPageState extends State<LoginPage> {
 
                   // ── Brand ─────────────────────────────────────────
                   const SizedBox(height: DzSpacing.lg),
-                  const Center(child: DzLogo(size: DzLogoSize.large)),
+                  const Center(
+                    child: DzLogo(layout: DzLogoLayout.stacked, width: 190),
+                  ),
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Card ──────────────────────────────────────────
@@ -189,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     '© 2024 DAYZEN AI. ALL RIGHTS RESERVED.',
                     style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 10,
                       letterSpacing: 0.6,
                     ),

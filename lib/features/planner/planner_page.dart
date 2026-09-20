@@ -88,7 +88,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Theme.of(context).colorScheme.primary
-                        : DzColors.cardBackground,
+                        : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(DzRadius.card),
                     boxShadow: isSelected ? DzShadows.soft : [],
                   ),
@@ -100,7 +100,7 @@ class _PlannerPageState extends State<PlannerPage> {
                         style: DzTextStyles.small.copyWith(
                           color: isSelected
                               ? DzColors.white.withValues(alpha: 0.8)
-                              : DzColors.textSecondary,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -110,7 +110,7 @@ class _PlannerPageState extends State<PlannerPage> {
                         style: DzTextStyles.heading3.copyWith(
                           color: isSelected
                               ? DzColors.white
-                              : DzColors.textPrimary,
+                              : Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

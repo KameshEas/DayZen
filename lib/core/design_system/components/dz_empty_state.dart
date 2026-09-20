@@ -51,7 +51,7 @@ class DzEmptyState extends StatelessWidget {
                 Text(
                   subtitle!,
                   style: DzTextStyles.body.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),

@@ -46,7 +46,7 @@ class _NotificationPreferencesCardState
                   Text(
                     'Notification Settings',
                     style: DzTextStyles.heading3.copyWith(
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -58,7 +58,7 @@ class _NotificationPreferencesCardState
                   child: Text(
                     'Loading notification settings...',
                     style: DzTextStyles.body.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 )
@@ -154,7 +154,7 @@ class _PreferenceToggle extends StatelessWidget {
                 Text(
                   _getDescription(preference.type),
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

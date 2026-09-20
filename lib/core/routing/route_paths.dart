@@ -7,6 +7,7 @@ abstract final class RoutePaths {
   static const String journal = '/journal';
   static const String journalDetail = '/journal/:id';
   static const String settings = '/settings';
+  static const String splash = '/splash';
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String signup = '/signup';

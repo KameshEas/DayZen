@@ -54,7 +54,7 @@ class _NotificationHistoryCardState extends State<NotificationHistoryCard> {
                   Text(
                     'Notification History',
                     style: DzTextStyles.heading3.copyWith(
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -87,7 +87,7 @@ class _NotificationHistoryCardState extends State<NotificationHistoryCard> {
                   'Recent Notifications',
                   style: DzTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: DzColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: DzSpacing.sm),
@@ -101,7 +101,7 @@ class _NotificationHistoryCardState extends State<NotificationHistoryCard> {
                   Text(
                     '+${history.length - 5} more notifications',
                     style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -111,7 +111,7 @@ class _NotificationHistoryCardState extends State<NotificationHistoryCard> {
                   child: Text(
                     'No notifications yet',
                     style: DzTextStyles.body.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -142,14 +142,14 @@ class _StatTile extends StatelessWidget {
         Text(
           value,
           style: DzTextStyles.heading2.copyWith(
-            color: color ?? DzColors.textPrimary,
+            color: color ?? Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: DzTextStyles.caption.copyWith(
-            color: DzColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -172,7 +172,7 @@ class _HistoryTile extends StatelessWidget {
       'delivered' => DzColors.success,
       'failed' => DzColors.error,
       'read' => DzColors.primary,
-      _ => DzColors.textSecondary,
+      _ => DzColors.slate,
     };
   }
 
@@ -217,7 +217,7 @@ class _HistoryTile extends StatelessWidget {
                 Text(
                   notification.message,
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -229,7 +229,7 @@ class _HistoryTile extends StatelessWidget {
           Text(
             timeStr.split(' ').last,
             style: DzTextStyles.small.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

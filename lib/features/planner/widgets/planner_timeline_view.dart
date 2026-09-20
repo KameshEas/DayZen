@@ -58,7 +58,7 @@ class PlannerTimelineView extends StatelessWidget {
                       child: Text(
                         '${hour.toString().padLeft(2, '0')}:00',
                         style: DzTextStyles.small.copyWith(
-                          color: DzColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
@@ -147,7 +147,7 @@ class _EventBlock extends StatelessWidget {
       height: height.clamp(AppConfig.timelineMinEventHeight.toDouble(), AppConfig.timelineMaxEventHeight.toDouble()),
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -194,7 +194,7 @@ class _EventBlock extends StatelessWidget {
                   Text(
                     event.subtitle,
                     style: DzTextStyles.small.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
