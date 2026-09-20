@@ -22,7 +22,7 @@ class CurrentFocusCard extends StatelessWidget {
       duration: DzDuration.normal,
       padding: const EdgeInsets.all(DzSpacing.md),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -65,7 +65,7 @@ class CurrentFocusCard extends StatelessWidget {
                 label,
                 style: DzTextStyles.body.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: DzColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

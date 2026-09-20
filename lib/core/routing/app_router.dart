@@ -9,12 +9,14 @@ import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
-import '../../features/onboarding/onboarding_page.dart';
+import '../../features/onboarding/widgets/onboarding_page_animated.dart';
+import '../design_system/design_system.dart';
 import '../../features/pin/pin_setup_page.dart';
 import '../../features/pin/pin_unlock_page.dart';
 import '../../features/planner/planner_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/shell/main_shell.dart';
+import '../../features/splash/splash_page.dart';
 import '../../features/tasks/new_task_page.dart';
 import '../../features/tasks/task_detail_page.dart';
 import '../../features/journal/journal_detail_page.dart';
@@ -24,17 +26,11 @@ import 'route_paths.dart';
 GoRouter? _appRouter;
 
 class AppRouter {
-  static void initialize({
-    required bool showOnboarding,
-    required bool hasPin,
-    required bool biometricEnabled,
-  }) {
+  /// [startRoute] resolves once app bootstrap (storage, controllers, etc.)
+  /// finishes; the splash waits for both its animation and this future.
+  static void initialize({required Future<String> startRoute}) {
     _appRouter = GoRouter(
-      initialLocation: _resolveInitialRoute(
-        showOnboarding: showOnboarding,
-        hasPin: hasPin,
-        biometricEnabled: biometricEnabled,
-      ),
+      initialLocation: RoutePaths.splash,
       errorBuilder: (context, state) => Scaffold(
         body: Center(
           child: Column(
@@ -51,11 +47,29 @@ class AppRouter {
         ),
       ),
       routes: [
+        // ── Animated splash → resolved start route ──────────────────────
+        GoRoute(
+          path: RoutePaths.splash,
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: SplashPage(
+              onFinished: () {
+                final router = GoRouter.of(context);
+                startRoute.then(router.go, onError: (Object e) {
+                  debugPrint('Bootstrap failed: $e');
+                  router.go(RoutePaths.login);
+                });
+              },
+            ),
+          ),
+        ),
         // ── Auth / Onboarding flow ──────────────────────────────────────
         GoRoute(
           path: RoutePaths.onboarding,
           name: RouteNames.onboarding,
-          builder: (context, state) => OnboardingPage(
+          // Onboarding art and gradient are light-only, so pin the light brand theme.
+          builder: (context, state) => Theme(
+            data: DzTheme.light(),
+            child: AnimatedOnboardingPage(
             // "Start Offline" — true offline path, skip the login wall
             // entirely and go straight to securing the app with a PIN.
             onDone: () {
@@ -69,6 +83,7 @@ class AppRouter {
               AppPrefs.markOnboardingSeen();
               context.go(RoutePaths.login);
             },
+          ),
           ),
         ),
         GoRoute(
@@ -205,7 +220,7 @@ class AppRouter {
     return _appRouter!;
   }
 
-  static String _resolveInitialRoute({
+  static String resolveInitialRoute({
     required bool showOnboarding,
     required bool hasPin,
     required bool biometricEnabled,

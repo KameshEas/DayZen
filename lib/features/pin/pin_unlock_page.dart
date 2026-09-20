@@ -139,31 +139,13 @@ class _PinUnlockPageState extends State<PinUnlockPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: DzSpacing.xl),
 
             // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lock_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 22,
-                ),
-                const SizedBox(width: DzSpacing.sm),
-                Text(
-                  'DayZen',
-                  style: DzTextStyles.heading2.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
+            const DzLogo(layout: DzLogoLayout.stacked, width: 150),
 
             const SizedBox(height: DzSpacing.xl),
 
@@ -172,7 +154,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             const SizedBox(height: DzSpacing.sm),
             Text(
               AppConfig.pinUnlockSubtitle,
-              style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+              style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
 
             const SizedBox(height: DzSpacing.xl),
@@ -258,7 +240,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             Text(
               'PRIVACY BY DESIGN  â€¢  DATA STAYS LOCAL',
               style: DzTextStyles.caption.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 10,
                 letterSpacing: 1.0,
               ),

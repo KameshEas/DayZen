@@ -12,11 +12,11 @@ class AuthTrustBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: DzColors.textSecondary),
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: DzSpacing.xs),
         Text(
           label,
-          style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary),
+          style: DzTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -40,7 +40,7 @@ class AuthOrDivider extends StatelessWidget {
           child: Text(
             label,
             style: DzTextStyles.caption.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: italic ? null : 1.2,
               fontStyle: italic ? FontStyle.italic : null,
             ),

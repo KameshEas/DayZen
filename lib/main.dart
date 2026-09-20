@@ -20,20 +20,16 @@ import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await _runApp();
+  _runApp();
 }
 
-Future<void> _runApp() async {
-  // Initialize JWT auth service (restores previous session if available)
-  final authService = JwtAuthService();
-  await authService.initialize();
-
-  // Initialize Crashlytics for error reporting
-  await Firebase.initializeApp();
-  _initCrashReporting();
-
+/// Shows the splash immediately; all slow startup work (auth restore,
+/// Firebase, DB migration/loading, notifications) runs behind it in
+/// [_bootstrap], and the splash navigates once its animation and the
+/// bootstrap have both finished.
+void _runApp() {
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
@@ -41,23 +37,58 @@ Future<void> _runApp() async {
   final aiOptCtrl = AIOptimizationController();
   final notifCtrl = NotificationController();
 
-  // Check device biometric hardware availability
-  final auth = LocalAuthentication();
-  bool deviceHasBiometrics;
-  try {
-    final canCheck = await auth.canCheckBiometrics;
-    final isSupported = await auth.isDeviceSupported();
-    deviceHasBiometrics = canCheck && isSupported;
-  } catch (_) {
-    deviceHasBiometrics = false;
-  }
-  settingsCtrl.setDeviceHasBiometrics(deviceHasBiometrics);
+  AppRouter.initialize(
+    startRoute: _bootstrap(
+      taskCtrl: taskCtrl,
+      journalCtrl: journalCtrl,
+      settingsCtrl: settingsCtrl,
+      insightsCtrl: insightsCtrl,
+      aiOptCtrl: aiOptCtrl,
+      notifCtrl: notifCtrl,
+    ),
+  );
 
-  // Must complete before taskCtrl.load()/journalCtrl.load() below — those
-  // read from the new SQLite-backed repositories, and an upgrading user's
-  // real data still lives in the old SharedPreferences keys until this
-  // runs. See lib/core/data/legacy_data_migrator.dart.
-  await LegacyDataMigrator.migrateIfNeeded();
+  runApp(AppScopes(
+    tasks: taskCtrl,
+    journal: journalCtrl,
+    settings: settingsCtrl,
+    insights: insightsCtrl,
+    aiOptimization: aiOptCtrl,
+    notifications: notifCtrl,
+    child: const DayZenApp(),
+  ));
+}
+
+Future<String> _bootstrap({
+  required TaskController taskCtrl,
+  required JournalController journalCtrl,
+  required SettingsController settingsCtrl,
+  required InsightsController insightsCtrl,
+  required AIOptimizationController aiOptCtrl,
+  required NotificationController notifCtrl,
+}) async {
+  final authService = JwtAuthService();
+
+  Future<bool> deviceHasBiometrics() async {
+    final auth = LocalAuthentication();
+    try {
+      final canCheck = await auth.canCheckBiometrics;
+      final isSupported = await auth.isDeviceSupported();
+      return canCheck && isSupported;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // These are independent of each other, so run them in parallel. The legacy
+  // migration must finish before the controllers load (see below).
+  final hasBiometrics = deviceHasBiometrics();
+  await Future.wait([
+    authService.initialize(),
+    Firebase.initializeApp().then((_) => _initCrashReporting()),
+    LegacyDataMigrator.migrateIfNeeded(),
+  ]);
+  settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
 
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
@@ -72,33 +103,20 @@ Future<void> _runApp() async {
   ]);
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
-  // Only use biometric unlock if both the preference is on AND device supports it
-  final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
+  final biometricEnabled = (results[2] as bool) && await hasBiometrics;
 
-  // ── Initialise notifications ────────────────────────────────────────
   await NotificationService.instance.init();
-  await NotificationService.instance.requestPermission();
+  // The permission prompt waits on the user, so never block startup on it.
+  unawaited(NotificationService.instance.requestPermission());
 
-  // Wire notifications enabled/disabled based on notification settings
   final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
   taskCtrl.setNotificationsEnabled(notificationsOn);
 
-  // Initialize router with initial route logic
-  AppRouter.initialize(
+  return AppRouter.resolveInitialRoute(
     showOnboarding: !seenOnboarding,
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
   );
-
-  runApp(AppScopes(
-    tasks: taskCtrl,
-    journal: journalCtrl,
-    settings: settingsCtrl,
-    insights: insightsCtrl,
-    aiOptimization: aiOptCtrl,
-    notifications: notifCtrl,
-    child: const DayZenApp(),
-  ));
 }
 
 void _initCrashReporting() {

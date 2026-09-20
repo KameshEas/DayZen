@@ -36,7 +36,7 @@ class SignUpFormCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(DzSpacing.xl),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),

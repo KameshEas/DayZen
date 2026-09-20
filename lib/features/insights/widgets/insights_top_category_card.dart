@@ -16,7 +16,7 @@ class InsightsTopCategoryCard extends StatelessWidget {
             Text(
               'TOP CATEGORY',
               style: DzTextStyles.caption.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w600,
               ),
@@ -31,8 +31,8 @@ class InsightsTopCategoryCard extends StatelessWidget {
                     color: DzColors.neutralTint,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.fitness_center_rounded,
-                      color: DzColors.textSecondary, size: 22),
+                  child: Icon(Icons.fitness_center_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
                 ),
                 const SizedBox(width: DzSpacing.md),
                 Expanded(
@@ -46,7 +46,7 @@ class InsightsTopCategoryCard extends StatelessWidget {
                       Text(
                         'Top focus area this week',
                         style: DzTextStyles.caption
-                            .copyWith(color: DzColors.textSecondary),
+                            .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

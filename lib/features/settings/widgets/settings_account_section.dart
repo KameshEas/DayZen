@@ -100,7 +100,7 @@ class SettingsAccountSection extends StatelessWidget {
                       Text(
                         'Sync is active',
                         style: DzTextStyles.caption
-                            .copyWith(color: DzColors.textSecondary),
+                            .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

@@ -25,7 +25,7 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
                     Text(
                       'WEEKLY COMPLETION',
                       style: DzTextStyles.caption.copyWith(
-                        color: DzColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         letterSpacing: 1.2,
                         fontWeight: FontWeight.w600,
                       ),
@@ -49,7 +49,7 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
                   child: Text(
                     'Last 7 Days',
                     style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

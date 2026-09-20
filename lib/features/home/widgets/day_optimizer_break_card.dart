@@ -33,7 +33,7 @@ class DayOptimizerBreakCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(recommendation,
                     style: DzTextStyles.body
-                        .copyWith(color: DzColors.textSecondary, height: 1.4)),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4)),
               ],
             ),
           ),

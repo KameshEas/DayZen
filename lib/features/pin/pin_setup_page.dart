@@ -50,7 +50,6 @@ class _PinSetupPageState extends State<PinSetupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
@@ -89,7 +88,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
                     AppConfig.pinSetupTitle,
                     style: DzTextStyles.heading3.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -122,7 +121,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.xl),
               child: Text(
                 AppConfig.pinSetupBody,
-                style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+                style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -171,13 +170,13 @@ class _PinSetupPageState extends State<PinSetupPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.shield_rounded,
-                    size: 14, color: DzColors.textSecondary),
+                Icon(Icons.shield_rounded,
+                    size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: DzSpacing.xs),
                 Text(
                   AppConfig.pinSetupFooter,
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

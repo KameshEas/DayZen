@@ -21,7 +21,7 @@ class InsightsFocusTrendCard extends StatelessWidget {
                 Text(
                   'FOCUS TIME TREND',
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w600,
                   ),
@@ -60,7 +60,7 @@ class InsightsFocusTrendCard extends StatelessWidget {
             Text(
               'Total focus this week',
               style: DzTextStyles.caption
-                  .copyWith(color: DzColors.textSecondary),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),

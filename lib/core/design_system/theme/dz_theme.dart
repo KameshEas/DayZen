@@ -10,12 +10,36 @@ import '../tokens/dz_dimensions.dart';
 /// Design System specification.
 abstract final class DzTheme {
   // ── Light Theme ────────────────────────────────────────────
-  static ThemeData light({Color accent = const Color(0xFF10B981)}) =>
+  static ThemeData light({Color accent = DzColors.navy}) =>
       _buildTheme(brightness: Brightness.light, accent: accent);
 
   // ── Dark Theme ─────────────────────────────────────────────
-  static ThemeData dark({Color accent = const Color(0xFF10B981)}) =>
+  static ThemeData dark({Color accent = DzColors.navy}) =>
       _buildTheme(brightness: Brightness.dark, accent: accent);
+
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    final hi = la > lb ? la : lb;
+    final lo = la > lb ? lb : la;
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  /// Text/icon-safe version of [color] on [surface]: brand Navy flips to
+  /// Sunrise on dark, and any other accent is nudged toward Navy (light) or
+  /// white (dark) until it reaches 3.5:1 against the surface.
+  static Color _readable(Color color, Color surface, bool isDark) {
+    if (isDark && color == DzColors.navy) return DzColors.sunrise;
+    final toward = isDark ? DzColors.white : DzColors.navy;
+    var out = color;
+    for (var t = 0.0; t <= 1.0 && _contrast(out, surface) < 3.5; t += 0.05) {
+      out = Color.lerp(color, toward, t)!;
+    }
+    return out;
+  }
+
+  static Color _onColor(Color background) =>
+      background.computeLuminance() > 0.35 ? DzColors.navy : DzColors.white;
 
   static ThemeData _buildTheme({
     required Brightness brightness,
@@ -26,35 +50,44 @@ abstract final class DzTheme {
     final Color bg = isDark ? DzColors.darkBackground : DzColors.appBackground;
     final Color card = isDark ? DzColors.darkCard : DzColors.cardBackground;
     final Color textPrimary = isDark ? DzColors.darkText : DzColors.textPrimary;
-    final Color textSecondary = isDark ? const Color(0xFF94A3B8) : DzColors.textSecondary;
+    final Color textSecondary =
+        isDark ? DzColors.darkTextSecondary : DzColors.textSecondary;
+    final Color outline = isDark ? DzColors.darkBorder : DzColors.borderLight;
+    final Color fieldFill = isDark ? DzColors.darkSurfaceHigh : DzColors.white;
+
+    // Everything below that used the raw accent now uses the readable primary.
+    final Color primary = _readable(accent, card, isDark);
+    final Color onPrimary = _onColor(primary);
+    accent = primary;
     final Color primaryContainer = isDark
-        ? Color.lerp(accent, const Color(0xFF000000), 0.6)!
-        : Color.lerp(accent, const Color(0xFFFFFFFF), 0.85)!;
+        ? Color.lerp(primary, DzColors.navyDeep, 0.75)!
+        : Color.lerp(primary, DzColors.white, 0.88)!;
 
     final colorScheme = ColorScheme(
       brightness: brightness,
-      primary: accent,
-      onPrimary: DzColors.white,
+      primary: primary,
+      onPrimary: onPrimary,
       primaryContainer: primaryContainer,
-      onPrimaryContainer: isDark ? DzColors.white : DzColors.textPrimary,
-      secondary: DzColors.zenGreen,
-      onSecondary: DzColors.white,
-      secondaryContainer: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5),
-      onSecondaryContainer: isDark ? DzColors.white : DzColors.textPrimary,
+      onPrimaryContainer: isDark ? DzColors.darkText : DzColors.textPrimary,
+      secondary: DzColors.sunrise,
+      onSecondary: DzColors.navy,
+      secondaryContainer: isDark ? DzColors.darkSurfaceHigh : DzColors.sunriseTint,
+      onSecondaryContainer: isDark ? DzColors.darkText : DzColors.textPrimary,
       error: DzColors.error,
       onError: DzColors.white,
-      errorContainer: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
+      errorContainer: isDark ? const Color(0xFF5A2A2A) : DzColors.errorTint,
       onErrorContainer: isDark ? DzColors.white : DzColors.textPrimary,
       surface: card,
       onSurface: textPrimary,
-      surfaceContainerHighest: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+      surfaceContainerHighest:
+          isDark ? DzColors.darkSurfaceHigh : DzColors.borderLight,
       onSurfaceVariant: textSecondary,
-      outline: isDark ? const Color(0xFF475569) : DzColors.borderLight,
-      outlineVariant: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+      outline: outline,
+      outlineVariant: isDark ? DzColors.darkSurfaceHigh : DzColors.neutralTint,
       scrim: Colors.black,
       inverseSurface: isDark ? DzColors.appBackground : DzColors.darkBackground,
       onInverseSurface: isDark ? DzColors.textPrimary : DzColors.darkText,
-      inversePrimary: accent,
+      inversePrimary: isDark ? DzColors.navy : DzColors.sunrise,
     );
 
     return ThemeData(
@@ -111,7 +144,7 @@ abstract final class DzTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: DzColors.white,
+          foregroundColor: onPrimary,
           elevation: 0,
           minimumSize: const Size(double.infinity, DzSizing.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
@@ -157,8 +190,8 @@ abstract final class DzTheme {
 
       // ── FAB ───────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accent,
-        foregroundColor: DzColors.white,
+        backgroundColor: DzColors.sunrise,
+        foregroundColor: DzColors.navy,
         elevation: 0,
         focusElevation: 0,
         hoverElevation: 0,
@@ -175,7 +208,7 @@ abstract final class DzTheme {
       // ── Input Decoration ─────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF334155) : DzColors.white,
+        fillColor: fieldFill,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: DzSpacing.md,
           vertical: 14,
@@ -185,13 +218,11 @@ abstract final class DzTheme {
         floatingLabelStyle: DzTextStyles.caption.copyWith(color: accent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
-          borderSide: const BorderSide(color: DzColors.borderLight),
+          borderSide: BorderSide(color: outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
-          borderSide: BorderSide(
-            color: isDark ? const Color(0xFF475569) : DzColors.borderLight,
-          ),
+          borderSide: BorderSide(color: outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DzRadius.input),
@@ -209,14 +240,14 @@ abstract final class DzTheme {
 
       // ── Divider ──────────────────────────────────────────────
       dividerTheme: DividerThemeData(
-        color: isDark ? const Color(0xFF334155) : DzColors.borderLight,
+        color: outline,
         thickness: 1,
         space: 1,
       ),
 
       // ── Chip ─────────────────────────────────────────────────
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+        backgroundColor: isDark ? DzColors.darkSurfaceHigh : DzColors.neutralTint,
         labelStyle: DzTextStyles.caption.copyWith(color: textPrimary),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(DzRadius.small),
@@ -243,12 +274,12 @@ abstract final class DzTheme {
       // ── Switch ───────────────────────────────────────────────
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return DzColors.white;
-          return isDark ? const Color(0xFF94A3B8) : DzColors.textSecondary;
+          if (states.contains(WidgetState.selected)) return onPrimary;
+          return isDark ? DzColors.mist : DzColors.textSecondary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return accent;
-          return isDark ? const Color(0xFF334155) : DzColors.borderLight;
+          return isDark ? DzColors.darkSurfaceHigh : DzColors.borderLight;
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),

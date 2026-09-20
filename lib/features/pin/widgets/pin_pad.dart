@@ -80,9 +80,9 @@ class _PadKey extends StatelessWidget {
     if (keyValue == '_back') {
       return _ActionCell(
         onTap: onBackspace,
-        child: const Icon(
+        child: Icon(
           Icons.backspace_rounded,
-          color: DzColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
           size: 22,
         ),
       );
@@ -92,9 +92,9 @@ class _PadKey extends StatelessWidget {
       if (onBiometrics != null) {
         return _ActionCell(
           onTap: onBiometrics!,
-          child: const Icon(
+          child: Icon(
             Icons.fingerprint_rounded,
-            color: DzColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             size: 28,
           ),
         );
@@ -105,7 +105,7 @@ class _PadKey extends StatelessWidget {
           child: Text(
             leftLabel!,
             style: DzTextStyles.caption.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
             ),
@@ -120,11 +120,11 @@ class _PadKey extends StatelessWidget {
       onTap: () => onDigit(keyValue),
       child: Text(
         keyValue,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'InterDisplay',
           fontSize: 26,
           fontWeight: FontWeight.w400,
-          color: DzColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -183,7 +183,7 @@ class _ActionCellState extends State<_ActionCell>
           height: 76,
           margin: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: DzColors.cardBackground,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(DzRadius.card),
             boxShadow: DzShadows.soft,
           ),

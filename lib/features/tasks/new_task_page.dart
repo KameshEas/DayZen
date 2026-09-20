@@ -153,15 +153,13 @@ class _NewTaskPageState extends State<NewTaskPage> {
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       appBar: AppBar(
-        backgroundColor: DzColors.appBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close_rounded),
-          color: DzColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(
           'New Task',
@@ -192,14 +190,14 @@ class _NewTaskPageState extends State<NewTaskPage> {
                     focusNode: _titleFocus,
                     style: DzTextStyles.heading1.copyWith(
                       fontSize: 28,
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w400,
                     ),
                     decoration: InputDecoration(
                       hintText: "What's on your mind?",
                       hintStyle: DzTextStyles.heading1.copyWith(
                         fontSize: 28,
-                        color: DzColors.textPrimary.withValues(alpha: 0.25),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
                         fontWeight: FontWeight.w400,
                       ),
                       border: InputBorder.none,

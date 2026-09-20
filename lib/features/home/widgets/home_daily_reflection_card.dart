@@ -34,7 +34,7 @@ class HomeDailyReflectionCard extends StatelessWidget {
                 quote,
                 style: DzTextStyles.body.copyWith(
                   fontStyle: FontStyle.italic,
-                  color: DzColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   height: 1.6,
                 ),
               ),
@@ -44,7 +44,7 @@ class HomeDailyReflectionCard extends StatelessWidget {
                 child: Text(
                   '— ${AppConfig.defaultDailyReflectionAuthor}',
                   style: DzTextStyles.small.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     letterSpacing: 0.8,
                   ),
                 ),

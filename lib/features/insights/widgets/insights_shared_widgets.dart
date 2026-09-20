@@ -41,7 +41,7 @@ class InsightsBar extends StatelessWidget {
         Text(label,
             style: DzTextStyles.caption.copyWith(
               fontSize: 9,
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             )),
       ],
     );

@@ -66,7 +66,7 @@ class _OptimizerSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: DzColors.textSecondary.withValues(alpha: 0.3),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -102,7 +102,7 @@ class _OptimizerSheet extends StatelessWidget {
                         Text(
                           'Offline AI — on-device only',
                           style: DzTextStyles.caption
-                              .copyWith(color: DzColors.textSecondary),
+                              .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -143,7 +143,7 @@ class _OptimizerSheet extends StatelessWidget {
                           Text(
                             'Add a new task to see AI suggestions.',
                             style: DzTextStyles.body.copyWith(
-                                color: DzColors.textSecondary),
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),

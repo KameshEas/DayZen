@@ -20,7 +20,7 @@ class InsightsGreeting extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           'You\'ve maintained a calm focus for 4 days straight. Take a deep breath.',
-          style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+          style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
