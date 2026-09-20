@@ -11,25 +11,31 @@ abstract final class DzTextStyles {
   static const String _body = 'Inter';
   static const String _display = 'InterDisplay';
   static const String _brand = 'BodoniModa';
+  // Optical size 6 keeps Bodoni's hairlines sturdy at UI sizes (24–30px);
+  // higher values (the logo uses 28) make thin strokes vanish on phones.
+  static const List<FontVariation> _brandVariations = [
+    FontVariation('wght', 600),
+    FontVariation('opsz', 6),
+  ];
 
   // ── Display / Headings (InterDisplay 28pt) ─────────────────
 
   static const TextStyle heading1 = TextStyle(
     fontFamily: _brand,
-    fontVariations: [FontVariation('wght', 600), FontVariation('opsz', 28)],
+    fontVariations: _brandVariations,
     fontSize: 30,
     fontWeight: FontWeight.w600,
     height: 1.2,
-    letterSpacing: -0.4,
+    letterSpacing: 0,
   );
 
   static const TextStyle heading2 = TextStyle(
     fontFamily: _brand,
-    fontVariations: [FontVariation('wght', 600), FontVariation('opsz', 28)],
+    fontVariations: _brandVariations,
     fontSize: 24,
     fontWeight: FontWeight.w600,
     height: 1.25,
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   );
 
   static const TextStyle heading3 = TextStyle(

@@ -5,9 +5,9 @@ import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/pin_pad.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// PinSetupPage  â€” "Secure Your Space"
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// PinSetupPage  — "Secure Your Space"
+// ─────────────────────────────────────────────────────────────────────────────
 
 class PinSetupPage extends StatefulWidget {
   /// Called with the page's own [BuildContext] after the PIN has been saved.
@@ -64,7 +64,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
             child: IntrinsicHeight(
               child: Column(
           children: [
-            // â”€â”€ App bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── App bar ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: DzSpacing.sm,
@@ -97,7 +97,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const SizedBox(height: DzSpacing.lg),
 
-            // â”€â”€ Lock icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Lock icon ──────────────────────────────────────────
             Container(
               width: 72,
               height: 72,
@@ -114,7 +114,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const SizedBox(height: DzSpacing.lg),
 
-            // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Heading ────────────────────────────────────────────
             const Text('Create your PIN', style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Padding(
@@ -128,10 +128,10 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ PIN dots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── PIN dots ───────────────────────────────────────────
             DzPinDots(filled: _pin.length),
 
-            // â”€â”€ Error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Error ──────────────────────────────────────────────
             if (_errorMessage != null) ...[
               const SizedBox(height: DzSpacing.sm),
               Text(
@@ -142,7 +142,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ PIN pad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── PIN pad ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
               child: DzPinPad(
@@ -155,7 +155,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const Spacer(),
 
-            // â”€â”€ Confirm button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Confirm button ─────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
               child: DzPrimaryButton(
@@ -166,7 +166,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
             const SizedBox(height: DzSpacing.md),
 
-            // â”€â”€ Privacy note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Privacy note ───────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

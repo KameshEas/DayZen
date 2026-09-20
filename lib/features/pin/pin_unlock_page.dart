@@ -7,15 +7,15 @@ import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'widgets/pin_pad.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// PinUnlockPage  â€” "Unlock DayZen"
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// PinUnlockPage  — "Unlock DayZen"
+// ─────────────────────────────────────────────────────────────────────────────
 
 class PinUnlockPage extends StatefulWidget {
   /// Called when the correct PIN is entered.
   final VoidCallback onUnlocked;
 
-  /// Called when the user taps CANCEL (optional â€” e.g. to allow biometric skip).
+  /// Called when the user taps CANCEL (optional — e.g. to allow biometric skip).
   final VoidCallback? onCancel;
 
   const PinUnlockPage({
@@ -144,12 +144,12 @@ class _PinUnlockPageState extends State<PinUnlockPage>
           children: [
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Brand ──────────────────────────────────────────────
             const DzLogo(layout: DzLogoLayout.stacked, width: 150),
 
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Heading ────────────────────────────────────────────
             const Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Text(
@@ -159,7 +159,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ PIN dots with shake animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── PIN dots with shake animation ──────────────────────
             AnimatedBuilder(
               animation: _shakeAnim,
               builder: (_, child) {
@@ -174,7 +174,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
               child: DzPinDots(filled: _pin.length),
             ),
 
-            // â”€â”€ Error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Error ──────────────────────────────────────────────
             SizedBox(
               height: 28,
               child: _errorMessage != null
@@ -191,7 +191,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ PIN pad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── PIN pad ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
               child: DzPinPad(
@@ -204,7 +204,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
             const Spacer(),
 
-            // â”€â”€ Biometrics button (only shown if hardware available AND user opted in) â”€
+            // ── Biometrics button (only shown if hardware available AND user opted in) ─
             if (_biometricAvailable && SettingsScope.of(context).biometricEnabled)
               Column(
                 children: [
@@ -236,9 +236,9 @@ class _PinUnlockPageState extends State<PinUnlockPage>
             ),
             const SizedBox(height: DzSpacing.xl),
 
-            // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Footer ─────────────────────────────────────────────
             Text(
-              'PRIVACY BY DESIGN  â€¢  DATA STAYS LOCAL',
+              'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
               style: DzTextStyles.caption.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 10,

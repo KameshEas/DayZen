@@ -4,7 +4,7 @@ import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
 import 'widgets/signup_form_card.dart';
 
-/// SignUpPage â€” composes SignUpFormCard under features/auth/widgets/.
+/// SignUpPage — composes SignUpFormCard under features/auth/widgets/.
 /// Split from a single 309-line file in Phase 5.1 of
 /// docs/DEVELOPMENT_PLAN.md.
 class SignUpPage extends StatefulWidget {
@@ -69,7 +69,7 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // â”€â”€ Top nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Top nav ──────────────────────────────────────
                   Row(
                     children: [
                       IconButton(
@@ -82,7 +82,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // â”€â”€ Avatar icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Avatar icon ───────────────────────────────────
                   Center(
                     child: Container(
                       width: 80,
@@ -100,7 +100,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.md),
 
-                  // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Heading ────────────────────────────────────────
                   const Center(
                     child: Text(
                       AppConfig.signupTitle,
@@ -119,7 +119,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Card ──────────────────────────────────────────
                   SignUpFormCard(
                     controller: _controller,
                     nameCtrl: _nameCtrl,
@@ -134,7 +134,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.xl),
 
-                  // â”€â”€ End-to-end encrypted badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── End-to-end encrypted badge ─────────────────────
                   Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -158,7 +158,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: DzSpacing.md),
 
-                  // â”€â”€ Log in link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Log in link ────────────────────────────────────
                   Center(
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).maybePop(),
