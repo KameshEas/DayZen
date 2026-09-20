@@ -138,121 +138,122 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final showBiometrics =
+        _biometricAvailable && SettingsScope.of(context).biometricEnabled;
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── Brand ──────────────────────────────────────────────
-            const DzLogo(layout: DzLogoLayout.stacked, width: 150),
-
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── Heading ────────────────────────────────────────────
-            const Text(AppConfig.pinUnlockTitle, style: DzTextStyles.heading1),
-            const SizedBox(height: DzSpacing.sm),
-            Text(
-              AppConfig.pinUnlockSubtitle,
-              style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── PIN dots with shake animation ──────────────────────
-            AnimatedBuilder(
-              animation: _shakeAnim,
-              builder: (_, child) {
-                final offset = _shakeCtrl.isAnimating
-                    ? 8 * (0.5 - _shakeAnim.value).abs() * 2
-                    : 0.0;
-                return Transform.translate(
-                  offset: Offset(offset, 0),
-                  child: child,
-                );
-              },
-              child: DzPinDots(filled: _pin.length),
-            ),
-
-            // ── Error ──────────────────────────────────────────────
-            SizedBox(
-              height: 28,
-              child: _errorMessage != null
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: DzSpacing.sm),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: DzSpacing.lg),
+                    const DzLogo(layout: DzLogoLayout.stacked, width: 128),
+                    const SizedBox(height: DzSpacing.lg),
+                    const Text(
+                      AppConfig.pinUnlockTitle,
+                      textAlign: TextAlign.center,
+                      style: DzTextStyles.heading1,
+                    ),
+                    const SizedBox(height: DzSpacing.sm),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
                       child: Text(
-                        _errorMessage!,
-                        style: DzTextStyles.caption
-                            .copyWith(color: DzColors.error),
+                        AppConfig.pinUnlockSubtitle,
+                        textAlign: TextAlign.center,
+                        style: DzTextStyles.body
+                            .copyWith(color: scheme.onSurfaceVariant),
                       ),
-                    )
-                  : null,
-            ),
-
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── PIN pad ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
-              child: DzPinPad(
-                onDigit: _onDigit,
-                onBackspace: _onBackspace,
-                leftLabel: widget.onCancel != null ? 'CANCEL' : null,
-                onLeftAction: widget.onCancel,
-              ),
-            ),
-
-            const Spacer(),
-
-            // ── Biometrics button (only shown if hardware available AND user opted in) ─
-            if (_biometricAvailable && SettingsScope.of(context).biometricEnabled)
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: _triggerBiometric,
-                    child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: DzColors.primaryTint,
-                      borderRadius: BorderRadius.circular(DzRadius.card),
                     ),
-                    child: Icon(
-                      Icons.fingerprint_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 30,
+                    const SizedBox(height: DzSpacing.lg),
+                    AnimatedBuilder(
+                      animation: _shakeAnim,
+                      builder: (_, child) {
+                        final offset = _shakeCtrl.isAnimating
+                            ? 8 * (0.5 - _shakeAnim.value).abs() * 2
+                            : 0.0;
+                        return Transform.translate(
+                          offset: Offset(offset, 0),
+                          child: child,
+                        );
+                      },
+                      child: DzPinDots(filled: _pin.length),
                     ),
-                  ),
-                ),
-                const SizedBox(height: DzSpacing.sm),
-                Text(
-                  'Use biometrics',
+                    SizedBox(
+                      height: 28,
+                      child: _errorMessage != null
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: DzSpacing.sm),
+                              child: Text(
+                                _errorMessage!,
+                                style: DzTextStyles.caption
+                                    .copyWith(color: DzColors.error),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: DzSpacing.md),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
+                      child: DzPinPad(
+                        onDigit: _onDigit,
+                        onBackspace: _onBackspace,
+                        leftLabel: widget.onCancel != null ? 'CANCEL' : null,
+                        onLeftAction: widget.onCancel,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (showBiometrics) ...[
+                      const SizedBox(height: DzSpacing.md),
+                      GestureDetector(
+                        onTap: _triggerBiometric,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: scheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(DzRadius.card),
+                          ),
+                          child: Icon(
+                            Icons.fingerprint_rounded,
+                            color: scheme.primary,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: DzSpacing.xs),
+                      Text(
+                        'Use biometrics',
+                        style: DzTextStyles.caption.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: DzSpacing.md),
+                    Text(
+                  'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+                  textAlign: TextAlign.center,
                   style: DzTextStyles.caption.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                    letterSpacing: 1.0,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── Footer ─────────────────────────────────────────────
-            Text(
-              'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
-              style: DzTextStyles.caption.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 10,
-                letterSpacing: 1.0,
+                    const SizedBox(height: DzSpacing.lg),
+                  ],
+                ),
               ),
             ),
-
-            const SizedBox(height: DzSpacing.xl),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
-
-
