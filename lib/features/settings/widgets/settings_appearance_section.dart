@@ -5,7 +5,7 @@ import '../../../core/design_system/design_system.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "APPEARANCE" card on the Settings page â€” theme mode, accent color,
+/// The "APPEARANCE" card on the Settings page — theme mode, accent color,
 /// and font size.
 class SettingsAppearanceSection extends StatelessWidget {
   const SettingsAppearanceSection({super.key, required this.ctrl});

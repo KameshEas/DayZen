@@ -10,7 +10,7 @@ import '../../biometric/biometric_setup_guide_page.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "PRIVACY" card on the Settings page â€” biometric lock, data export,
+/// The "PRIVACY" card on the Settings page — biometric lock, data export,
 /// and clear-history.
 class SettingsPrivacySection extends StatelessWidget {
   const SettingsPrivacySection({super.key, required this.ctrl});
@@ -125,9 +125,9 @@ class SettingsPrivacySection extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Biometric sheet â€” requests real biometric auth before enabling
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric sheet — requests real biometric auth before enabling
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _BiometricSheet extends StatefulWidget {
   const _BiometricSheet({required this.ctrl});

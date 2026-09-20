@@ -90,7 +90,7 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
             const SizedBox(height: DzSpacing.md),
             DzTextField(
               controller: _bodyController,
-              label: 'Write your thoughtsâ€¦',
+              label: 'Write your thoughts…',
               hint: '',
               maxLines: 4,
             ),

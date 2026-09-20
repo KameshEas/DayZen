@@ -11,12 +11,12 @@ class JournalController extends ChangeNotifier {
   /// Entries sorted newest-first.
   List<JournalEntry> get all => List.unmodifiable(_entries);
 
-  /// Count of entries logged in the current calendar week (Monâ€“Sun).
+  /// Count of entries logged in the current calendar week (Mon–Sun).
   /// Thin delegate to JournalAnalytics (lib/core/domain/journal_analytics.dart)
-  /// â€” no business logic lives here as of Phase 3.1.
+  /// — no business logic lives here as of Phase 3.1.
   int get thisWeekCount => JournalAnalytics.thisWeekCount(_entries);
 
-  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── CRUD ──────────────────────────────────────────────────────────
 
   Future<void> load() async {
     _entries = await JournalRepository.loadAll();
@@ -28,7 +28,7 @@ class JournalController extends ChangeNotifier {
 
   Future<void> addEntry(JournalEntry entry) async {
     _entries.insert(0, entry);
-    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
+    // Single-row insert — see docs/DATABASE_SCHEMA.md. Replaces the old
     // "re-serialize and rewrite every entry" pattern.
     await JournalRepository.insertEntry(entry);
     notifyListeners();
@@ -38,7 +38,7 @@ class JournalController extends ChangeNotifier {
 
   Future<void> deleteEntry(String id) async {
     _entries.removeWhere((e) => e.id == id);
-    // Soft delete (deleted_at set, row retained for sync visibility) â€” see
+    // Soft delete (deleted_at set, row retained for sync visibility) — see
     // docs/DATABASE_SCHEMA.md.
     await JournalRepository.deleteEntry(id);
     notifyListeners();
@@ -58,7 +58,7 @@ class JournalController extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _entries.clear();
-    // Hard delete every row â€” this is the one place that's actually
+    // Hard delete every row — this is the one place that's actually
     // destructive; everyday deletes go through deleteEntry's soft delete.
     await JournalRepository.clearAll();
     notifyListeners();

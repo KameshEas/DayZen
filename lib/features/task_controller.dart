@@ -22,7 +22,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  // â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Queries ───────────────────────────────────────────────────────
 
   List<DzTask> forDate(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
@@ -45,16 +45,16 @@ class TaskController extends ChangeNotifier {
     }).toList();
   }
 
-  // â”€â”€ Derived stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived stats ─────────────────────────────────────────────────
   // Thin delegates to TaskAnalytics (lib/core/domain/task_analytics.dart)
-  // â€” no business logic lives here as of Phase 3.1. Same names/signatures
+  // — no business logic lives here as of Phase 3.1. Same names/signatures
   // as before the extraction, so no UI call site changes.
 
-  /// Completion fraction for [date] (0.0â€“1.0).
+  /// Completion fraction for [date] (0.0–1.0).
   double completionFraction(DateTime date) =>
       TaskAnalytics.completionFraction(_tasks, date);
 
-  /// Productivity score (0â€“100) for today.
+  /// Productivity score (0–100) for today.
   int get todayScore => TaskAnalytics.score(_tasks, DateTime.now());
 
   /// Sum of completed-task durations for today in minutes.
@@ -64,7 +64,7 @@ class TaskController extends ChangeNotifier {
   String get todayFocusLabel =>
       TaskAnalytics.focusLabel(_tasks, DateTime.now());
 
-  /// Completion fractions for each day Monâ€“Sun of the week containing [anchor].
+  /// Completion fractions for each day Mon–Sun of the week containing [anchor].
   List<double> weekBarFractions(DateTime anchor) =>
       TaskAnalytics.weekBarFractions(_tasks, anchor);
 
@@ -80,7 +80,7 @@ class TaskController extends ChangeNotifier {
   List<DzTask> zenTasksThisWeek(DateTime anchor) =>
       TaskAnalytics.zenTasksThisWeek(_tasks, anchor);
 
-  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── CRUD ──────────────────────────────────────────────────────────
 
   Future<void> load() async {
     _tasks = await TaskRepository.loadAll();
@@ -104,7 +104,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
-    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
+    // Single-row insert — see docs/DATABASE_SCHEMA.md. Replaces the old
     // "re-serialize and rewrite the entire task list" pattern.
     await TaskRepository.insertTask(task);
     notifyListeners();
@@ -153,7 +153,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
-    // Soft delete (deleted_at set, row retained for sync visibility) â€” see
+    // Soft delete (deleted_at set, row retained for sync visibility) — see
     // docs/DATABASE_SCHEMA.md.
     await TaskRepository.deleteTask(id);
     notifyListeners();
@@ -166,7 +166,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _tasks.clear();
-    // Hard delete every row â€” this is the one place that's actually
+    // Hard delete every row — this is the one place that's actually
     // destructive; everyday deletes go through deleteTask's soft delete.
     await TaskRepository.clearAll();
     notifyListeners();
