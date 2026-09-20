@@ -87,94 +87,101 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── Brand ────────────────────────────────────────────
-            const DzLogo(layout: DzLogoLayout.stacked, width: 150),
-
-            const Spacer(),
-
-            // ── Fingerprint icon ─────────────────────────────────
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: DzColors.primaryTint,
-                borderRadius: BorderRadius.circular(DzRadius.card),
-              ),
-              child: Icon(
-                Icons.fingerprint_rounded,
-                color: Theme.of(context).colorScheme.primary,
-                size: 56,
-              ),
-            ),
-
-            const SizedBox(height: DzSpacing.lg),
-
-            const Text('Unlock DayZen', style: DzTextStyles.heading1),
-            const SizedBox(height: DzSpacing.sm),
-
-            Text(
-              _isAuthenticating
-                  ? 'Waiting for biometric...'
-                  : 'Touch the sensor to continue',
-              style:
-                  DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-
-            if (_errorMessage != null) ...[
-              const SizedBox(height: DzSpacing.md),
-              Text(
-                _errorMessage!,
-                style: DzTextStyles.caption.copyWith(color: DzColors.error),
-              ),
-            ],
-
-            const SizedBox(height: DzSpacing.xl),
-
-            // ── Retry button ─────────────────────────────────────
-            if (!_isAuthenticating)
-              DzPrimaryButton(
-                label: 'Try Again',
-                onPressed: _authenticate,
-              ),
-
-            const Spacer(),
-
-            // ── Fallback to PIN ──────────────────────────────────
-            if (widget.onFallbackToPin != null) ...[
-              TextButton.icon(
-                onPressed: widget.onFallbackToPin,
-                icon: const Icon(Icons.dialpad_rounded, size: 18),
-                label: const Text('Use PIN instead'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: DzSpacing.xl),
+                      const DzLogo(layout: DzLogoLayout.stacked, width: 150),
+                      const Spacer(),
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: scheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(DzRadius.card),
+                        ),
+                        child: Icon(
+                          Icons.fingerprint_rounded,
+                          color: scheme.primary,
+                          size: 56,
+                        ),
+                      ),
+                      const SizedBox(height: DzSpacing.lg),
+                      const Text(
+                        'Unlock DayZen',
+                        textAlign: TextAlign.center,
+                        style: DzTextStyles.heading1,
+                      ),
+                      const SizedBox(height: DzSpacing.sm),
+                      Text(
+                        _isAuthenticating
+                            ? 'Waiting for biometric...'
+                            : 'Touch the sensor to continue',
+                        textAlign: TextAlign.center,
+                        style: DzTextStyles.body
+                            .copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: DzSpacing.md),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: DzTextStyles.caption
+                              .copyWith(color: DzColors.error),
+                        ),
+                      ],
+                      const SizedBox(height: DzSpacing.xl),
+                      // Keeps its slot while the system prompt is showing so
+                      // the content behind the prompt stays put.
+                      Visibility(
+                        visible: !_isAuthenticating,
+                        maintainSize: true,
+                        maintainAnimation: true,
+                        maintainState: true,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 360),
+                          child: DzPrimaryButton(
+                            label: 'Try Again',
+                            onPressed: _authenticate,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (widget.onFallbackToPin != null) ...[
+                        TextButton.icon(
+                          onPressed: widget.onFallbackToPin,
+                          icon: const Icon(Icons.dialpad_rounded, size: 18),
+                          label: const Text('Use PIN instead'),
+                        ),
+                        const SizedBox(height: DzSpacing.md),
+                      ],
+                      Text(
+                  'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+                  textAlign: TextAlign.center,
+                  style: DzTextStyles.caption.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                      const SizedBox(height: DzSpacing.xl),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: DzSpacing.md),
-            ],
-
-            // ── Footer ──────────────────────────────────────────
-            Text(
-              'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
-              style: DzTextStyles.caption.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 10,
-                letterSpacing: 1.0,
-              ),
             ),
-
-            const SizedBox(height: DzSpacing.xl),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
-
-
