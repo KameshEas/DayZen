@@ -1,14 +1,17 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 import 'insights_data.dart';
 import 'insights_shared_widgets.dart';
 
+/// Tasks completed this week, and the share of each day's tasks that got done.
 class InsightsWeeklyCompletionCard extends StatelessWidget {
   const InsightsWeeklyCompletionCard({super.key, required this.data});
   final InsightsData data;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final done = data.weeklyTasksDone;
     return DzCard(
       child: Padding(
         padding: const EdgeInsets.all(DzSpacing.lg),
@@ -17,39 +20,33 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Flexible(
+                Expanded(
                   child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'WEEKLY COMPLETION',
-                      style: DzTextStyles.caption.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w600,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const InsightsCardLabel('WEEKLY COMPLETION'),
+                      const SizedBox(height: DzSpacing.xs),
+                      Text(
+                        '$done ${done == 1 ? 'task' : 'tasks'} done',
+                        style: DzTextStyles.heading3
+                            .copyWith(fontWeight: FontWeight.w700),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${data.weeklyTasksDone} Tasks Done',
-                      style: DzTextStyles.heading3
-                          .copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                ),
+                const SizedBox(width: DzSpacing.sm),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: DzColors.neutralTint,
+                    color: insightsNeutralTint(context),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Last 7 Days',
+                    'This week',
                     style: DzTextStyles.caption.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -58,9 +55,9 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
             ),
             const SizedBox(height: DzSpacing.lg),
             SizedBox(
-              height: 60,
+              height: done > 0 ? 92 : 64,
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: List.generate(
                   data.completionBars.length,
                   (i) => Expanded(
@@ -69,12 +66,17 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
                       child: InsightsBar(
                         fraction: data.completionBars[i],
                         label: InsightsData.completionDays[i],
-                        highlight: i == DateTime.now().weekday - 1,
+                        highlight: i == data.todayIndex,
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: DzSpacing.md),
+            Text(
+              'Each bar is the share of that day\'s tasks you finished.',
+              style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -82,6 +84,3 @@ class InsightsWeeklyCompletionCard extends StatelessWidget {
     );
   }
 }
-
-
-

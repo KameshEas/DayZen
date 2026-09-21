@@ -93,14 +93,17 @@ class SettingsPrivacySection extends StatelessWidget {
             onPressed: () async {
               final tasks = TaskScope.of(context);
               final journal = JournalScope.of(context);
-              await tasks.clearAll();
-              await journal.clearAll();
-              if (ctx.mounted) ctx.pop();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All history cleared.')),
-                );
-              }
+              ctx.pop();
+              await DzProgress.run<void>(
+                context,
+                message: 'Clearing your history…',
+                successMessage: 'History cleared',
+                alwaysShow: true,
+                task: () async {
+                  await tasks.clearAll();
+                  await journal.clearAll();
+                },
+              );
             },
             child: const Text('Clear',
                 style: TextStyle(color: DzColors.error)),
@@ -238,11 +241,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
             children: [
               const Text('Enable Biometric Lock', style: DzTextStyles.body),
               if (_checking)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                const DzSunLoader(width: 40)
               else
                 Switch.adaptive(
                   value: widget.ctrl.biometricEnabled,

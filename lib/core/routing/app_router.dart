@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
@@ -174,7 +175,10 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.newTask,
           name: RouteNames.newTask,
-          builder: (context, state) => const NewTaskPage(),
+          // The Planner passes the day being viewed as `extra`.
+          builder: (context, state) => NewTaskPage(
+            initialDate: state.extra is DateTime ? state.extra as DateTime : null,
+          ),
         ),
         GoRoute(
           path: RoutePaths.settings,
@@ -202,11 +206,12 @@ class AppRouter {
           },
         ),
 
-        // ── Debug routes (test page) ────────────────────────────────────
-        GoRoute(
-          path: '/debug/test-notification',
-          builder: (context, state) => const TestNotificationPage(),
-        ),
+        // ── Debug routes (test page): not reachable in release builds ───
+        if (kDebugMode)
+          GoRoute(
+            path: '/debug/test-notification',
+            builder: (context, state) => const TestNotificationPage(),
+          ),
       ],
     );
   }

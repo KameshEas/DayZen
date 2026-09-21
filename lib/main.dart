@@ -67,7 +67,7 @@ Future<String> _bootstrap({
   required AIOptimizationController aiOptCtrl,
   required NotificationController notifCtrl,
 }) async {
-  final authService = JwtAuthService();
+  final authService = JwtAuthService.instance;
 
   Future<bool> deviceHasBiometrics() async {
     final auth = LocalAuthentication();
@@ -101,6 +101,8 @@ Future<String> _bootstrap({
     aiOptCtrl.load(),
     notifCtrl.load(),
   ]);
+  // Only ever written once; the Planner lets you browse back to this day.
+  await AppPrefs.recordFirstUse();
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
   final biometricEnabled = (results[2] as bool) && await hasBiometrics;
