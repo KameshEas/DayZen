@@ -1,7 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
-import '../../../core/design_system/components/dz_illustration.dart';
 import 'onboarding_decoration_widgets.dart';
 import 'onboarding_text_widgets.dart';
 

@@ -61,7 +61,7 @@ class ApiClient {
     JwtAuthService? authService,
   }) {
     _client = client ?? http.Client();
-    _authService = authService ?? JwtAuthService();
+    _authService = authService ?? JwtAuthService.instance;
   }
 
   /// Get the base URL from config

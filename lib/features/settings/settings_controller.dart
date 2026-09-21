@@ -207,8 +207,7 @@ class SettingsController extends ChangeNotifier {
     _userEmail = null;
     notifyListeners();
     _save();
-    final authService = JwtAuthService();
-    await authService.signOut();
+    await JwtAuthService.instance.signOut();
   }
 
   void setBiometricEnabled(bool value) {

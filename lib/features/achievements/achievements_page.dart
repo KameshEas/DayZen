@@ -39,7 +39,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
         future: _achievementsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const DzLoadingView(message: 'Loading achievements…');
           }
 
           if (snapshot.hasError) {

@@ -128,25 +128,17 @@ class LoginFormCard extends StatelessWidget {
 
           // ── Error ───────────────────────────────────
           if (controller.error != null) ...[
-            const SizedBox(height: DzSpacing.sm),
-            Text(
-              controller.error!,
-              style: DzTextStyles.caption.copyWith(
-                color: DzColors.error,
-              ),
-            ),
+            const SizedBox(height: DzSpacing.md),
+            AuthErrorBanner(message: controller.error!),
           ],
           const SizedBox(height: DzSpacing.xl),
 
           // ── Sign In button ──────────────────────────
           DzPrimaryButton(
             label: 'Sign In',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: DzColors.white,
-              size: 18,
-            ),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
             isLoading: controller.isLoading,
+            loadingLabel: 'Signing in…',
             onPressed: onSubmit,
           ),
           const SizedBox(height: DzSpacing.lg),

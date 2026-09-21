@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import 'auth_controller.dart';
+import 'widgets/auth_shared_widgets.dart';
 import 'widgets/signup_form_card.dart';
 
 /// SignUpPage — composes SignUpFormCard under features/auth/widgets/.
@@ -44,82 +45,87 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    _controller.signUp(
-      fullName: _nameCtrl.text,
-      email: email,
-      password: _passwordCtrl.text,
-      onSuccess: () => widget.onSignedUp(email),
+    final ok = await DzProgress.run<bool>(
+      context,
+      message: 'Creating your account…',
+      successMessage: 'Account created',
+      isSuccess: (ok) => ok,
+      task: () => _controller.signUp(
+        fullName: _nameCtrl.text,
+        email: email,
+        password: _passwordCtrl.text,
+      ),
     );
+    if (ok != true || !mounted) return;
+    widget.onSignedUp(email);
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) {
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(
                 horizontal: DzSpacing.lg,
                 vertical: DzSpacing.md,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Top nav ──────────────────────────────────────
+                  // ── Top bar: back, logo centred ───────────────────
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: Theme.of(context).colorScheme.primary,
+                      AuthBackButton(
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
-                      const DzLogo(),
+                      const Expanded(child: Center(child: DzLogo(width: 132))),
+                      // Balances the back button so the logo sits in the middle.
+                      const SizedBox(width: DzSizing.minTouchTarget),
                     ],
                   ),
-                  const SizedBox(height: DzSpacing.lg),
+                  const SizedBox(height: DzSpacing.xl),
 
-                  // ── Avatar icon ───────────────────────────────────
+                  // ── Hero ──────────────────────────────────────────
                   Center(
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 64,
+                      height: 64,
                       decoration: const BoxDecoration(
-                        color: DzColors.signUpAvatarBg, // mint green circle
+                        color: DzColors.signUpAvatarBg,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.eco_rounded,
                         color: DzColors.signUpAvatarIcon,
-                        size: 36,
+                        size: 30,
                       ),
                     ),
                   ),
                   const SizedBox(height: DzSpacing.md),
-
-                  // ── Heading ────────────────────────────────────────
-                  const Center(
-                    child: Text(
-                      AppConfig.signupTitle,
-                      style: DzTextStyles.heading1,
-                    ),
+                  const Text(
+                    AppConfig.signupTitle,
+                    textAlign: TextAlign.center,
+                    style: DzTextStyles.heading1,
                   ),
-                  const SizedBox(height: DzSpacing.xs),
-                  Center(
-                    child: Text(
-                      'Optional, for backup & sync',
-                      style: DzTextStyles.body.copyWith(
-                        color: DzColors.zenGreen,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(height: DzSpacing.sm),
+                  Text(
+                    'Back up your days and keep them in sync across devices. '
+                    'An account is optional.',
+                    textAlign: TextAlign.center,
+                    style: DzTextStyles.body.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // ── Card ──────────────────────────────────────────
+                  // ── Form ──────────────────────────────────────────
                   SignUpFormCard(
                     controller: _controller,
                     nameCtrl: _nameCtrl,
@@ -129,50 +135,39 @@ class _SignUpPageState extends State<SignUpPage> {
                     onToggleObscurePassword: () => setState(
                         () => _obscurePassword = !_obscurePassword),
                     onSubmit: _submit,
-                    canGoBack: widget.canGoBack,
-                    onContinueOffline: widget.onContinueOffline,
                   ),
-                  const SizedBox(height: DzSpacing.xl),
+                  const SizedBox(height: DzSpacing.lg),
 
-                  // ── End-to-end encrypted badge ─────────────────────
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.shield_rounded,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: DzSpacing.xs),
-                        Text(
-                          'END-TO-END ENCRYPTED',
-                          style: DzTextStyles.caption.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
+                  // ── Offline alternative ───────────────────────────
+                  if (!widget.canGoBack) ...[
+                    const AuthOrDivider(label: 'or keep it private', italic: true),
+                    const SizedBox(height: DzSpacing.md),
+                    DzSecondaryButton(
+                      label: 'Use offline instead',
+                      icon: const Icon(Icons.cloud_off_rounded, size: 18),
+                      onPressed: widget.onContinueOffline,
                     ),
-                  ),
-                  const SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.lg),
+                  ],
 
-                  // ── Log in link ────────────────────────────────────
+                  // ── Log in link ───────────────────────────────────
                   Center(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).maybePop(),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, DzSizing.minTouchTarget),
+                      ),
                       child: RichText(
                         text: TextSpan(
                           style: DzTextStyles.body.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: scheme.onSurfaceVariant,
                           ),
                           children: [
                             const TextSpan(text: 'Already have an account? '),
                             TextSpan(
                               text: 'Log in',
                               style: DzTextStyles.body.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: scheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -181,7 +176,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: DzSpacing.lg),
+                  const SizedBox(height: DzSpacing.sm),
                 ],
               ),
             );
@@ -191,5 +186,3 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 }
-
-

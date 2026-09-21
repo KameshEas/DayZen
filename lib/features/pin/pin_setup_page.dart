@@ -43,7 +43,14 @@ class _PinSetupPageState extends State<PinSetupPage> {
       setState(() => _errorMessage = AppConfig.pinSetupError);
       return;
     }
-    await AppPrefs.savePin(_pin);
+    final pin = _pin;
+    await DzProgress.run<void>(
+      context,
+      message: 'Securing your PIN…',
+      successMessage: 'PIN set',
+      alwaysShow: true,
+      task: () => AppPrefs.savePin(pin),
+    );
     if (mounted) widget.onPinSet(context);
   }
 
