@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
+import '../../core/services/user_service.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
@@ -75,26 +76,16 @@ class AppRouter {
           path: RoutePaths.login,
           name: RouteNames.login,
           builder: (context, state) => LoginPage(
-            onSignedIn: (email) {
-              // After sign-in, user must set up a PIN
-              context.go('/pin-setup');
-            },
-            onContinueOffline: () {
-              // Offline users also must set up a PIN
-              context.go('/pin-setup');
-            },
+            onSignedIn: (email) => _routeAfterAuth(context),
+            onContinueOffline: () => _routeAfterAuth(context),
           ),
         ),
         GoRoute(
           path: RoutePaths.signup,
           name: RouteNames.signup,
           builder: (context, state) => SignUpPage(
-            onSignedUp: (email) {
-              context.go('/pin-setup');
-            },
-            onContinueOffline: () {
-              context.go('/pin-setup');
-            },
+            onSignedUp: (email) => _routeAfterAuth(context),
+            onContinueOffline: () => _routeAfterAuth(context),
           ),
         ),
         // ── Biometric unlock flow ───────────────────────────────────────
@@ -203,6 +194,32 @@ class AppRouter {
       );
     }
     return _appRouter!;
+  }
+
+  /// Routes to the correct next screen after a successful login/signup/
+  /// continue-offline action: PIN setup only if no PIN exists yet (locally
+  /// or restorable from the backend — e.g. after an uninstall/reinstall),
+  /// otherwise straight to home (the user just authenticated).
+  static Future<void> _routeAfterAuth(BuildContext context) async {
+    var hasPin = await AppPrefs.hasPin();
+    if (!hasPin) {
+      hasPin = await _tryRestorePinFromServer();
+    }
+    if (!context.mounted) return;
+    context.go(hasPin ? RoutePaths.home : '/pin-setup');
+  }
+
+  /// Best-effort: an offline-only user or a network failure should just
+  /// fall through to normal PIN setup, not block or error out.
+  static Future<bool> _tryRestorePinFromServer() async {
+    try {
+      final stored = await UserService.instance.fetchPinFromServer();
+      if (stored == null) return false;
+      await AppPrefs.restoreHashedPin(stored.hash, stored.salt);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static String _resolveInitialRoute({

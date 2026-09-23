@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../app_data.dart';
 import 'auth_controller.dart';
 import 'widgets/signup_form_card.dart';
 
@@ -50,7 +51,10 @@ class _SignUpPageState extends State<SignUpPage> {
       fullName: _nameCtrl.text,
       email: email,
       password: _passwordCtrl.text,
-      onSuccess: () => widget.onSignedUp(email),
+      onSuccess: () {
+        SettingsScope.of(context).setSignedIn(true, email);
+        widget.onSignedUp(email);
+      },
     );
   }
 

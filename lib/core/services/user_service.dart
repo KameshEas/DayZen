@@ -156,6 +156,33 @@ class UserService {
     }
   }
 
+  /// Push the app-lock PIN's hash+salt to the backend, so it can be
+  /// restored on another device or after an uninstall/reinstall.
+  /// Best-effort: callers should not block PIN setup on this succeeding
+  /// (e.g. offline-only users have no account to sync to).
+  Future<void> syncPinToServer(String pinHash, String pinSalt) async {
+    await _apiClient.put('/users/me/pin', {
+      'pin_hash': pinHash,
+      'pin_salt': pinSalt,
+    });
+  }
+
+  /// Fetch the synced PIN hash+salt from the backend, if any was set on
+  /// another device/install. Returns null if none is set or the request
+  /// fails (e.g. offline) — callers should fall back to local PIN setup.
+  Future<({String hash, String salt})?> fetchPinFromServer() async {
+    try {
+      final response = await _apiClient.get('/users/me/pin');
+      if (response['has_pin'] != true) return null;
+      final hash = response['pin_hash'] as String?;
+      final salt = response['pin_salt'] as String?;
+      if (hash == null || salt == null) return null;
+      return (hash: hash, salt: salt);
+    } on ApiException {
+      return null;
+    }
+  }
+
   /// Clear all cached user data (call on logout).
   void clearCache() {
     _cachedProfile = null;

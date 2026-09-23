@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/services/user_service.dart';
 import 'widgets/pin_pad.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -44,7 +47,21 @@ class _PinSetupPageState extends State<PinSetupPage> {
       return;
     }
     await AppPrefs.savePin(_pin);
+    unawaited(_syncPinToServer());
     if (mounted) widget.onPinSet(context);
+  }
+
+  /// Best-effort: an offline-only user (no account) or a network failure
+  /// should never block local PIN setup from completing.
+  Future<void> _syncPinToServer() async {
+    try {
+      final stored = await AppPrefs.getPinHashAndSalt();
+      if (stored == null) return;
+      await UserService.instance.syncPinToServer(stored.hash, stored.salt);
+    } catch (_) {
+      // Ignore — the PIN still works locally; it just won't survive a
+      // reinstall until the next successful sync.
+    }
   }
 
   @override
