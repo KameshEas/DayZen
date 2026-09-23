@@ -96,8 +96,12 @@ class ApiClient {
       });
 
       return _handleResponse(response, endpoint, 'GET');
-    } on TimeoutException {
-      rethrow;
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        e.message,
+        originalError: e,
+        errorType: ApiErrorType.networkError,
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -141,8 +145,12 @@ class ApiClient {
       });
 
       return _handleResponse(response, endpoint, 'POST');
-    } on TimeoutException {
-      rethrow;
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        e.message,
+        originalError: e,
+        errorType: ApiErrorType.networkError,
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -186,8 +194,12 @@ class ApiClient {
       });
 
       return _handleResponse(response, endpoint, 'PUT');
-    } on TimeoutException {
-      rethrow;
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        e.message,
+        originalError: e,
+        errorType: ApiErrorType.networkError,
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -226,8 +238,12 @@ class ApiClient {
       });
 
       return _handleResponse(response, endpoint, 'DELETE');
-    } on TimeoutException {
-      rethrow;
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        e.message,
+        originalError: e,
+        errorType: ApiErrorType.networkError,
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -329,8 +345,12 @@ class ApiClient {
       });
 
       return _handleResponse(response, endpoint, 'GET');
-    } on TimeoutException {
-      rethrow;
+    } on TimeoutException catch (e) {
+      throw ApiException(
+        e.message,
+        originalError: e,
+        errorType: ApiErrorType.networkError,
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
