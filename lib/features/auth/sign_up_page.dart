@@ -48,7 +48,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    final settings = SettingsScope.of(context);
     final ok = await DzProgress.run<bool>(
       context,
       message: 'Creating your account…',
@@ -61,7 +60,7 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
     if (ok != true || !mounted) return;
-    settings.setSignedIn(true, email);
+    SettingsScope.of(context).setSignedIn(true, email);
     widget.onSignedUp(email);
   }
 
