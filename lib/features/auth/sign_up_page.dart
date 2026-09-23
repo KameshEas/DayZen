@@ -48,16 +48,20 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    _controller.signUp(
-      fullName: _nameCtrl.text,
-      email: email,
-      password: _passwordCtrl.text,
-      onSuccess: () {
-        SettingsScope.of(context).setSignedIn(true, email);
-        widget.onSignedUp(email);
-      },
+    final settings = SettingsScope.of(context);
+    final ok = await DzProgress.run<bool>(
+      context,
+      message: 'Creating your account…',
+      successMessage: 'Welcome to DayZen',
+      isSuccess: (ok) => ok,
+      task: () => _controller.signUp(
+        fullName: _nameCtrl.text,
+        email: email,
+        password: _passwordCtrl.text,
+      ),
     );
     if (ok != true || !mounted) return;
+    settings.setSignedIn(true, email);
     widget.onSignedUp(email);
   }
 
