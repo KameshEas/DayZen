@@ -242,7 +242,7 @@ class AppRouter {
     }
   }
 
-  static String _resolveInitialRoute({
+  static String resolveInitialRoute({
     required bool showOnboarding,
     required bool hasPin,
     required bool biometricEnabled,
