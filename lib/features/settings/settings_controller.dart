@@ -126,6 +126,19 @@ class SettingsController extends ChangeNotifier {
     _analysisDepth = prefs.getString('s_analysisDepth') ?? 'Comprehensive local processing';
     _isSignedIn = prefs.getBool('s_isSignedIn') ?? false;
     _userEmail = prefs.getString('s_userEmail');
+
+    // Reconcile with the real JWT session (source of truth), in case a prior
+    // sign-in/sign-up flow didn't update this flag — e.g. accounts created
+    // before this flag existed, or before sign-up wired it up.
+    final authService = JwtAuthService();
+    await authService.initialize();
+    if (authService.isAuthenticated != _isSignedIn ||
+        authService.userEmail != _userEmail) {
+      _isSignedIn = authService.isAuthenticated;
+      _userEmail = authService.isAuthenticated ? authService.userEmail : null;
+      await _save();
+    }
+
     notifyListeners();
   }
 

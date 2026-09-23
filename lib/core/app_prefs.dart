@@ -86,6 +86,24 @@ class AppPrefs {
     return PinHasher.constantTimeEquals(inputHash, storedHash);
   }
 
+  /// Returns the stored PIN hash and salt (for syncing to the backend so the
+  /// PIN can be restored after an uninstall/reinstall), or null if unset.
+  static Future<({String hash, String salt})?> getPinHashAndSalt() async {
+    await _migrateLegacyPinIfNeeded();
+    final hash = await _secureStorage.read(key: _secureKeyPinHash);
+    final salt = await _secureStorage.read(key: _secureKeyPinSalt);
+    if (hash == null || salt == null) return null;
+    return (hash: hash, salt: salt);
+  }
+
+  /// Writes an already-hashed PIN (fetched from the backend) directly to
+  /// secure storage, restoring a previously-set PIN on a fresh install
+  /// without requiring the user to re-enter or re-create it.
+  static Future<void> restoreHashedPin(String hash, String salt) async {
+    await _secureStorage.write(key: _secureKeyPinSalt, value: salt);
+    await _secureStorage.write(key: _secureKeyPinHash, value: hash);
+  }
+
   static Future<void> clearPin() async {
     await _secureStorage.delete(key: _secureKeyPinHash);
     await _secureStorage.delete(key: _secureKeyPinSalt);

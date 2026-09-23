@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../app_data.dart';
 import 'auth_controller.dart';
 import 'widgets/auth_shared_widgets.dart';
 import 'widgets/signup_form_card.dart';
@@ -47,16 +48,14 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    final ok = await DzProgress.run<bool>(
-      context,
-      message: 'Creating your account…',
-      successMessage: 'Account created',
-      isSuccess: (ok) => ok,
-      task: () => _controller.signUp(
-        fullName: _nameCtrl.text,
-        email: email,
-        password: _passwordCtrl.text,
-      ),
+    _controller.signUp(
+      fullName: _nameCtrl.text,
+      email: email,
+      password: _passwordCtrl.text,
+      onSuccess: () {
+        SettingsScope.of(context).setSignedIn(true, email);
+        widget.onSignedUp(email);
+      },
     );
     if (ok != true || !mounted) return;
     widget.onSignedUp(email);
