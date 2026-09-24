@@ -29,6 +29,15 @@ enum DzIllustration {
 
   /// New animated flow: Ready/All Set slide
   ready,
+
+  /// Empty Planner, today: a sunrise over an open slot.
+  emptyDayToday,
+
+  /// Empty Planner, a day ahead: a calendar and a paper plane.
+  emptyDayFuture,
+
+  /// Empty Planner, a day gone by: an open notebook and pencil.
+  emptyDayPast,
 }
 
 /// DzIllustration widget — displays vector or raster illustrations
@@ -71,6 +80,12 @@ class DzIllustrationWidget extends StatelessWidget {
         return 'assets/illustrations/dayzen_privacy_onboarding.svg';
       case DzIllustration.ready:
         return 'assets/illustrations/dayzen_ready_onboarding.svg';
+      case DzIllustration.emptyDayToday:
+        return 'assets/illustrations/dayzen_empty_today.svg';
+      case DzIllustration.emptyDayFuture:
+        return 'assets/illustrations/dayzen_empty_future.svg';
+      case DzIllustration.emptyDayPast:
+        return 'assets/illustrations/dayzen_empty_past.svg';
     }
   }
 

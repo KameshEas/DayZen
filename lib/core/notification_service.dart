@@ -12,7 +12,7 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  // â”€â”€ Initialise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Initialise ────────────────────────────────────────────────────────
 
   Future<void> init() async {
     if (_initialized) return;
@@ -41,7 +41,7 @@ class NotificationService {
     _initialized = true;
   }
 
-  // â”€â”€ Request permission (Android 13+) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Request permission (Android 13+) ──────────────────────────────────
 
   Future<bool> requestPermission() async {
     final android = _plugin.resolvePlatformSpecificImplementation<
@@ -54,7 +54,7 @@ class NotificationService {
     return true;
   }
 
-  // â”€â”€ Schedule a notification for a task â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Schedule a notification for a task ────────────────────────────────
 
   /// Schedules a notification at the task's [startTime] on its [date].
   /// Uses the task [id] hashCode as the notification ID for determinism.
@@ -89,10 +89,10 @@ class NotificationService {
     final preId = (base * 2 + 1) % 0x7FFFFFFF;
 
     final priorityEmoji = switch (task.priority) {
-      TaskPriority.high => 'ðŸ”´',
-      TaskPriority.zen => 'ðŸ§˜',
-      TaskPriority.routine => 'ðŸ“‹',
-      TaskPriority.low => 'ðŸ”µ',
+      TaskPriority.high => '🔴',
+      TaskPriority.zen => '🧘',
+      TaskPriority.routine => '📋',
+      TaskPriority.low => '🔵',
     };
 
     const details = NotificationDetails(
@@ -116,7 +116,7 @@ class NotificationService {
     if (shouldSchedulePre) {
       await _plugin.zonedSchedule(
         id: preId,
-        title: '$priorityEmoji ${task.title} â€” Upcoming',
+        title: '$priorityEmoji ${task.title} — Upcoming',
         body: 'Starting in $preReminderMinutes minutes',
         scheduledDate: preDateTime,
         notificationDetails: details,
@@ -141,7 +141,7 @@ class NotificationService {
     }
   }
 
-  // â”€â”€ Cancel a single task's notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cancel a single task's notification ───────────────────────────────
 
   Future<void> cancelForTask(String taskId) async {
     if (!_initialized) return;
@@ -193,14 +193,14 @@ class NotificationService {
     return await _plugin.pendingNotificationRequests();
   }
 
-  // â”€â”€ Cancel all notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cancel all notifications ──────────────────────────────────────────
 
   Future<void> cancelAll() async {
     if (!_initialized) return;
     await _plugin.cancelAll();
   }
 
-  // â”€â”€ Re-schedule all upcoming tasks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Re-schedule all upcoming tasks ────────────────────────────────────
 
   /// Cancels everything, then schedules notifications for all future tasks.
   Future<void> rescheduleAll(List<DzTask> tasks) async {

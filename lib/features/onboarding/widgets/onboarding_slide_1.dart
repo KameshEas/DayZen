@@ -1,11 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
-import '../../../core/design_system/components/dz_illustration.dart';
 import 'onboarding_decoration_widgets.dart';
 import 'onboarding_text_widgets.dart';
 
-/// Slide 1 â€” "DayZen / Plan simply. Stay focused."
+/// Slide 1 — "DayZen / Plan simply. Stay focused."
 class OnboardingSlide1 extends StatelessWidget {
   const OnboardingSlide1({super.key, required this.controller, required this.index});
 

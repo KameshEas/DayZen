@@ -1,4 +1,4 @@
 {
-  "API_BASE_URL": "https://REPLACE_ME_PRODUCTION_API_HOST/api/v1/dayzen",
+  "API_BASE_URL": "https://api.aspired2d.cloud/api/v1/dayzen",
   "APP_ID": "dayzen"
 }

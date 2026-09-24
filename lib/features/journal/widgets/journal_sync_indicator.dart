@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/design_system/design_system.dart';
 import '../../../core/services/journal_sync_manager.dart';
 import '../../journal_controller.dart';
 
@@ -59,16 +60,7 @@ class JournalSyncIndicator extends StatelessWidget {
                       Row(
                         children: [
                           if (isSyncing)
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            )
+                            const DzSunLoader(width: 28)
                           else
                             Icon(
                               Icons.cloud_done,
@@ -114,12 +106,7 @@ class JournalSyncIndicator extends StatelessWidget {
             width: 24,
             height: 24,
             child: isSyncing
-                ? CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(
-                      Theme.of(context).primaryColor,
-                    ),
-                  )
+                ? const DzSunLoader(width: 24)
                 : Semantics(
                     label: 'Retry sync',
                     button: true,

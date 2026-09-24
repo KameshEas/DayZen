@@ -57,11 +57,11 @@ class NewTaskBottomBar extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Press ', style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary)),
+                Text('Press ', style: DzTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: DzColors.cardBackground,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: DzColors.borderLight),
                     boxShadow: DzShadows.soft,
@@ -69,11 +69,11 @@ class NewTaskBottomBar extends StatelessWidget {
                   child: Text('Enter',
                       style: DzTextStyles.caption.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: DzColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       )),
                 ),
                 Text(' to save quickly',
-                    style: DzTextStyles.caption.copyWith(color: DzColors.textSecondary)),
+                    style: DzTextStyles.caption.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ],

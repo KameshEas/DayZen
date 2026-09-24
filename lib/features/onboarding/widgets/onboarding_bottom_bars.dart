@@ -34,7 +34,7 @@ class OnboardingStandardBottomBar extends StatelessWidget {
                     icon: const Icon(Icons.arrow_back_rounded, size: 16),
                     label: const Text('Back'),
                     style: TextButton.styleFrom(
-                      foregroundColor: DzColors.textSecondary,
+                      foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                       textStyle:
                           DzTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
                     ),
