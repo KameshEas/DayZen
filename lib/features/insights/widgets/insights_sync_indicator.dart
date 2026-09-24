@@ -2,7 +2,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/design_system/design_system.dart';
 import '../../../core/services/insights_sync_manager.dart';
+import '../../../core/services/jwt_auth_service.dart';
 import '../../insights_controller.dart';
 
 /// Widget showing insights sync status and retry button.
@@ -32,88 +34,55 @@ class InsightsSyncIndicator extends StatelessWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Insights sync completed')),
+          const SnackBar(content: Text('Insights synced')),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Insights sync failed: $e')),
+          const SnackBar(content: Text("Couldn't sync insights. Try again in a moment.")),
         );
       }
+    }
+  }
+
+  /// "Synced 5 min ago" / "Not synced yet" — the manager's raw status reworded.
+  static String describe(String status, {required bool isSyncing}) {
+    if (isSyncing) return 'Syncing…';
+    switch (status) {
+      case 'Sync error':
+        return "Couldn't sync";
+      case 'Never synced':
+        return 'Not synced yet';
+      case 'Just now':
+        return 'Synced just now';
+      default:
+        return 'Synced $status';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: insightsController,
+      listenable: Listenable.merge([insightsController, JwtAuthService.instance]),
       builder: (context, _) {
         final isSyncing = insightsController.isSyncing;
         final status = InsightsSyncManager.instance.syncStatus;
 
         if (showFullStatus) {
+          // Syncing only means something for a signed-in account; offline, the
+          // insights are simply calculated on this device.
+          if (!JwtAuthService.instance.isAuthenticated) {
+            return const SizedBox.shrink();
+          }
+          // The gap below belongs to the pill: signed out, nothing shows and no space is left.
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Insights Status',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (isSyncing)
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            )
-                          else
-                            Icon(
-                              Icons.analytics,
-                              size: 16,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              status,
-                              style: Theme.of(context).textTheme.bodySmall,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (!isSyncing)
-                  Semantics(
-                    label: 'Retry sync',
-                    button: true,
-                    enabled: true,
-                    onTap: () => _retry(context),
-                    child: IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () => _retry(context),
-                      tooltip: 'Retry sync',
-                    ),
-                  )
-                else
-                  const SizedBox(width: 48),
-              ],
+            padding: const EdgeInsets.only(bottom: DzSpacing.md),
+            child: _SyncStatusPill(
+              label: describe(status, isSyncing: isSyncing),
+              isSyncing: isSyncing,
+              failed: status == 'Sync error',
+              onRetry: () => _retry(context),
             ),
           );
         }
@@ -125,12 +94,7 @@ class InsightsSyncIndicator extends StatelessWidget {
             width: 24,
             height: 24,
             child: isSyncing
-                ? CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(
-                      Theme.of(context).primaryColor,
-                    ),
-                  )
+                ? const DzSunLoader(width: 24)
                 : Semantics(
                     label: 'Retry sync',
                     button: true,
@@ -147,6 +111,74 @@ class InsightsSyncIndicator extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _SyncStatusPill extends StatelessWidget {
+  const _SyncStatusPill({
+    required this.label,
+    required this.isSyncing,
+    required this.failed,
+    required this.onRetry,
+  });
+
+  final String label;
+  final bool isSyncing;
+  final bool failed;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tone = failed ? DzColors.error : scheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.only(left: DzSpacing.md, right: DzSpacing.xs),
+      constraints: const BoxConstraints(minHeight: DzSizing.minTouchTarget),
+      decoration: BoxDecoration(
+        color: failed ? DzColors.errorTint : scheme.surface,
+        borderRadius: BorderRadius.circular(DzRadius.button),
+        border: Border.all(color: scheme.outline),
+      ),
+      child: Row(
+        children: [
+          if (isSyncing)
+            const DzSunLoader(width: 28)
+          else
+            Icon(
+              failed ? Icons.cloud_off_rounded : Icons.cloud_done_outlined,
+              size: 18,
+              color: tone,
+            ),
+          const SizedBox(width: DzSpacing.sm),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DzTextStyles.caption.copyWith(
+                color: failed ? DzColors.error : scheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (!isSyncing)
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(DzSizing.minTouchTarget, DzSizing.minTouchTarget),
+                padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+              ),
+              child: Text(
+                failed ? 'Retry' : 'Sync now',
+                style: DzTextStyles.caption.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -3,7 +3,7 @@ import '../../../core/design_system/design_system.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "AI SETTINGS" card on the Settings page â€” AI personality, tip
+/// The "AI SETTINGS" card on the Settings page — AI personality, tip
 /// frequency, and focus analysis depth.
 class SettingsAiSection extends StatelessWidget {
   const SettingsAiSection({super.key, required this.ctrl});

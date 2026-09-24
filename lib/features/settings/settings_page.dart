@@ -24,7 +24,6 @@ class SettingsPage extends StatelessWidget {
     return ListenableBuilder(
       listenable: ctrl,
       builder: (context, _) => Scaffold(
-        backgroundColor: DzColors.appBackground,
         appBar: const DzAppBar(
           title: 'Settings',
           automaticallyImplyLeading: true,
@@ -58,13 +57,20 @@ class _SettingsFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.only(bottom: DzSpacing.xl),
-        child: Text(
-          AppConfig.settingsFooter,
-          style: DzTextStyles.caption.copyWith(
-            color: DzColors.textSecondary,
-          ),
-          textAlign: TextAlign.center,
+        padding: const EdgeInsets.only(top: DzSpacing.md, bottom: DzSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DzLogo(layout: DzLogoLayout.primary, width: 240),
+            const SizedBox(height: DzSpacing.md),
+            Text(
+              AppConfig.settingsFooter,
+              style: DzTextStyles.caption.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

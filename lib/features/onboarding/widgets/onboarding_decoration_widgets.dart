@@ -1,11 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Decorative shared widgets used across onboarding slides (cards, icon
 // tiles, badges). Split out of onboarding_shared_widgets.dart, which
-// exceeded the Phase 5.1 ~300-line target â€” see docs/DEVELOPMENT_PLAN.md.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// exceeded the Phase 5.1 ~300-line target — see docs/DEVELOPMENT_PLAN.md.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Wraps a slide's hero graphic so it drifts slightly during a page swipe,
 /// without rebuilding anything outside itself (scoped to [controller]'s own

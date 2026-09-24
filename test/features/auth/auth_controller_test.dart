@@ -10,6 +10,10 @@ class _FakeJwtAuthService extends JwtAuthService {
   bool signInResult = true;
   bool signUpResult = true;
   Object? throwOnNextCall;
+  String? reason;
+
+  @override
+  String? get lastError => reason;
 
   @override
   Future<bool> signIn({
@@ -45,6 +49,44 @@ class _FakeJwtAuthService extends JwtAuthService {
 }
 
 void main() {
+  group('JwtAuthService.messageForStatus', () {
+    String signUp(int status) =>
+        JwtAuthService.messageForStatus(status, signingUp: true);
+
+    test('says when the email is already registered', () {
+      expect(signUp(409), contains('already registered'));
+    });
+
+    test('says when the server is having trouble', () {
+      expect(signUp(500), contains('having trouble'));
+      expect(signUp(503), contains('having trouble'));
+    });
+
+    test('says when there have been too many attempts', () {
+      expect(signUp(429), contains('Too many attempts'));
+    });
+
+    test('says when the details were rejected', () {
+      expect(signUp(422), contains('check your name, email and password'));
+    });
+
+    test('says when accounts are unavailable', () {
+      expect(signUp(400), contains("aren't available"));
+      expect(signUp(404), contains("aren't available"));
+    });
+
+    test('words an unknown status for sign-up and sign-in separately', () {
+      expect(JwtAuthService.messageForStatus(418, signingUp: true),
+          contains('create your account'));
+      expect(JwtAuthService.messageForStatus(418, signingUp: false),
+          contains('sign you in'));
+    });
+
+    test('never blames the user for a connection problem', () {
+      expect(JwtAuthService.unreachableMessage, contains('Check your internet'));
+    });
+  });
+
   late _FakeJwtAuthService fakeAuthService;
   late AuthController controller;
 
@@ -56,6 +98,64 @@ void main() {
 
   tearDown(() {
     controller.dispose();
+  });
+
+  group('AuthController - shows why sign-up and sign-in failed', () {
+    test('sign-up shows the reason the service gives', () async {
+      fakeAuthService
+        ..signUpResult = false
+        ..reason = 'That email is already registered. Try signing in instead.';
+
+      final ok = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(ok, false);
+      expect(controller.error, contains('already registered'));
+    });
+
+    test('sign-up falls back to the generic message with no reason', () async {
+      fakeAuthService.signUpResult = false;
+
+      await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, 'Failed to create account. Please try again.');
+    });
+
+    test('sign-in shows a connection problem instead of "incorrect password"',
+        () async {
+      fakeAuthService
+        ..signInResult = false
+        ..reason = JwtAuthService.unreachableMessage;
+
+      await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, JwtAuthService.unreachableMessage);
+    });
+
+    test('a wrong password still says so', () async {
+      fakeAuthService.signInResult = false;
+
+      await controller.signIn(
+        email: 'test@example.com',
+        password: 'wrong-password',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, 'Incorrect email or password.');
+    });
   });
 
   group('AuthController - validation', () {

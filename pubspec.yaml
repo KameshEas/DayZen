@@ -34,6 +34,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
   drift_dev: ^2.34.0
   build_runner: ^2.15.1
 
@@ -44,8 +45,15 @@ flutter:
   assets:
     - assets/fonts/
     - assets/illustrations/
+    - assets/branding/logo/
+    - assets/branding/icons/
 
   fonts:
+    # ── Bodoni Moda — brand display face (logo wordmark); headings only ──
+    - family: BodoniModa
+      fonts:
+        - asset: assets/fonts/BodoniModa-Variable.ttf
+
     # ── Inter (18pt) — body text, captions, labels ─────────────
     - family: Inter
       fonts:
@@ -143,3 +151,13 @@ flutter:
         - asset: assets/fonts/Inter_28pt-BlackItalic.ttf
           weight: 900
           style: italic
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/icons/png/ios-appicon-1024.png
+  remove_alpha_ios: true
+  image_path_ios_dark_transparent: assets/branding/icons/png/ios-appicon-1024-dark.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/branding/icons/png/android-adaptive-foreground-432.png
+  adaptive_icon_monochrome: assets/branding/icons/png/android-adaptive-monochrome-432.png

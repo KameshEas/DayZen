@@ -28,13 +28,13 @@ class ScheduleCardMinimal extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md, vertical: DzSpacing.sm),
         decoration: BoxDecoration(
-          color: DzColors.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           border: Border.all(color: DzColors.borderLight, width: 1),
           borderRadius: BorderRadius.circular(DzRadius.card),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF667EEA)),
+            const Icon(Icons.calendar_today_rounded, size: 18, color: DzColors.navy),
             const SizedBox(width: DzSpacing.md),
             Expanded(
               child: Text(
@@ -42,7 +42,7 @@ class ScheduleCardMinimal extends StatelessWidget {
                 style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
-            const Icon(Icons.edit_outlined, size: 16, color: DzColors.textSecondary),
+            Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -84,9 +84,9 @@ class CategoryChipsMinimal extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF667EEA) : DzColors.cardBackground,
+              color: isSelected ? DzColors.navy : Theme.of(context).colorScheme.surface,
               border: Border.all(
-                color: isSelected ? const Color(0xFF667EEA) : DzColors.borderLight,
+                color: isSelected ? DzColors.navy : DzColors.borderLight,
                 width: 1,
               ),
               borderRadius: BorderRadius.circular(20),
@@ -100,7 +100,7 @@ class CategoryChipsMinimal extends StatelessWidget {
                   cat.label,
                   style: DzTextStyles.body.copyWith(
                     fontSize: 0.9,
-                    color: isSelected ? DzColors.white : DzColors.textPrimary,
+                    color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
@@ -131,7 +131,7 @@ class PriorityPickerMinimal extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(color: DzColors.borderLight, width: 1),
         borderRadius: BorderRadius.circular(DzRadius.card),
       ),
@@ -139,9 +139,9 @@ class PriorityPickerMinimal extends StatelessWidget {
         children: NewTaskPriorityLevel.values.map((level) {
           final isSelected = level == selected;
           final color = switch (level) {
-            NewTaskPriorityLevel.low => const Color(0xFF4CAF50),
-            NewTaskPriorityLevel.medium => const Color(0xFFFFA726),
-            NewTaskPriorityLevel.high => const Color(0xFFEF5350),
+            NewTaskPriorityLevel.low => DzColors.priorityLow,
+            NewTaskPriorityLevel.medium => DzColors.priorityMedium,
+            NewTaskPriorityLevel.high => DzColors.priorityHigh,
           };
           final label = switch (level) {
             NewTaskPriorityLevel.low => 'Low',
@@ -177,7 +177,7 @@ class PriorityPickerMinimal extends StatelessWidget {
                       style: DzTextStyles.body.copyWith(
                         fontSize: 0.85,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? color : DzColors.textSecondary,
+                        color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -212,7 +212,7 @@ class FocusCardMinimal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md, vertical: DzSpacing.sm),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(color: DzColors.borderLight, width: 1),
         borderRadius: BorderRadius.circular(DzRadius.card),
       ),
@@ -243,7 +243,7 @@ class FocusCardMinimal extends StatelessWidget {
               Text(
                 'CURRENT',
                 style: DzTextStyles.caption.copyWith(
-                  color: DzColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                   fontSize: 10,
                 ),

@@ -37,7 +37,7 @@ class AIRecommendationsCard extends StatelessWidget {
                   Text(
                     'AI Recommendations',
                     style: DzTextStyles.heading3.copyWith(
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -51,7 +51,7 @@ class AIRecommendationsCard extends StatelessWidget {
                 Text(
                   '+${recommendations.length - 3} more',
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -97,7 +97,7 @@ class _RecommendationTile extends StatelessWidget {
                     Text(
                       recommendation.reason,
                       style: DzTextStyles.caption.copyWith(
-                        color: DzColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -171,7 +171,7 @@ class _SuggestedTimeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: DzColors.appBackground,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: DzColors.borderLight,
@@ -185,7 +185,7 @@ class _SuggestedTimeChip extends StatelessWidget {
           Text(
             'Suggested: $timeStr',
             style: DzTextStyles.caption.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

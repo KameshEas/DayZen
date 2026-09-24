@@ -30,16 +30,18 @@ class SettingsController extends ChangeNotifier {
       };
 
   // ── Accent ─────────────────────────────────────────────────────────────
-  static const accentOptions = ['Zen Green', 'Ocean Blue', 'Sunset Orange', 'Lavender'];
+  // 'Brand Navy' is navy in light mode and flips to Sunrise in dark mode.
+  static const accentOptions = ['Brand Navy', 'Sunrise', 'Sage', 'Lavender'];
+  static const defaultAccent = 'Brand Navy';
   static const accentColorMap = <String, Color>{
-    'Zen Green': DzColors.zenGreen,
-    'Ocean Blue': DzColors.primary,
-    'Sunset Orange': DzColors.sunsetOrange,
+    'Brand Navy': DzColors.navy,
+    'Sunrise': DzColors.sunrise,
+    'Sage': DzColors.zenGreen,
     'Lavender': DzColors.lavender,
   };
-  String _accent = 'Zen Green';
+  String _accent = defaultAccent;
   String get accent => _accent;
-  Color get accentColor => accentColorMap[_accent] ?? DzColors.zenGreen;
+  Color get accentColor => accentColorMap[_accent] ?? DzColors.navy;
 
   // ── Font size ──────────────────────────────────────────────────────────
   static const fontSizeOptions = ['Small (14px)', 'Standard (16px)', 'Large (18px)'];
@@ -109,7 +111,9 @@ class SettingsController extends ChangeNotifier {
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _themeMode = ThemeMode.values[prefs.getInt('s_themeMode') ?? 0];
-    _accent = prefs.getString('s_accent') ?? 'Zen Green';
+    final savedAccent = prefs.getString('s_accent');
+    // Older builds saved names (e.g. 'Zen Green') that no longer exist.
+    _accent = accentColorMap.containsKey(savedAccent) ? savedAccent! : defaultAccent;
     _fontSize = prefs.getString('s_fontSize') ?? 'Standard (16px)';
     _quietHours = prefs.getBool('s_quietHours') ?? true;
     _focusAlerts = prefs.getBool('s_focusAlerts') ?? true;
@@ -216,8 +220,7 @@ class SettingsController extends ChangeNotifier {
     _userEmail = null;
     notifyListeners();
     _save();
-    final authService = JwtAuthService();
-    await authService.signOut();
+    await JwtAuthService.instance.signOut();
   }
 
   void setBiometricEnabled(bool value) {

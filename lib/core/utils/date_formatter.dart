@@ -22,6 +22,16 @@ class DateFormatter {
     return AppConfig.monthFull[month - 1];
   }
 
+  /// "Today", "Tomorrow", "Yesterday", or the weekday ("Thu") for any other day.
+  static String relativeDayLabel(DateTime date, DateTime today) {
+    final d = DateTime(date.year, date.month, date.day);
+    final t = DateTime(today.year, today.month, today.day);
+    if (d == t) return 'Today';
+    if (d == DateTime(t.year, t.month, t.day + 1)) return 'Tomorrow';
+    if (d == DateTime(t.year, t.month, t.day - 1)) return 'Yesterday';
+    return weekdayFull(d).substring(0, 3);
+  }
+
   static String formatDate(DateTime date) {
     return '${weekdayAbbr(date)}, ${monthAbbr(date.month)} ${date.day}';
   }

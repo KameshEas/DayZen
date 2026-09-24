@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="dz-title">
+<title id="dz-title">DayZen app icon</title>
+<rect id="background" width="1024" height="1024" fill="#FFFFFF"/>
+<g id="mark">
+<g id="rays" fill="#F49A70"><path d="M497 320L497 464A15 15 0 0 0 527 464L527 320A15 15 0 0 0 497 320Z"/><path d="M303.6 408.43L371.6 508.43A15 15 0 0 0 396.4 491.57L328.4 391.57A15 15 0 0 0 303.6 408.43Z"/><path d="M176.18 546.8L284.18 612.8A15 15 0 0 0 299.82 587.2L191.82 521.2A15 15 0 0 0 176.18 546.8Z"/><path d="M695.6 391.57L627.6 491.57A15 15 0 0 0 652.4 508.43L720.4 408.43A15 15 0 0 0 695.6 391.57Z"/><path d="M832.18 521.2L724.18 587.2A15 15 0 0 0 739.82 612.8L847.82 546.8A15 15 0 0 0 832.18 521.2Z"/></g>
+<path id="sun" fill="#F49A70" d="M341 700A171 171 0 0 1 683 700A15 15 0 0 1 653 700A141 141 0 0 0 371 700A15 15 0 0 1 341 700Z"/>
+<path id="horizon" fill="#1E2A38" d="M136 689H888A15 15 0 0 1 888 719H136A15 15 0 0 1 136 689Z"/>
+</g>
+</svg>

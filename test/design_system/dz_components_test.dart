@@ -148,7 +148,7 @@ void main() {
 
       testWidgets('light theme is created with provided accent',
           (WidgetTester tester) async {
-        final theme = DzTheme.light(accent: DzColors.sunsetOrange);
+        final theme = DzTheme.light(accent: DzColors.sunrise);
 
         expect(theme, isNotNull);
         expect(theme.colorScheme.brightness, Brightness.light);
@@ -173,15 +173,18 @@ void main() {
     });
 
     group('DzColors', () {
-      test('primary color is defined', () {
-        expect(DzColors.primary, isNotNull);
-        expect(DzColors.primary, equals(const Color(0xFF3B82F6)));
+      test('brand palette matches the logo kit', () {
+        expect(DzColors.navy, equals(const Color(0xFF1E2A38)));
+        expect(DzColors.sunrise, equals(const Color(0xFFF49A70)));
+        expect(DzColors.slate, equals(const Color(0xFF6D7C88)));
+        expect(DzColors.mist, equals(const Color(0xFFA9B7C3)));
+        expect(DzColors.primary, equals(DzColors.navy));
       });
 
       test('accent palette includes all four options', () {
+        expect(DzColors.navy, isNotNull);
+        expect(DzColors.sunrise, isNotNull);
         expect(DzColors.zenGreen, isNotNull);
-        expect(DzColors.primary, isNotNull);
-        expect(DzColors.sunsetOrange, isNotNull);
         expect(DzColors.lavender, isNotNull);
       });
 

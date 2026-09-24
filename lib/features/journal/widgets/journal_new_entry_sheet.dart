@@ -28,9 +28,9 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: DzColors.cardBackground,
-          borderRadius: BorderRadius.vertical(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(
               top: Radius.circular(DzRadius.modal)),
         ),
         padding: const EdgeInsets.fromLTRB(
@@ -66,7 +66,7 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
                       margin: const EdgeInsets.only(right: 6),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: selected ? mood.bg : DzColors.appBackground,
+                        color: selected ? mood.bg : Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(10),
                         border: selected
                             ? Border.all(color: mood.iconColor, width: 1.5)
@@ -90,7 +90,7 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
             const SizedBox(height: DzSpacing.md),
             DzTextField(
               controller: _bodyController,
-              label: 'Write your thoughtsâ€¦',
+              label: 'Write your thoughts…',
               hint: '',
               maxLines: 4,
             ),

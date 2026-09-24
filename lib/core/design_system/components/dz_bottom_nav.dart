@@ -160,34 +160,43 @@ class _SlidingIndicatorState extends State<_SlidingIndicator>
     super.dispose();
   }
 
+  static const _pillWidth = 56.0;
+  static const _pillHeight = 40.0;
+
   // Each tile (including the blank FAB slot) occupies an equal-width
-  // Expanded cell in the Row below, so the pill must center on that same
-  // 1/itemCount grid rather than re-packing only the non-FAB tiles —
-  // otherwise it drifts away from the icon it's supposed to sit behind.
-  double _getAlignment([int? index]) {
-    index ??= widget.currentIndex;
-    final itemCount = widget.items.length;
-    return -1.0 + (2 * index + 1) / itemCount;
-  }
+  // Expanded cell in the Row below, so the pill is positioned on that same
+  // 1/itemCount grid (in cell units) rather than re-packing only the
+  // non-FAB tiles — otherwise it drifts away from the icon it sits behind.
+  double _getAlignment([int? index]) => (index ?? widget.currentIndex).toDouble();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: AnimatedBuilder(
-        animation: _alignment,
-        builder: (context, child) => Align(
-          alignment: Alignment(_alignment.value, 0),
-          child: Container(
-            width: 56,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(DzRadius.button),
-            ),
+    final color =
+        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cell = constraints.maxWidth / widget.items.length;
+        final top = (constraints.maxHeight - _pillHeight) / 2;
+        return AnimatedBuilder(
+          animation: _alignment,
+          builder: (context, _) => Stack(
+            children: [
+              Positioned(
+                left: cell * (_alignment.value + 0.5) - _pillWidth / 2,
+                top: top,
+                width: _pillWidth,
+                height: _pillHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(DzRadius.button),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -205,7 +214,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? Theme.of(context).colorScheme.primary : DzColors.textSecondary;
+    final color = isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,

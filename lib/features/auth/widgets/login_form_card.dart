@@ -38,7 +38,7 @@ class LoginFormCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(DzSpacing.xl),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -57,7 +57,7 @@ class LoginFormCard extends StatelessWidget {
             child: Text(
               'Continue your calm planning',
               style: DzTextStyles.body.copyWith(
-                color: DzColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -128,25 +128,17 @@ class LoginFormCard extends StatelessWidget {
 
           // ── Error ───────────────────────────────────
           if (controller.error != null) ...[
-            const SizedBox(height: DzSpacing.sm),
-            Text(
-              controller.error!,
-              style: DzTextStyles.caption.copyWith(
-                color: DzColors.error,
-              ),
-            ),
+            const SizedBox(height: DzSpacing.md),
+            AuthErrorBanner(message: controller.error!),
           ],
           const SizedBox(height: DzSpacing.xl),
 
           // ── Sign In button ──────────────────────────
           DzPrimaryButton(
             label: 'Sign In',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: DzColors.white,
-              size: 18,
-            ),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
             isLoading: controller.isLoading,
+            loadingLabel: 'Signing in…',
             onPressed: onSubmit,
           ),
           const SizedBox(height: DzSpacing.lg),
@@ -187,7 +179,7 @@ class _SignUpLink extends StatelessWidget {
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+          style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           children: [
             const TextSpan(text: "Don't have an account? "),
             TextSpan(

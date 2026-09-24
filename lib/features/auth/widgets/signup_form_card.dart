@@ -3,9 +3,9 @@ import '../../../core/design_system/design_system.dart';
 import '../auth_controller.dart';
 import 'auth_shared_widgets.dart';
 
-/// The white card on the Sign Up page — name/email/password fields,
-/// create-account button, and (when not pushed from a canGoBack context)
-/// the offline alternative.
+/// The white card on the Sign Up page: name, email and password, the reason a
+/// sign-up failed (if it did), and the create-account button. The offline
+/// alternative and the log-in link live on the page, outside the card.
 class SignUpFormCard extends StatelessWidget {
   const SignUpFormCard({
     super.key,
@@ -16,8 +16,6 @@ class SignUpFormCard extends StatelessWidget {
     required this.obscurePassword,
     required this.onToggleObscurePassword,
     required this.onSubmit,
-    required this.canGoBack,
-    required this.onContinueOffline,
   });
 
   final AuthController controller;
@@ -27,66 +25,54 @@ class SignUpFormCard extends StatelessWidget {
   final bool obscurePassword;
   final VoidCallback onToggleObscurePassword;
   final VoidCallback onSubmit;
-  final bool canGoBack;
-  final VoidCallback onContinueOffline;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(DzSpacing.xl),
+      padding: const EdgeInsets.all(DzSpacing.lg),
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(DzRadius.modal),
+        border: Border.all(color: scheme.outline),
         boxShadow: DzShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Full Name ───────────────────────────────
-          const Text('Full Name', style: DzTextStyles.label),
-          const SizedBox(height: DzSpacing.sm),
+          const _FieldLabel('Full name'),
           DzTextField(
             controller: nameCtrl,
             hint: 'Alex Doe',
             keyboardType: TextInputType.name,
             textInputAction: TextInputAction.next,
-            prefixIcon: const Icon(
-              Icons.person_outline_rounded,
-              size: 20,
-            ),
+            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
             onChanged: (_) => controller.clearError(),
           ),
           const SizedBox(height: DzSpacing.md),
 
           // ── Email ───────────────────────────────────
-          const Text('Email Address', style: DzTextStyles.label),
-          const SizedBox(height: DzSpacing.sm),
+          const _FieldLabel('Email address'),
           DzTextField(
             controller: emailCtrl,
             hint: 'alex@example.com',
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            prefixIcon: const Icon(
-              Icons.mail_outline_rounded,
-              size: 20,
-            ),
+            prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
             onChanged: (_) => controller.clearError(),
           ),
           const SizedBox(height: DzSpacing.md),
 
           // ── Password ────────────────────────────────
-          const Text('Password', style: DzTextStyles.label),
-          const SizedBox(height: DzSpacing.sm),
+          const _FieldLabel('Password'),
           DzTextField(
             controller: passwordCtrl,
-            hint: '••••••••',
+            hint: 'At least 6 characters',
             obscureText: obscurePassword,
             textInputAction: TextInputAction.done,
-            prefixIcon: const Icon(
-              Icons.lock_outline_rounded,
-              size: 20,
-            ),
+            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
             suffixIcon: Semantics(
               label: obscurePassword ? 'Show password' : 'Hide password',
               button: true,
@@ -109,43 +95,38 @@ class SignUpFormCard extends StatelessWidget {
 
           // ── Error ───────────────────────────────────
           if (controller.error != null) ...[
-            const SizedBox(height: DzSpacing.sm),
-            Text(
-              controller.error!,
-              style: DzTextStyles.caption.copyWith(
-                color: DzColors.error,
-              ),
-            ),
+            const SizedBox(height: DzSpacing.md),
+            AuthErrorBanner(message: controller.error!),
           ],
-          const SizedBox(height: DzSpacing.xl),
+          const SizedBox(height: DzSpacing.lg),
 
           // ── Create Account button ───────────────────
           DzPrimaryButton(
-            label: 'Create Account',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: DzColors.white,
-              size: 18,
-            ),
+            label: 'Create account',
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
             isLoading: controller.isLoading,
+            loadingLabel: 'Creating account…',
             onPressed: onSubmit,
           ),
-          const SizedBox(height: DzSpacing.lg),
-
-          // ── "or choose privacy" divider ─────────────
-          if (!canGoBack) ...[
-            const AuthOrDivider(label: 'or choose privacy', italic: true),
-            const SizedBox(height: DzSpacing.lg),
-            DzSecondaryButton(
-              label: 'Use Offline Instead',
-              icon: const Icon(
-                Icons.cloud_off_rounded,
-                size: 18,
-              ),
-              onPressed: onContinueOffline,
-            ),
-          ],
         ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: DzSpacing.sm),
+      child: Text(
+        text,
+        style: DzTextStyles.label.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }

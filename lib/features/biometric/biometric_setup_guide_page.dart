@@ -44,7 +44,6 @@ class BiometricSetupGuidePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       appBar: const DzAppBar(
         title: 'Set Up Biometrics',
         automaticallyImplyLeading: true,
@@ -85,7 +84,7 @@ class BiometricSetupGuidePage extends StatelessWidget {
             'Follow these steps to get started:',
             textAlign: TextAlign.center,
             style: DzTextStyles.body.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -134,7 +133,7 @@ class BiometricSetupGuidePage extends StatelessWidget {
                           Text(
                             step.description,
                             style: DzTextStyles.caption.copyWith(
-                              color: DzColors.textSecondary,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               height: 1.4,
                             ),
                           ),
