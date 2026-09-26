@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../tokens/dz_colors.dart';
+import 'dz_progress.dart';
 import '../tokens/dz_dimensions.dart';
 import '../tokens/dz_text_styles.dart';
 
@@ -18,6 +18,7 @@ class DzPrimaryButton extends StatefulWidget {
     required this.label,
     this.onPressed,
     this.isLoading = false,
+    this.loadingLabel,
     this.icon,
     this.width,
   });
@@ -25,6 +26,9 @@ class DzPrimaryButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
+
+  /// Shown next to the loader while [isLoading] (e.g. 'Signing in…').
+  final String? loadingLabel;
   final Widget? icon;
   final double? width;
 
@@ -74,14 +78,19 @@ class _DzPrimaryButtonState extends State<DzPrimaryButton>
             scale: _scale.value,
             child: ElevatedButton(
               onPressed: widget.isLoading ? null : widget.onPressed,
+              // Stay fully colored while busy instead of turning disabled-gray.
+              style: widget.isLoading
+                  ? ElevatedButton.styleFrom(
+                      disabledBackgroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      disabledForegroundColor:
+                          Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : null,
               child: widget.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: DzColors.white,
-                      ),
+                  ? _LoadingContent(
+                      label: widget.loadingLabel,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     )
                   : widget.icon != null
                       ? Row(
@@ -89,14 +98,10 @@ class _DzPrimaryButtonState extends State<DzPrimaryButton>
                           children: [
                             widget.icon!,
                             const SizedBox(width: DzSpacing.sm),
-                            Text(widget.label,
-                                style: DzTextStyles.button
-                                    .copyWith(color: DzColors.white)),
+                            Text(widget.label),
                           ],
                         )
-                      : Text(widget.label,
-                          style: DzTextStyles.button
-                              .copyWith(color: DzColors.white)),
+                      : Text(widget.label),
             ),
           ),
         ),
@@ -116,6 +121,7 @@ class DzSecondaryButton extends StatefulWidget {
     required this.label,
     this.onPressed,
     this.isLoading = false,
+    this.loadingLabel,
     this.icon,
     this.width,
   });
@@ -123,6 +129,9 @@ class DzSecondaryButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
+
+  /// Shown next to the loader while [isLoading] (e.g. 'Signing in…').
+  final String? loadingLabel;
   final Widget? icon;
   final double? width;
 
@@ -172,14 +181,20 @@ class _DzSecondaryButtonState extends State<DzSecondaryButton>
             scale: _scale.value,
             child: OutlinedButton(
               onPressed: widget.isLoading ? null : widget.onPressed,
-              child: widget.isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
+              style: widget.isLoading
+                  ? OutlinedButton.styleFrom(
+                      disabledForegroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      side: BorderSide(
                         color: Theme.of(context).colorScheme.primary,
+                        width: 1.5,
                       ),
+                    )
+                  : null,
+              child: widget.isLoading
+                  ? _LoadingContent(
+                      label: widget.loadingLabel,
+                      color: Theme.of(context).colorScheme.primary,
                     )
                   : widget.icon != null
                       ? Row(
@@ -364,6 +379,28 @@ class _DzIconButtonState extends State<DzIconButton>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Loader (plus optional message) shown inside a button while it is busy.
+class _LoadingContent extends StatelessWidget {
+  const _LoadingContent({required this.color, this.label});
+
+  final Color color;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DzSunLoader.mono(width: 40, color: color),
+        if (label != null) ...[
+          const SizedBox(width: DzSpacing.sm),
+          Text(label!),
+        ],
+      ],
     );
   }
 }

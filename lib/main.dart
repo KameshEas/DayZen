@@ -24,23 +24,67 @@ import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await _runApp();
+  _runApp();
 }
 
-Future<void> _runApp() async {
-  // The shared singleton — every JwtAuthService.instance call site across
-  // the app (ApiClient's default, AuthController, SettingsController, ...)
-  // sees the same session once it's initialized here.
-  final authService = JwtAuthService.instance;
-
+/// Shows the splash immediately; all slow startup work (auth restore,
+/// Firebase, DB migration/loading, notifications) runs behind it in
+/// [_bootstrap], and the splash navigates once its animation and the
+/// bootstrap have both finished.
+void _runApp() {
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
   final insightsCtrl = InsightsController();
   final aiOptCtrl = AIOptimizationController();
   final notifCtrl = NotificationController();
+
+  // Constructed synchronously, before Firebase.initializeApp() below —
+  // AppVersionService reads AnalyticsService.instance lazily, only once it
+  // actually logs an event, so this is safe. AppRouter needs the controller
+  // up front so it can redirect the moment a forced update is detected,
+  // however long the rest of bootstrap takes.
+  final appVersionCtrl = AppVersionController(AppVersionService(ApiClient()));
+
+  AppRouter.initialize(
+    startRoute: _bootstrap(
+      taskCtrl: taskCtrl,
+      journalCtrl: journalCtrl,
+      settingsCtrl: settingsCtrl,
+      insightsCtrl: insightsCtrl,
+      aiOptCtrl: aiOptCtrl,
+      notifCtrl: notifCtrl,
+      appVersionCtrl: appVersionCtrl,
+    ),
+    appVersionController: appVersionCtrl,
+  );
+
+  runApp(AppScopes(
+    tasks: taskCtrl,
+    journal: journalCtrl,
+    settings: settingsCtrl,
+    insights: insightsCtrl,
+    aiOptimization: aiOptCtrl,
+    notifications: notifCtrl,
+    child: const DayZenApp(),
+  ));
+}
+
+Future<String> _bootstrap({
+  required TaskController taskCtrl,
+  required JournalController journalCtrl,
+  required SettingsController settingsCtrl,
+  required InsightsController insightsCtrl,
+  required AIOptimizationController aiOptCtrl,
+  required NotificationController notifCtrl,
+  required AppVersionController appVersionCtrl,
+}) async {
+  // The shared singleton — every JwtAuthService.instance call site across
+  // the app (ApiClient's default, AuthController, SettingsController, ...)
+  // sees the same session once it's initialized here.
+  final authService = JwtAuthService.instance;
 
   Future<bool> deviceHasBiometrics() async {
     final auth = LocalAuthentication();
@@ -66,14 +110,6 @@ Future<void> _runApp() async {
   ]);
   settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
 
-  // Constructed only after Firebase.initializeApp() above has resolved —
-  // AnalyticsService.instance reads FirebaseAnalytics.instance eagerly in
-  // its field initializer, which throws core/no-app if Firebase isn't
-  // ready yet.
-  final appVersionCtrl = AppVersionController(
-    AppVersionService(ApiClient(), AnalyticsService.instance),
-  );
-
   // Fire-and-forget: a slow or failed remote-config check must never delay
   // first paint. If it later flags a forced update, the router's
   // refreshListenable redirects the user to it from wherever they are.
@@ -90,37 +126,26 @@ Future<void> _runApp() async {
     aiOptCtrl.load(),
     notifCtrl.load(),
   ]);
+  // Only ever written once; the Planner lets you browse back to this day.
+  await AppPrefs.recordFirstUse();
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && await hasBiometrics;
 
-  // ── Initialise notifications ────────────────────────────────────────
   await NotificationService.instance.init();
-  await NotificationService.instance.requestPermission();
+  // The permission prompt waits on the user, so never block startup on it.
+  unawaited(NotificationService.instance.requestPermission());
 
-  // Wire notifications enabled/disabled based on notification settings
   final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
   taskCtrl.setNotificationsEnabled(notificationsOn);
 
-  // Initialize router with initial route logic
-  AppRouter.initialize(
+  return AppRouter.resolveInitialRoute(
     showOnboarding: !seenOnboarding,
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
     isSignedIn: authService.isAuthenticated,
-    appVersionController: appVersionCtrl,
   );
-
-  runApp(AppScopes(
-    tasks: taskCtrl,
-    journal: journalCtrl,
-    settings: settingsCtrl,
-    insights: insightsCtrl,
-    aiOptimization: aiOptCtrl,
-    notifications: notifCtrl,
-    child: const DayZenApp(),
-  ));
 }
 
 void _initCrashReporting() {

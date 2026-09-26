@@ -82,14 +82,14 @@ class SettingsTile extends StatelessWidget {
                   Text(
                     subtitle,
                     style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: DzColors.textSecondary, size: 22),
+            Icon(Icons.chevron_right_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
           ],
         ),
       ),

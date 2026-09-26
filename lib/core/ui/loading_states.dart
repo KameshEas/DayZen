@@ -139,7 +139,7 @@ class LoadingIndicator extends StatelessWidget {
     final content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const CircularProgressIndicator(),
+        const DzSunLoader(width: 72),
         if (message != null) ...[
           const SizedBox(height: DzSpacing.md),
           Text(

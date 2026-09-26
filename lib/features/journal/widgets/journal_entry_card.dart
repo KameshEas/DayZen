@@ -12,7 +12,7 @@ class JournalEntryCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
         border: accent != null
@@ -51,7 +51,7 @@ class JournalEntryCard extends StatelessWidget {
                     Text(
                       entry.dateLabel,
                       style: DzTextStyles.caption.copyWith(
-                          color: DzColors.textSecondary),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -59,7 +59,7 @@ class JournalEntryCard extends StatelessWidget {
                 Text(
                   entry.body,
                   style: DzTextStyles.body.copyWith(
-                      color: DzColors.textSecondary, height: 1.5),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),

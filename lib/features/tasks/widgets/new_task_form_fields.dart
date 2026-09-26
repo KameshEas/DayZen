@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../home/models/task_model.dart';
 
-/// Priority level as selected in the New Task form â€” mapped to the domain
+/// Priority level as selected in the New Task form — mapped to the domain
 /// [TaskPriority] enum by the page (medium -> routine; the form doesn't
 /// expose "zen" as a selectable priority).
 enum NewTaskPriorityLevel { low, medium, high }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Scheduled tile
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ScheduledTile extends StatelessWidget {
   const ScheduledTile({
@@ -32,7 +32,7 @@ class ScheduledTile extends StatelessWidget {
           vertical: DzSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: DzColors.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(DzRadius.card),
           boxShadow: DzShadows.soft,
         ),
@@ -54,7 +54,7 @@ class ScheduledTile extends StatelessWidget {
                 style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
-            const Icon(Icons.edit_outlined, color: DzColors.textSecondary, size: 18),
+            Icon(Icons.edit_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 18),
           ],
         ),
       ),
@@ -62,9 +62,9 @@ class ScheduledTile extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Category chips
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 class CategoryChips extends StatelessWidget {
   const CategoryChips({
@@ -92,7 +92,7 @@ class CategoryChips extends StatelessWidget {
               duration: DzDuration.fast,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? primary : DzColors.cardBackground,
+                color: isSelected ? primary : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isSelected ? primary : DzColors.borderLight,
@@ -103,7 +103,7 @@ class CategoryChips extends StatelessWidget {
               child: Text(
                 cat.label,
                 style: DzTextStyles.body.copyWith(
-                  color: isSelected ? DzColors.white : DzColors.textPrimary,
+                  color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
@@ -115,9 +115,9 @@ class CategoryChips extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Priority segmented control
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 class PrioritySegment extends StatelessWidget {
   const PrioritySegment({
@@ -134,7 +134,7 @@ class PrioritySegment extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -162,7 +162,7 @@ class PrioritySegment extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: DzTextStyles.body.copyWith(
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                    color: isSelected ? DzColors.textPrimary : DzColors.textSecondary,
+                    color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

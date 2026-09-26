@@ -35,12 +35,12 @@ class QuickActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isActive
               ? const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  colors: [DzColors.navy, DzColors.darkSurfaceHigh],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: isActive ? null : DzColors.cardBackground,
+          color: isActive ? null : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive ? Colors.transparent : DzColors.borderLight,
@@ -49,7 +49,7 @@ class QuickActionButton extends StatelessWidget {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+                    color: DzColors.navy.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )
@@ -65,7 +65,7 @@ class QuickActionButton extends StatelessWidget {
               label,
               style: DzTextStyles.body.copyWith(
                 fontSize: 0.85,
-                color: isActive ? DzColors.white : DzColors.textPrimary,
+                color: isActive ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
@@ -130,8 +130,8 @@ class _ScheduledCardWidgetState extends State<ScheduledCardWidget>
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [
-                  Color(0xFF667EEA),
-                  Color(0xFF764BA2),
+                  DzColors.navy,
+                  DzColors.darkSurfaceHigh,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -139,7 +139,7 @@ class _ScheduledCardWidgetState extends State<ScheduledCardWidget>
               borderRadius: BorderRadius.circular(DzRadius.card),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+                  color: DzColors.navy.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -220,14 +220,14 @@ class CategoryGridWidget extends StatelessWidget {
               gradient: isSelected
                   ? const LinearGradient(
                       colors: [
-                        Color(0xFF667EEA),
-                        Color(0xFF764BA2),
+                        DzColors.navy,
+                        DzColors.darkSurfaceHigh,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
-              color: isSelected ? null : DzColors.cardBackground,
+              color: isSelected ? null : Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(DzRadius.card),
               border: Border.all(
                 color: isSelected ? Colors.transparent : DzColors.borderLight,
@@ -241,14 +241,14 @@ class CategoryGridWidget extends StatelessWidget {
                 Icon(
                   _getIcon(cat),
                   size: 28,
-                  color: isSelected ? DzColors.white : DzColors.textPrimary,
+                  color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   cat.label,
                   style: DzTextStyles.body.copyWith(
                     fontSize: 0.85,
-                    color: isSelected ? DzColors.white : DzColors.textPrimary,
+                    color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
@@ -280,7 +280,7 @@ class PriorityPickerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DzColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(DzRadius.card),
         boxShadow: DzShadows.soft,
       ),
@@ -288,9 +288,9 @@ class PriorityPickerWidget extends StatelessWidget {
         children: NewTaskPriorityLevel.values.map((level) {
           final isSelected = level == selected;
           final color = switch (level) {
-            NewTaskPriorityLevel.low => const Color(0xFF4CAF50),
-            NewTaskPriorityLevel.medium => const Color(0xFFFFA726),
-            NewTaskPriorityLevel.high => const Color(0xFFEF5350),
+            NewTaskPriorityLevel.low => DzColors.priorityLow,
+            NewTaskPriorityLevel.medium => DzColors.priorityMedium,
+            NewTaskPriorityLevel.high => DzColors.priorityHigh,
           };
           final label = switch (level) {
             NewTaskPriorityLevel.low => 'Low',
@@ -333,7 +333,7 @@ class PriorityPickerWidget extends StatelessWidget {
                         fontSize: 0.85,
                         fontWeight:
                             isSelected ? FontWeight.w700 : FontWeight.w400,
-                        color: isSelected ? color : DzColors.textSecondary,
+                        color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -424,7 +424,7 @@ class EnhancedFocusCard extends StatelessWidget {
                 label,
                 style: DzTextStyles.body.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: DzColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

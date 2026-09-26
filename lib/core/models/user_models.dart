@@ -106,7 +106,7 @@ class UserSettingsModel {
       focusAlertsEnabled: json['focus_alerts_enabled'] as bool? ?? true,
       timezone: json['timezone'] as String? ?? 'UTC',
       themeMode: json['theme_mode'] as String? ?? 'dark',
-      accentColor: json['accent_color'] as String? ?? 'Zen Green',
+      accentColor: json['accent_color'] as String? ?? 'Brand Navy',
       fontSize: json['font_size'] as String? ?? 'Standard (16px)',
       biometricEnabled: json['biometric_enabled'] as bool? ?? false,
       biometricTimeout: json['biometric_timeout'] as int? ?? 5,

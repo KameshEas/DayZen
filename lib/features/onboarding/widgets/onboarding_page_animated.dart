@@ -76,10 +76,9 @@ class _AnimatedOnboardingPageState extends State<AnimatedOnboardingPage> {
                     const SizedBox(width: 56),
                     Expanded(
                       child: Center(
-                        child: DzLogo(
-                          variant: DzLogoVariant.wordmarkOnly,
-                          size: DzLogoSize.large,
-                          color: Theme.of(context).colorScheme.primary,
+                        child: const DzLogo(
+                          layout: DzLogoLayout.horizontal,
+                          width: 170,
                         ),
                       ),
                     ),
@@ -89,7 +88,7 @@ class _AnimatedOnboardingPageState extends State<AnimatedOnboardingPage> {
                           ? TextButton(
                               onPressed: () => _goTo(_totalPages - 1),
                               style: TextButton.styleFrom(
-                                foregroundColor: DzColors.textSecondary,
+                                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                                 padding: EdgeInsets.zero,
                               ),
                               child: Text(

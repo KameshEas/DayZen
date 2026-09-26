@@ -9,21 +9,21 @@ class SyncOutcome {
   final int conflictCount;
 }
 
-/// Base class for the offline-first "local write â†’ mark dirty â†’
-/// background push â†’ clear dirty on success" sync pattern (Phase 3.2 of
+/// Base class for the offline-first "local write → mark dirty →
+/// background push → clear dirty on success" sync pattern (Phase 3.2 of
 /// docs/DEVELOPMENT_PLAN.md).
 ///
 /// Extracted from `SyncManager` (tasks) and `JournalSyncManager` (journal
-/// entries), which had hand-copied this exact state machine â€” the
+/// entries), which had hand-copied this exact state machine — the
 /// `isSyncing` guard, sync-status time-ago formatting, retry wrapper, and
-/// the create/delete-then-sync pattern â€” twice, with only the entity-
+/// the create/delete-then-sync pattern — twice, with only the entity-
 /// specific request/response shape actually differing between them.
 /// Subclasses implement only [entityLabel] and [performSync]; everything
 /// else lives here once.
 ///
 /// **Not** used by `InsightsSyncManager`: insights are read-only/server-
 /// computed from the client's perspective (see `InsightsController`'s own
-/// doc comment) â€” there's no local write to push, only a cache-freshness
+/// doc comment) — there's no local write to push, only a cache-freshness
 /// pull. That's a different pattern, and forcing it into this shape would
 /// be a worse fit than leaving it separate. See docs/ARCHITECTURE.md.
 abstract class SyncCoordinator<TController> extends ChangeNotifier {
@@ -38,12 +38,12 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
 
   /// Push local state (read from [controller]) to the server, and apply
   /// the server's response back onto [controller] (add/update/delete).
-  /// Implementations own everything entity-specific â€” request shape,
+  /// Implementations own everything entity-specific — request shape,
   /// response parsing, and reconciliation.
   Future<SyncOutcome> performSync(TController controller);
 
   /// Sync with the server (offline-first, guarded against overlapping
-  /// calls â€” a call that arrives while one is already in flight is a
+  /// calls — a call that arrives while one is already in flight is a
   /// silent no-op, matching the original `SyncManager`/`JournalSyncManager`
   /// behavior).
   Future<void> sync(TController controller) async {
@@ -73,7 +73,7 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
   /// `create*WithSync`/`delete*WithSync` behavior exactly: both the local
   /// write *and* the sync attempt are wrapped in the same try/catch, so a
   /// failing [localWrite] is logged and swallowed the same way a failing
-  /// sync is â€” this preserves existing behavior as-is rather than fixing
+  /// sync is — this preserves existing behavior as-is rather than fixing
   /// it as a side effect of this extraction (worth revisiting separately;
   /// see docs/ARCHITECTURE.md).
   Future<void> withSync(

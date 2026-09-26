@@ -91,12 +91,9 @@ class _ScheduleSuggestionsWidgetState extends State<ScheduleSuggestionsWidget> {
 
     if (_loading) {
       return const DzCard(
-        child: Column(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: DzSpacing.md),
-            Text('Generating optimal schedule...', style: DzTextStyles.body),
-          ],
+        child: DzLoadingView(
+          message: 'Generating optimal schedule…',
+          width: 80,
         ),
       );
     }

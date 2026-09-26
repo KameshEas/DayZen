@@ -21,6 +21,10 @@ import 'widgets/insights_weekly_completion_card.dart';
 class InsightsPage extends StatelessWidget {
   const InsightsPage({super.key});
 
+  // The centre button floats over the bottom of the list; without this the last
+  // card would sit underneath it.
+  static const _bottomClearance = DzSpacing.xxl + DzSpacing.lg;
+
   @override
   Widget build(BuildContext context) {
     final insightsCtrl = InsightsScope.of(context);
@@ -31,51 +35,49 @@ class InsightsPage extends StatelessWidget {
         final d = InsightsData.from(context);
         final hasData = TaskScope.of(context).all.isNotEmpty ||
             JournalScope.of(context).all.isNotEmpty;
+        final suggestion = d.suggestion;
 
-        if (!hasData) {
-          return ListView(
-            padding: const EdgeInsets.symmetric(
-                horizontal: DzSpacing.lg, vertical: DzSpacing.md),
-            children: [
-              const SizedBox(height: DzSpacing.lg),
-              const InsightsGreeting(),
-              const SizedBox(height: DzSpacing.xl),
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+              DzSpacing.lg, DzSpacing.md, DzSpacing.lg, _bottomClearance),
+          children: [
+            InsightsGreeting(
+              subtitle: hasData
+                  ? d.greetingSubtitle
+                  : 'Log tasks and journal entries to see your patterns.',
+            ),
+            const SizedBox(height: DzSpacing.lg),
+            if (!hasData)
               DzEmptyState(
                 icon: Icons.analytics_outlined,
                 title: AppConfig.insightsEmptyTitle,
                 subtitle: AppConfig.insightsEmptyBody,
                 actionLabel: AppConfig.insightsEmptyAction,
                 onAction: () => context.push(RoutePaths.newTask),
+              )
+            else ...[
+              InsightsSyncIndicator(
+                insightsController: insightsCtrl,
+                showFullStatus: true,
               ),
+              InsightsProductivityScoreCard(data: d),
+              const SizedBox(height: DzSpacing.md),
+              InsightsFocusTrendCard(data: d),
+              const SizedBox(height: DzSpacing.md),
+              InsightsWeeklyCompletionCard(data: d),
+              if (suggestion != null) ...[
+                const SizedBox(height: DzSpacing.md),
+                InsightsAiSuggestionCard(suggestion: suggestion),
+              ],
+              if (d.topCategory != null) ...[
+                const SizedBox(height: DzSpacing.md),
+                InsightsTopCategoryCard(data: d),
+              ],
+              const SizedBox(height: DzSpacing.md),
+              InsightsMindfulnessCard(data: d),
+              const SizedBox(height: DzSpacing.md),
+              const InsightsReflectionImageCard(),
             ],
-          );
-        }
-
-        return ListView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: DzSpacing.lg, vertical: DzSpacing.md),
-          children: [
-            const InsightsGreeting(),
-            const SizedBox(height: DzSpacing.lg),
-            InsightsSyncIndicator(
-              insightsController: insightsCtrl,
-              showFullStatus: true,
-            ),
-            const SizedBox(height: DzSpacing.md),
-            InsightsProductivityScoreCard(data: d),
-            const SizedBox(height: DzSpacing.md),
-            InsightsFocusTrendCard(data: d),
-            const SizedBox(height: DzSpacing.md),
-            InsightsWeeklyCompletionCard(data: d),
-            const SizedBox(height: DzSpacing.md),
-            const InsightsAiSuggestionCard(),
-            const SizedBox(height: DzSpacing.md),
-            const InsightsTopCategoryCard(),
-            const SizedBox(height: DzSpacing.md),
-            const InsightsMindfulnessCard(),
-            const SizedBox(height: DzSpacing.md),
-            const InsightsReflectionImageCard(),
-            const SizedBox(height: DzSpacing.xl),
           ],
         );
       },

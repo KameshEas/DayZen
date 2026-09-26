@@ -3,9 +3,10 @@ import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'auth_controller.dart';
+import 'widgets/auth_shared_widgets.dart';
 import 'widgets/signup_form_card.dart';
 
-/// SignUpPage â€” composes SignUpFormCard under features/auth/widgets/.
+/// SignUpPage — composes SignUpFormCard under features/auth/widgets/.
 /// Split from a single 309-line file in Phase 5.1 of
 /// docs/DEVELOPMENT_PLAN.md.
 class SignUpPage extends StatefulWidget {
@@ -45,86 +46,88 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    _controller.signUp(
-      fullName: _nameCtrl.text,
-      email: email,
-      password: _passwordCtrl.text,
-      onSuccess: () {
-        SettingsScope.of(context).setSignedIn(true, email);
-        widget.onSignedUp(email);
-      },
+    final ok = await DzProgress.run<bool>(
+      context,
+      message: 'Creating your account…',
+      successMessage: 'Welcome to DayZen',
+      isSuccess: (ok) => ok,
+      task: () => _controller.signUp(
+        fullName: _nameCtrl.text,
+        email: email,
+        password: _passwordCtrl.text,
+      ),
     );
+    if (ok != true || !mounted) return;
+    SettingsScope.of(context).setSignedIn(true, email);
+    widget.onSignedUp(email);
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) {
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(
                 horizontal: DzSpacing.lg,
                 vertical: DzSpacing.md,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // â”€â”€ Top nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Top bar: back, logo centred ───────────────────
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: Theme.of(context).colorScheme.primary,
+                      AuthBackButton(
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
-                      const DzLogo(),
+                      const Expanded(child: Center(child: DzLogo(width: 132))),
+                      // Balances the back button so the logo sits in the middle.
+                      const SizedBox(width: DzSizing.minTouchTarget),
                     ],
                   ),
-                  const SizedBox(height: DzSpacing.lg),
+                  const SizedBox(height: DzSpacing.xl),
 
-                  // â”€â”€ Avatar icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Hero ──────────────────────────────────────────
                   Center(
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 64,
+                      height: 64,
                       decoration: const BoxDecoration(
-                        color: DzColors.signUpAvatarBg, // mint green circle
+                        color: DzColors.signUpAvatarBg,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.eco_rounded,
                         color: DzColors.signUpAvatarIcon,
-                        size: 36,
+                        size: 30,
                       ),
                     ),
                   ),
                   const SizedBox(height: DzSpacing.md),
-
-                  // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  const Center(
-                    child: Text(
-                      AppConfig.signupTitle,
-                      style: DzTextStyles.heading1,
-                    ),
+                  const Text(
+                    AppConfig.signupTitle,
+                    textAlign: TextAlign.center,
+                    style: DzTextStyles.heading1,
                   ),
-                  const SizedBox(height: DzSpacing.xs),
-                  Center(
-                    child: Text(
-                      'Optional, for backup & sync',
-                      style: DzTextStyles.body.copyWith(
-                        color: DzColors.zenGreen,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(height: DzSpacing.sm),
+                  Text(
+                    'Back up your days and keep them in sync across devices. '
+                    'An account is optional.',
+                    textAlign: TextAlign.center,
+                    style: DzTextStyles.body.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: DzSpacing.lg),
 
-                  // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Form ──────────────────────────────────────────
                   SignUpFormCard(
                     controller: _controller,
                     nameCtrl: _nameCtrl,
@@ -134,50 +137,39 @@ class _SignUpPageState extends State<SignUpPage> {
                     onToggleObscurePassword: () => setState(
                         () => _obscurePassword = !_obscurePassword),
                     onSubmit: _submit,
-                    canGoBack: widget.canGoBack,
-                    onContinueOffline: widget.onContinueOffline,
                   ),
-                  const SizedBox(height: DzSpacing.xl),
+                  const SizedBox(height: DzSpacing.lg),
 
-                  // â”€â”€ End-to-end encrypted badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.shield_rounded,
-                          size: 14,
-                          color: DzColors.textSecondary,
-                        ),
-                        const SizedBox(width: DzSpacing.xs),
-                        Text(
-                          'END-TO-END ENCRYPTED',
-                          style: DzTextStyles.caption.copyWith(
-                            color: DzColors.textSecondary,
-                            fontSize: 11,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
+                  // ── Offline alternative ───────────────────────────
+                  if (!widget.canGoBack) ...[
+                    const AuthOrDivider(label: 'or keep it private', italic: true),
+                    const SizedBox(height: DzSpacing.md),
+                    DzSecondaryButton(
+                      label: 'Use offline instead',
+                      icon: const Icon(Icons.cloud_off_rounded, size: 18),
+                      onPressed: widget.onContinueOffline,
                     ),
-                  ),
-                  const SizedBox(height: DzSpacing.md),
+                    const SizedBox(height: DzSpacing.lg),
+                  ],
 
-                  // â”€â”€ Log in link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // ── Log in link ───────────────────────────────────
                   Center(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).maybePop(),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, DzSizing.minTouchTarget),
+                      ),
                       child: RichText(
                         text: TextSpan(
                           style: DzTextStyles.body.copyWith(
-                            color: DzColors.textSecondary,
+                            color: scheme.onSurfaceVariant,
                           ),
                           children: [
                             const TextSpan(text: 'Already have an account? '),
                             TextSpan(
                               text: 'Log in',
                               style: DzTextStyles.body.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: scheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -186,7 +178,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: DzSpacing.lg),
+                  const SizedBox(height: DzSpacing.sm),
                 ],
               ),
             );
@@ -196,5 +188,3 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 }
-
-
