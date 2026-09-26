@@ -1,0 +1,9 @@
+{
+  "project": "aspired2d",
+  "app_name": "dayzen",
+  "platforms": [
+    "android"
+  ],
+  "api_base_url": "https://api.aspired2d.cloud",
+  "app_version_url": "https://api.aspired2d.cloud/api/v1/dayzen/app-version"
+}

@@ -61,7 +61,11 @@ class ApiClient {
     JwtAuthService? authService,
   }) {
     _client = client ?? http.Client();
-    _authService = authService ?? JwtAuthService();
+    // The shared singleton, not a fresh instance — a fresh JwtAuthService()
+    // here would never be initialize()'d/signed-in, so every authenticated
+    // request would go out with no Authorization header regardless of the
+    // user's actual session elsewhere in the app.
+    _authService = authService ?? JwtAuthService.instance;
   }
 
   /// Get the base URL from config

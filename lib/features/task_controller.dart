@@ -103,14 +103,7 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> addTask(DzTask task) async {
-    _tasks.add(task);
-    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
-    // "re-serialize and rewrite the entire task list" pattern.
-    await TaskRepository.insertTask(task);
-    notifyListeners();
-    if (_notificationsEnabled) {
-      await NotificationService.instance.scheduleForTask(task);
-    }
+    await insertLocal(task);
     // Queue for sync (fire-and-forget)
     SyncManager.instance.createTaskWithSync(this, task);
   }
@@ -119,22 +112,42 @@ class TaskController extends ChangeNotifier {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
-    _tasks[idx] = updatedTask;
-    await TaskRepository.updateTask(updatedTask);
-    notifyListeners();
-    // Cancel notification if completed; re-schedule if unchecked
-    if (_notificationsEnabled) {
-      if (updatedTask.isCompleted) {
-        await NotificationService.instance.cancelForTask(id);
-      } else {
-        await NotificationService.instance.scheduleForTask(updatedTask);
-      }
-    }
+    await updateLocal(id, updatedTask);
     // Queue for sync (fire-and-forget)
     SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
   }
 
   Future<void> updateTask(String id, DzTask updatedTask) async {
+    await updateLocal(id, updatedTask);
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
+  }
+
+  Future<void> deleteTask(String id) async {
+    await removeLocal(id);
+    // Queue for sync (fire-and-forget)
+    SyncManager.instance.deleteTaskWithSync(this, id);
+  }
+
+  /// Local-only write path (no sync queuing). Used by the public CRUD
+  /// methods above and by [SyncManager] when reconciling server state â€”
+  /// calling back into `addTask`/`updateTask`/`deleteTask` from there would
+  /// re-queue a sync for every task each sync pass reconciles and recurse
+  /// forever (each pass re-inserting the same task, which is what
+  /// previously caused counts to grow unbounded while the app stayed open).
+  Future<void> insertLocal(DzTask task) async {
+    _tasks.add(task);
+    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
+    // "re-serialize and rewrite the entire task list" pattern.
+    await TaskRepository.insertTask(task);
+    notifyListeners();
+    if (_notificationsEnabled) {
+      await NotificationService.instance.scheduleForTask(task);
+    }
+  }
+
+  /// Local-only update path (no sync queuing) â€” see [insertLocal].
+  Future<void> updateLocal(String id, DzTask updatedTask) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     _tasks[idx] = updatedTask;
@@ -147,11 +160,10 @@ class TaskController extends ChangeNotifier {
         await NotificationService.instance.scheduleForTask(updatedTask);
       }
     }
-    // Queue for sync (fire-and-forget)
-    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
   }
 
-  Future<void> deleteTask(String id) async {
+  /// Local-only delete path (no sync queuing) â€” see [insertLocal].
+  Future<void> removeLocal(String id) async {
     _tasks.removeWhere((t) => t.id == id);
     // Soft delete (deleted_at set, row retained for sync visibility) â€” see
     // docs/DATABASE_SCHEMA.md.
@@ -160,8 +172,6 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.cancelForTask(id);
     }
-    // Queue for sync (fire-and-forget)
-    SyncManager.instance.deleteTaskWithSync(this, id);
   }
 
   Future<void> clearAll() async {
