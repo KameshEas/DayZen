@@ -8,11 +8,15 @@ import 'core/data/legacy_data_migrator.dart';
 import 'core/design_system/design_system.dart';
 import 'core/notification_service.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/analytics_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
+import 'core/api/api_client.dart';
+import 'core/services/app_version_service.dart';
 import 'features/app_data.dart';
+import 'features/app_update/app_version_controller.dart';
 import 'features/journal_controller.dart';
 import 'features/insights_controller.dart';
 import 'features/ai_optimization_controller.dart';
@@ -37,6 +41,13 @@ void _runApp() {
   final aiOptCtrl = AIOptimizationController();
   final notifCtrl = NotificationController();
 
+  // Constructed synchronously, before Firebase.initializeApp() below —
+  // AppVersionService reads AnalyticsService.instance lazily, only once it
+  // actually logs an event, so this is safe. AppRouter needs the controller
+  // up front so it can redirect the moment a forced update is detected,
+  // however long the rest of bootstrap takes.
+  final appVersionCtrl = AppVersionController(AppVersionService(ApiClient()))..init();
+
   AppRouter.initialize(
     startRoute: _bootstrap(
       taskCtrl: taskCtrl,
@@ -45,7 +56,9 @@ void _runApp() {
       insightsCtrl: insightsCtrl,
       aiOptCtrl: aiOptCtrl,
       notifCtrl: notifCtrl,
+      appVersionCtrl: appVersionCtrl,
     ),
+    appVersionController: appVersionCtrl,
   );
 
   runApp(AppScopes(
@@ -66,7 +79,11 @@ Future<String> _bootstrap({
   required InsightsController insightsCtrl,
   required AIOptimizationController aiOptCtrl,
   required NotificationController notifCtrl,
+  required AppVersionController appVersionCtrl,
 }) async {
+  // The shared singleton — every JwtAuthService.instance call site across
+  // the app (ApiClient's default, AuthController, SettingsController, ...)
+  // sees the same session once it's initialized here.
   final authService = JwtAuthService.instance;
 
   Future<bool> deviceHasBiometrics() async {
@@ -85,10 +102,18 @@ Future<String> _bootstrap({
   final hasBiometrics = deviceHasBiometrics();
   await Future.wait([
     authService.initialize(),
-    Firebase.initializeApp().then((_) => _initCrashReporting()),
+    Firebase.initializeApp().then((_) {
+      _initCrashReporting();
+      return AnalyticsService.instance.init();
+    }),
     LegacyDataMigrator.migrateIfNeeded(),
   ]);
   settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
+
+  // Fire-and-forget: a slow or failed remote-config check must never delay
+  // first paint. If it later flags a forced update, the router's
+  // refreshListenable redirects the user to it from wherever they are.
+  unawaited(appVersionCtrl.refresh());
 
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
@@ -105,6 +130,7 @@ Future<String> _bootstrap({
   await AppPrefs.recordFirstUse();
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
+  // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && await hasBiometrics;
 
   await NotificationService.instance.init();
@@ -118,6 +144,7 @@ Future<String> _bootstrap({
     showOnboarding: !seenOnboarding,
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
+    isSignedIn: authService.isAuthenticated,
   );
 }
 

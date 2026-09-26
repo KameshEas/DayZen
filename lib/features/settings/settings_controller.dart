@@ -130,7 +130,7 @@ class SettingsController extends ChangeNotifier {
     // Reconcile with the real JWT session (source of truth), in case a prior
     // sign-in/sign-up flow didn't update this flag — e.g. accounts created
     // before this flag existed, or before sign-up wired it up.
-    final authService = JwtAuthService();
+    final authService = JwtAuthService.instance;
     await authService.initialize();
     if (authService.isAuthenticated != _isSignedIn ||
         authService.userEmail != _userEmail) {

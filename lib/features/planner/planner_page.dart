@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
@@ -39,12 +41,28 @@ class _PlannerPageState extends State<PlannerPage> {
 
   PlannerSelection get _selection => widget.selection ?? PlannerSelection.instance;
 
+  // Drives the timeline's "now" indicator line. The page otherwise only
+  // rebuilds when TaskController notifies (task added/edited/completed), so
+  // without this the current-time line stayed frozen at whatever time the
+  // page happened to last rebuild at, instead of tracking real time.
+  Timer? _clockTimer;
+  DateTime _now = DateTime.now();
+
   @override
   void initState() {
     super.initState();
     AppPrefs.firstUseDate().then((d) {
       if (mounted && d != null) setState(() => _firstUse = d);
     });
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
   }
 
   /// The earliest day worth showing: the older of the first-use day and the
@@ -182,12 +200,11 @@ class _PlannerPageState extends State<PlannerPage> {
       );
     }
 
-    final now = DateTime.now();
     return PlannerTimelineView(
       key: ValueKey(selected),
       events: events,
-      currentHour: now.hour,
-      currentMinute: now.minute,
+      currentHour: _now.hour,
+      currentMinute: _now.minute,
       showNow: isSameDay(selected, today),
     );
   }

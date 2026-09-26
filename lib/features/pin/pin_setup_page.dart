@@ -16,7 +16,11 @@ class PinSetupPage extends StatefulWidget {
   /// Called with the page's own [BuildContext] after the PIN has been saved.
   final void Function(BuildContext context) onPinSet;
 
-  const PinSetupPage({super.key, required this.onPinSet});
+  /// PIN is optional. When provided, a "Skip for now" affordance is shown
+  /// and this is called (instead of [onPinSet]) if the user declines.
+  final void Function(BuildContext context)? onSkip;
+
+  const PinSetupPage({super.key, required this.onPinSet, this.onSkip});
 
   @override
   State<PinSetupPage> createState() => _PinSetupPageState();
@@ -180,6 +184,20 @@ class _PinSetupPageState extends State<PinSetupPage> {
                 onPressed: _pin.length == _pinLength ? _confirm : null,
               ),
             ),
+
+            if (widget.onSkip != null) ...[
+              const SizedBox(height: DzSpacing.sm),
+              TextButton(
+                onPressed: () => widget.onSkip!(context),
+                child: Text(
+                  'Skip for now',
+                  style: DzTextStyles.body.copyWith(
+                    color: DzColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: DzSpacing.md),
 
