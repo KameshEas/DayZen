@@ -11,6 +11,11 @@ class AppPrefs {
   static const _keyOnboardingSeen = 'onboarding_seen';
   static const _keyBiometricEnabled = 's_biometricEnabled';
 
+  /// Set when the user explicitly declines to set a PIN (skips PIN setup, or
+  /// turns "PIN Lock" off in Settings). PIN is optional, so this stops the
+  /// app from re-prompting for PIN setup on every subsequent sign-in.
+  static const _keyPinOptedOut = 's_pinOptedOut';
+
   /// Legacy plaintext PIN key. Read once (if present) to migrate into
   /// secure storage, then deleted. Do not write to this key going forward.
   static const _legacyKeyPin = 'app_pin';
@@ -52,6 +57,8 @@ class AppPrefs {
     final hash = PinHasher.hash(pin, salt);
     await _secureStorage.write(key: _secureKeyPinSalt, value: salt);
     await _secureStorage.write(key: _secureKeyPinHash, value: hash);
+    // A PIN now exists, so any earlier opt-out no longer applies.
+    await setPinOptedOut(false);
   }
 
   /// Verifies [input] against the stored hash. Returns false if no PIN has
@@ -89,6 +96,19 @@ class AppPrefs {
     await _secureStorage.delete(key: _secureKeyPinSalt);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyKeyPin);
+  }
+
+  /// Whether the user has explicitly chosen not to use a PIN (skipped setup,
+  /// or turned "PIN Lock" off in Settings). PIN is optional — this is what
+  /// stops the app from re-prompting on every subsequent sign-in.
+  static Future<bool> isPinOptedOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyPinOptedOut) ?? false;
+  }
+
+  static Future<void> setPinOptedOut(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyPinOptedOut, value);
   }
 
   /// One-time migration: if an old plaintext PIN exists in SharedPreferences

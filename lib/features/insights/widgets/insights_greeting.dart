@@ -7,7 +7,7 @@ class InsightsGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = JwtAuthService();
+    final authService = JwtAuthService.instance;
     final user = authService.currentUser;
     final rawName = user?.name ?? user?.email ?? 'there';
     final name = rawName.contains('@') ? rawName.split('@').first : rawName.split(' ').first;

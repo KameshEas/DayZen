@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
 import '../../core/services/user_service.dart';
+import '../../features/app_update/app_version_controller.dart';
+import '../../features/app_update/update_showcase_page.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
@@ -23,19 +25,32 @@ import 'route_paths.dart';
 
 /// Global router instance, initialized post-app-setup in main.dart
 GoRouter? _appRouter;
+AppVersionController? _appVersionController;
 
 class AppRouter {
   static void initialize({
     required bool showOnboarding,
     required bool hasPin,
     required bool biometricEnabled,
+    required bool isSignedIn,
+    required AppVersionController appVersionController,
   }) {
+    _appVersionController = appVersionController;
     _appRouter = GoRouter(
       initialLocation: _resolveInitialRoute(
         showOnboarding: showOnboarding,
         hasPin: hasPin,
         biometricEnabled: biometricEnabled,
+        isSignedIn: isSignedIn,
       ),
+      refreshListenable: appVersionController,
+      redirect: (context, state) {
+        if (appVersionController.forceUpdateRequired &&
+            state.matchedLocation != RoutePaths.forceUpdate) {
+          return RoutePaths.forceUpdate;
+        }
+        return null;
+      },
       errorBuilder: (context, state) => Scaffold(
         body: Center(
           child: Column(
@@ -88,6 +103,16 @@ class AppRouter {
             onContinueOffline: () => _routeAfterAuth(context),
           ),
         ),
+        // ── Forced update showcase ───────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.forceUpdate,
+          name: RouteNames.forceUpdate,
+          builder: (context, state) => UpdateShowcasePage(
+            versionConfig: _appVersionController!.config!,
+            versionService: _appVersionController!.versionService,
+          ),
+        ),
+
         // ── Biometric unlock flow ───────────────────────────────────────
         GoRoute(
           path: '/biometric-unlock',
@@ -106,6 +131,12 @@ class AppRouter {
           path: '/pin-setup',
           builder: (context, state) => PinSetupPage(
             onPinSet: (ctx) {
+              context.go(RoutePaths.home);
+            },
+            // PIN is optional — remember the choice so we don't re-prompt
+            // on every subsequent sign-in.
+            onSkip: (ctx) {
+              AppPrefs.setPinOptedOut(true);
               context.go(RoutePaths.home);
             },
           ),
@@ -206,7 +237,14 @@ class AppRouter {
       hasPin = await _tryRestorePinFromServer();
     }
     if (!context.mounted) return;
-    context.go(hasPin ? RoutePaths.home : '/pin-setup');
+    if (hasPin) {
+      context.go(RoutePaths.home);
+      return;
+    }
+    // PIN is optional — don't re-prompt if the user already declined it once.
+    final optedOut = await AppPrefs.isPinOptedOut();
+    if (!context.mounted) return;
+    context.go(optedOut ? RoutePaths.home : '/pin-setup');
   }
 
   /// Best-effort: an offline-only user or a network failure should just
@@ -226,10 +264,14 @@ class AppRouter {
     required bool showOnboarding,
     required bool hasPin,
     required bool biometricEnabled,
+    required bool isSignedIn,
   }) {
     if (showOnboarding) return RoutePaths.onboarding;
     if (biometricEnabled) return '/biometric-unlock';
     if (hasPin) return '/pin-unlock';
+    // No app-lock configured (PIN is optional). A previously-authenticated
+    // user should land straight on home, not be forced back through login.
+    if (isSignedIn) return RoutePaths.home;
     return RoutePaths.login;
   }
 }

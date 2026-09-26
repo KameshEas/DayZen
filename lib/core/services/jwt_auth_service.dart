@@ -63,10 +63,22 @@ class AuthUser {
 
 /// Service for managing JWT authentication tokens and auth state.
 /// Tokens are stored securely in platform keychain/keystore.
+///
+/// [instance] is the shared app-wide session: main.dart, ApiClient's
+/// default, AuthController and SettingsController should all use it so they
+/// see the same in-memory session. Previously each of those call sites did
+/// `JwtAuthService()`, creating its own separate, never-initialized
+/// instance — so e.g. ApiClient's fallback always had a null token and
+/// every authenticated request (task sync included) went out with no
+/// Authorization header no matter how the user had actually signed in
+/// elsewhere in the app. The plain constructor is kept (rather than made
+/// private) so tests can still create isolated fake/mock subclasses.
 class JwtAuthService extends ChangeNotifier {
   static const String _tokenKey = 'jwt_token';
   static const String _userKey = 'auth_user';
   static const String _refreshTokenKey = 'jwt_refresh_token';
+
+  static final JwtAuthService instance = JwtAuthService();
 
   late FlutterSecureStorage _secureStorage;
   JwtToken? _currentToken;
@@ -76,8 +88,12 @@ class JwtAuthService extends ChangeNotifier {
   /// Get the currently authenticated user
   AuthUser? get currentUser => _currentUser;
 
-  /// Check if user is authenticated
-  bool get isAuthenticated => _currentUser != null && _currentToken != null && !_currentToken!.isExpired;
+  /// Check if user is authenticated. Deliberately does not check the access
+  /// token's expiry: an expired-but-refreshable token is a normal, signed-in
+  /// state (see [getAccessToken]) — treating it as "signed out" would log
+  /// the user out on every cold start after the access token's short TTL
+  /// elapses, even though the refresh token is still valid.
+  bool get isAuthenticated => _currentUser != null && _currentToken != null;
 
   /// Get user ID
   String? get userId => _currentUser?.id;
@@ -88,8 +104,13 @@ class JwtAuthService extends ChangeNotifier {
   /// Check if service is initialized
   bool get isInitialized => _initialized;
 
-  /// Initialize the auth service and restore previous session if available
+  /// Initialize the auth service and restore previous session if available.
+  /// A no-op if already initialized — several call sites (main.dart,
+  /// SettingsController.load()) call this on the same shared instance, and
+  /// re-reading storage after the in-memory state is already live (e.g.
+  /// right after a fresh sign-in) could stomp it with stale data.
   Future<void> initialize() async {
+    if (_initialized) return;
     try {
       _secureStorage = const FlutterSecureStorage(
         aOptions: AndroidOptions(
@@ -282,15 +303,24 @@ class JwtAuthService extends ChangeNotifier {
 
         await _saveSession();
         return true;
-      } else {
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // The refresh token itself was rejected (revoked/invalid) — this is
+        // a genuine "you are no longer signed in", so clear the session.
         await _clearSession();
         notifyListeners();
         return false;
+      } else {
+        // Server hiccup (5xx, etc). Keep the existing session as-is and let
+        // the next attempt (e.g. next API call or app resume) retry — do
+        // NOT sign the user out over a transient server error.
+        AppLogger.debug('Token refresh failed with ${response.statusCode}, keeping session');
+        return false;
       }
     } catch (e) {
+      // Network error/timeout — likely offline. Keep the existing session
+      // rather than clearing it; clearing here would sign the user out
+      // every time the app is reopened without connectivity.
       AppLogger.debug('Token refresh error: $e');
-      await _clearSession();
-      notifyListeners();
       return false;
     }
   }

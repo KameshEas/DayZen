@@ -4,18 +4,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../../core/app_prefs.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
 import '../../biometric/biometric_setup_guide_page.dart';
+import '../../pin/pin_setup_page.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "PRIVACY" card on the Settings page â€” biometric lock, data export,
-/// and clear-history.
-class SettingsPrivacySection extends StatelessWidget {
+/// The "PRIVACY" card on the Settings page â€” PIN lock, biometric lock, data
+/// export, and clear-history.
+class SettingsPrivacySection extends StatefulWidget {
   const SettingsPrivacySection({super.key, required this.ctrl});
 
   final SettingsController ctrl;
+
+  @override
+  State<SettingsPrivacySection> createState() => _SettingsPrivacySectionState();
+}
+
+class _SettingsPrivacySectionState extends State<SettingsPrivacySection> {
+  bool _hasPin = false;
+  bool _loadingPin = true;
+
+  SettingsController get ctrl => widget.ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPinState();
+  }
+
+  Future<void> _loadPinState() async {
+    final hasPin = await AppPrefs.hasPin();
+    if (!mounted) return;
+    setState(() {
+      _hasPin = hasPin;
+      _loadingPin = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +55,18 @@ class SettingsPrivacySection extends StatelessWidget {
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              if (ctrl.deviceHasBiometrics) ...[
+              SettingsTile(
+                icon: Icons.pin_rounded,
+                iconBg: const Color(0xFFFEE2E2),
+                iconColor: DzColors.error,
+                title: 'PIN Lock',
+                subtitle: _loadingPin
+                    ? 'â€”'
+                    : (_hasPin ? 'Enabled' : 'Disabled â€” app opens without a PIN'),
+                onTap: _loadingPin ? () {} : () => _showPinLockSheet(context),
+              ),
+              const SettingsDivider(),
+              if (_hasPin && ctrl.deviceHasBiometrics) ...[
                 SettingsTile(
                   icon: Icons.fingerprint_rounded,
                   iconBg: const Color(0xFFFEE2E2),
@@ -60,6 +98,42 @@ class SettingsPrivacySection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showPinLockSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
+      ),
+      builder: (_) => _PinLockSheet(
+        hasPin: _hasPin,
+        onEnable: () async {
+          final navigator = Navigator.of(context);
+          final didSet = await navigator.push<bool>(
+            MaterialPageRoute(
+              builder: (_) => PinSetupPage(
+                onPinSet: (ctx) => Navigator.of(ctx).pop(true),
+              ),
+            ),
+          );
+          if (didSet == true && mounted) {
+            setState(() => _hasPin = true);
+          }
+        },
+        onDisable: () async {
+          await AppPrefs.clearPin();
+          await AppPrefs.setPinOptedOut(true);
+          // Biometric lock falls back to the PIN screen, so it can't stay
+          // enabled once there's no PIN to fall back to.
+          if (ctrl.biometricEnabled) {
+            ctrl.setBiometricEnabled(false);
+          }
+          if (mounted) setState(() => _hasPin = false);
+        },
+      ),
     );
   }
 
@@ -344,6 +418,127 @@ class _BiometricSheetState extends State<_BiometricSheet> {
               }).toList(),
             ),
           ],
+          const SizedBox(height: DzSpacing.lg),
+        ],
+      ),
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PIN lock sheet â€” PIN is optional; lets the user turn it on (set a new
+// PIN) or off (clear it) entirely.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _PinLockSheet extends StatefulWidget {
+  const _PinLockSheet({
+    required this.hasPin,
+    required this.onEnable,
+    required this.onDisable,
+  });
+
+  final bool hasPin;
+  final Future<void> Function() onEnable;
+  final Future<void> Function() onDisable;
+
+  @override
+  State<_PinLockSheet> createState() => _PinLockSheetState();
+}
+
+class _PinLockSheetState extends State<_PinLockSheet> {
+  bool _busy = false;
+
+  Future<void> _toggle(bool enable) async {
+    if (enable) {
+      // Closing the sheet first — PIN setup pushes its own full-screen page.
+      Navigator.of(context).pop();
+      await widget.onEnable();
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DzRadius.card),
+        ),
+        title: const Text('Turn Off PIN Lock?'),
+        content: const Text(
+            'Anyone with access to your device will be able to open DayZen without entering a PIN.'),
+        actions: [
+          TextButton(
+            onPressed: () => ctx.pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => ctx.pop(true),
+            child: const Text('Turn Off', style: TextStyle(color: DzColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _busy = true);
+    await widget.onDisable();
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(DzSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SettingsSheetHandle(),
+          const SizedBox(height: DzSpacing.md),
+          Text('PIN Lock',
+              style: DzTextStyles.heading3
+                  .copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: DzSpacing.lg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Require PIN to open DayZen', style: DzTextStyles.body),
+              if (_busy)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Switch.adaptive(
+                  value: widget.hasPin,
+                  onChanged: _toggle,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                ),
+            ],
+          ),
+          const SizedBox(height: DzSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(DzSpacing.md),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(DzRadius.card),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    color: Theme.of(context).colorScheme.primary, size: 20),
+                const SizedBox(width: DzSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'PIN Lock is optional. You can use DayZen without a PIN, or turn it '
+                    'on any time to require a code before the app opens.',
+                    style: DzTextStyles.caption
+                        .copyWith(color: Theme.of(context).colorScheme.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: DzSpacing.lg),
         ],
       ),

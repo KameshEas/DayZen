@@ -9,7 +9,7 @@ class AuthController extends ChangeNotifier {
 
   /// Creates an [AuthController] with a [JwtAuthService] instance.
   AuthController({JwtAuthService? authService})
-      : _authService = authService ?? JwtAuthService();
+      : _authService = authService ?? JwtAuthService.instance;
 
   bool _isLoading = false;
   String? _error;

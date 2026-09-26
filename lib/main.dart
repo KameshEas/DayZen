@@ -13,7 +13,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
+import 'core/api/api_client.dart';
+import 'core/services/app_version_service.dart';
 import 'features/app_data.dart';
+import 'features/app_update/app_version_controller.dart';
 import 'features/journal_controller.dart';
 import 'features/insights_controller.dart';
 import 'features/ai_optimization_controller.dart';
@@ -27,7 +30,10 @@ void main() async {
 }
 
 Future<void> _runApp() async {
-  final authService = JwtAuthService();
+  // The shared singleton — every JwtAuthService.instance call site across
+  // the app (ApiClient's default, AuthController, SettingsController, ...)
+  // sees the same session once it's initialized here.
+  final authService = JwtAuthService.instance;
 
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
@@ -60,6 +66,19 @@ Future<void> _runApp() async {
   ]);
   settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
 
+  // Constructed only after Firebase.initializeApp() above has resolved —
+  // AnalyticsService.instance reads FirebaseAnalytics.instance eagerly in
+  // its field initializer, which throws core/no-app if Firebase isn't
+  // ready yet.
+  final appVersionCtrl = AppVersionController(
+    AppVersionService(ApiClient(), AnalyticsService.instance),
+  );
+
+  // Fire-and-forget: a slow or failed remote-config check must never delay
+  // first paint. If it later flags a forced update, the router's
+  // refreshListenable redirects the user to it from wherever they are.
+  unawaited(appVersionCtrl.checkForUpdate());
+
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
@@ -89,6 +108,8 @@ Future<void> _runApp() async {
     showOnboarding: !seenOnboarding,
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
+    isSignedIn: authService.isAuthenticated,
+    appVersionController: appVersionCtrl,
   );
 
   runApp(AppScopes(

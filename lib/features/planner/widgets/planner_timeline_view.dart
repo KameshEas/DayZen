@@ -13,11 +13,18 @@ class PlannerTimelineView extends StatelessWidget {
     required this.events,
     required this.currentHour,
     required this.currentMinute,
+    this.isToday = true,
   });
 
   final List<PlannerEvent> events;
   final int currentHour;
   final int currentMinute;
+
+  /// Whether the day this timeline is showing is the current calendar day.
+  /// The "now" indicator line only makes sense on today — showing it while
+  /// browsing a past or future day would misleadingly suggest that day is
+  /// mid-way through "now".
+  final bool isToday;
 
   static double get _hourHeight => AppConfig.timelineHourHeight;
   static int get _startHour => AppConfig.timelineStartHour;
@@ -34,7 +41,7 @@ class PlannerTimelineView extends StatelessWidget {
         (currentHour - _startHour) + currentMinute / 60.0;
     final currentY = currentOffsetHours * _hourHeight;
     final showCurrentTime =
-        currentHour >= _startHour && currentHour < _endHour;
+        isToday && currentHour >= _startHour && currentHour < _endHour;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
