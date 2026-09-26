@@ -46,7 +46,7 @@ void _runApp() {
   // actually logs an event, so this is safe. AppRouter needs the controller
   // up front so it can redirect the moment a forced update is detected,
   // however long the rest of bootstrap takes.
-  final appVersionCtrl = AppVersionController(AppVersionService(ApiClient()));
+  final appVersionCtrl = AppVersionController(AppVersionService(ApiClient()))..init();
 
   AppRouter.initialize(
     startRoute: _bootstrap(
@@ -113,7 +113,7 @@ Future<String> _bootstrap({
   // Fire-and-forget: a slow or failed remote-config check must never delay
   // first paint. If it later flags a forced update, the router's
   // refreshListenable redirects the user to it from wherever they are.
-  unawaited(appVersionCtrl.checkForUpdate());
+  unawaited(appVersionCtrl.refresh());
 
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),

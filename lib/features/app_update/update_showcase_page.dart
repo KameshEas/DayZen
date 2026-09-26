@@ -105,10 +105,10 @@ class _UpdateShowcasePageState extends State<UpdateShowcasePage>
                     children: [
                       _UpdateBadge(colorScheme: colorScheme),
                       const SizedBox(height: DzSpacing.xl),
-                      const DzHeading1('Update Required'),
+                      const DzHeading1('Your Flow Needs an Update'),
                       const SizedBox(height: DzSpacing.sm),
                       DzBodyText(
-                        'A newer version of DayZen is available',
+                        'A sharper version of DayZen is ready for you.',
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       const SizedBox(height: DzSpacing.lg),
@@ -134,7 +134,7 @@ class _UpdateShowcasePageState extends State<UpdateShowcasePage>
                       ),
                       const SizedBox(height: DzSpacing.md),
                       DzCaption(
-                        "It's recommended to update for better performance and security",
+                        'Update now to keep your days running smoothly.',
                         color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ],

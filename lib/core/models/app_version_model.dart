@@ -6,22 +6,27 @@ library;
 
 /// Maintenance details computed server-side (the device clock is never
 /// trusted: [active] already accounts for the schedule and tester bypass).
-/// Not consumed by DayZen yet — parsed so the model never chokes on the
-/// full payload the backend always sends.
 class MaintenanceInfo {
   const MaintenanceInfo({
     this.active = false,
     this.isReadOnly = false,
     this.title,
     this.message,
+    this.endsAt,
+    this.retryAfterSeconds = 60,
+    this.statusUrl,
   });
 
   factory MaintenanceInfo.fromJson(Map<String, dynamic> data) {
+    final retry = (data['retryAfterSeconds'] as num?)?.toInt() ?? 60;
     return MaintenanceInfo(
       active: data['active'] as bool? ?? false,
       isReadOnly: data['type'] == 'read_only',
       title: data['title'] as String?,
       message: data['message'] as String?,
+      endsAt: DateTime.tryParse(data['endsAt'] as String? ?? ''),
+      retryAfterSeconds: retry.clamp(15, 3600),
+      statusUrl: data['statusUrl'] as String?,
     );
   }
 
@@ -29,10 +34,14 @@ class MaintenanceInfo {
   final bool isReadOnly;
   final String? title;
   final String? message;
+  final DateTime? endsAt;
+  final int retryAfterSeconds;
+  final String? statusUrl;
 }
 
-/// One live announcement, already chosen and ordered by the backend.
-/// Not consumed by DayZen yet — see [MaintenanceInfo] for why it's parsed.
+/// One live announcement, already chosen and ordered by the backend. Not
+/// consumed by DayZen yet — parsed so the model never chokes on the full
+/// payload the backend always sends.
 class AnnouncementInfo {
   const AnnouncementInfo({
     required this.id,

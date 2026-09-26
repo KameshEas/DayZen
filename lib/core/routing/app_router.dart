@@ -13,6 +13,7 @@ import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
+import '../../features/maintenance/maintenance_screen.dart';
 import '../../features/onboarding/widgets/onboarding_page_animated.dart';
 import '../design_system/design_system.dart';
 import '../../features/pin/pin_setup_page.dart';
@@ -42,6 +43,13 @@ class AppRouter {
       initialLocation: RoutePaths.splash,
       refreshListenable: appVersionController,
       redirect: (context, state) {
+        // Checked first: if the backend itself is down for maintenance,
+        // that's the more urgent condition — showing "update required" when
+        // the backend can't even serve the update check would be confusing.
+        if (appVersionController.maintenanceActive &&
+            state.matchedLocation != RoutePaths.maintenance) {
+          return RoutePaths.maintenance;
+        }
         if (appVersionController.forceUpdateRequired &&
             state.matchedLocation != RoutePaths.forceUpdate) {
           return RoutePaths.forceUpdate;
@@ -126,6 +134,16 @@ class AppRouter {
           builder: (context, state) => UpdateShowcasePage(
             versionConfig: _appVersionController!.config!,
             versionService: _appVersionController!.versionService,
+          ),
+        ),
+
+        // ── Maintenance block ────────────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.maintenance,
+          name: RouteNames.maintenance,
+          builder: (context, state) => MaintenanceScreen(
+            info: _appVersionController!.config!.maintenance,
+            onRetry: _appVersionController!.refresh,
           ),
         ),
 
