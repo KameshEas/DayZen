@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 
+/// A tip drawn from the user's own completion history. Shown only once there is
+/// a real pattern to point at (see [InsightsData.suggestion]); it never shows
+/// invented advice.
 class InsightsAiSuggestionCard extends StatelessWidget {
-  const InsightsAiSuggestionCard({super.key});
+  const InsightsAiSuggestionCard({super.key, required this.suggestion});
+  final String suggestion;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(DzRadius.card),
@@ -28,37 +33,20 @@ class InsightsAiSuggestionCard extends StatelessWidget {
                     color: Colors.white, size: 20),
               ),
               const SizedBox(width: DzSpacing.md),
-              Text(
-                'Zen AI Suggestion',
-                style: DzTextStyles.heading3.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  'Zen suggestion',
+                  style: DzTextStyles.heading3.copyWith(
+                      color: Colors.white, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
           const SizedBox(height: DzSpacing.md),
           Text(
-            'Based on your peak performance hours, we suggest moving your '
-            '"Deep Work" block to 9:00 AM instead of 2:00 PM for optimal focus.',
+            suggestion,
             style: DzTextStyles.body
-                .copyWith(color: Colors.white.withValues(alpha: 0.88)),
-          ),
-          const SizedBox(height: DzSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white, width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(DzRadius.button),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              onPressed: () {},
-              child: const Text('Adjust My Planner',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
+                .copyWith(color: Colors.white.withValues(alpha: 0.9)),
           ),
         ],
       ),

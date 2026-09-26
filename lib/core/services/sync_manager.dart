@@ -10,7 +10,7 @@ import '../../core/logging/app_logger.dart';
 /// Handles task sync coordination with conflict resolution.
 ///
 /// The shared sync state machine (isSyncing guard, sync-status formatting,
-/// retry/withSync wrappers) lives in [SyncCoordinator] â€” see
+/// retry/withSync wrappers) lives in [SyncCoordinator] — see
 /// docs/DEVELOPMENT_PLAN.md Phase 3.2. This class owns only what's
 /// task-specific: building the sync request and reconciling the response.
 class SyncManager extends SyncCoordinator<TaskController> {

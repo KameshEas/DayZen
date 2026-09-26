@@ -10,6 +10,7 @@ import 'security/pin_hasher.dart';
 class AppPrefs {
   static const _keyOnboardingSeen = 'onboarding_seen';
   static const _keyBiometricEnabled = 's_biometricEnabled';
+  static const _keyFirstUse = 'first_use_date';
 
   /// Set when the user explicitly declines to set a PIN (skips PIN setup, or
   /// turns "PIN Lock" off in Settings). PIN is optional, so this stops the
@@ -37,6 +38,25 @@ class AppPrefs {
   static Future<void> markOnboardingSeen() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyOnboardingSeen, true);
+  }
+
+  // ── First use ───────────────────────────────────────────────────────────
+
+  /// Remembers the day the app was first opened. Only ever written once, so
+  /// calling it on every start is safe. The Planner lets you browse back to this
+  /// day (DayZen works offline, so there is no stored account-creation date).
+  static Future<void> recordFirstUse([DateTime? now]) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey(_keyFirstUse)) return;
+    final d = now ?? DateTime.now();
+    await prefs.setString(_keyFirstUse, DateTime(d.year, d.month, d.day).toIso8601String());
+  }
+
+  /// The day the app was first opened, or null before [recordFirstUse] has run.
+  static Future<DateTime?> firstUseDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyFirstUse);
+    return raw == null ? null : DateTime.tryParse(raw);
   }
 
   // ── PIN ─────────────────────────────────────────────────────────────────

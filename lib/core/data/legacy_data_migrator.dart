@@ -13,7 +13,7 @@ import '../logging/app_logger.dart';
 /// [TaskRepository]/[JournalRepository] (see docs/DATABASE_SCHEMA.md).
 ///
 /// Call [migrateIfNeeded] once during app startup, **before** the first
-/// `TaskController.load()` / `JournalController.load()` â€” otherwise a
+/// `TaskController.load()` / `JournalController.load()` — otherwise a
 /// user upgrading from a pre-Phase-2 install would see an empty task list
 /// on first launch while their real data sits un-migrated in the old keys.
 ///
@@ -21,7 +21,7 @@ import '../logging/app_logger.dart';
 /// idempotent even if a previous attempt partially failed (task/entry
 /// inserts use `INSERT OR REPLACE`, so re-running with the same source
 /// data never creates duplicates). The legacy keys and the version flag
-/// are only cleared/set once the *entire* migration succeeds â€” a failure
+/// are only cleared/set once the *entire* migration succeeds — a failure
 /// partway through leaves the legacy data in place for a retry on the next
 /// launch, and never crashes startup.
 class LegacyDataMigrator {
@@ -44,7 +44,7 @@ class LegacyDataMigrator {
       await prefs.setInt(_migrationVersionKey, _currentVersion);
     } catch (e) {
       AppLogger.debug('Legacy data migration failed, will retry next launch: $e');
-      // Deliberately don't set the version flag or clear legacy keys â€”
+      // Deliberately don't set the version flag or clear legacy keys —
       // next launch retries from scratch. Never rethrow: a migration
       // failure must not block app startup.
     }

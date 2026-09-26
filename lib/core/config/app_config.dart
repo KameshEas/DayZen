@@ -9,13 +9,13 @@ class AppConfig {
 
   // ── API Configuration ───────────────────────────────────────────────────
   // Overridden per-build via --dart-define-from-file=env/<env>.json (see
-  // env/dev.json / env/staging.json / env/prod.json). The literal default
-  // below only applies when no environment file is passed — i.e. an ad hoc
-  // `flutter run` with no flags — and intentionally still points at
-  // localhost so that case fails loudly against a real backend rather than
-  // silently hitting production.
+  // env/dev.json / env/staging.json / env/prod.json). The default below applies
+  // when no environment file is passed, e.g. an ad hoc `flutter run` or a build
+  // without the flag: it is the production gateway, so such a build still signs
+  // in and syncs. It must never be a temporary tunnel (trycloudflare.com,
+  // ngrok): those disappear and every sign-up then fails with no explanation.
   static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://expanded-cuts-bus-jerry.trycloudflare.com/api/v1/dayzen');
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.aspired2d.cloud/api/v1/dayzen');
 
   // Multi-tenant app identifier (for X-App-ID header)
   // Defaults to 'dayzen' but can be overridden per-build

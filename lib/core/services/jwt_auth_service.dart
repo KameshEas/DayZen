@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:async';
 import 'dart:convert';
 import '../logging/app_logger.dart';
 import '../config/app_config.dart';
@@ -78,9 +79,16 @@ class JwtAuthService extends ChangeNotifier {
   static const String _userKey = 'auth_user';
   static const String _refreshTokenKey = 'jwt_refresh_token';
 
+  /// The one auth service the whole app shares. Sign-in, the API client, the
+  /// settings screen and the greeting all read the same session; a separate
+  /// instance has no tokens and never sees a sign-in made elsewhere.
   static final JwtAuthService instance = JwtAuthService();
 
-  late FlutterSecureStorage _secureStorage;
+  // Created on first use, so an instance that was never `initialize()`d can still
+  // save or clear a session instead of failing (and the failure being swallowed).
+  late final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(resetOnError: true),
+  );
   JwtToken? _currentToken;
   AuthUser? _currentUser;
   bool _initialized = false;
@@ -104,6 +112,38 @@ class JwtAuthService extends ChangeNotifier {
   /// Check if service is initialized
   bool get isInitialized => _initialized;
 
+  String? _lastError;
+
+  /// Why the last [signIn] / [signUp] returned false, in words a person can act
+  /// on ("email already registered", "can't reach DayZen"...). Null after a
+  /// success and for a plain wrong password, which the caller words itself.
+  String? get lastError => _lastError;
+
+  /// Maps a failed auth response to a message for the user.
+  static String messageForStatus(int status, {required bool signingUp}) {
+    switch (status) {
+      case 409:
+        return 'That email is already registered. Try signing in instead.';
+      case 422:
+        return 'Please check your name, email and password and try again.';
+      case 429:
+        return 'Too many attempts. Please wait a few minutes and try again.';
+      case 400:
+      case 404:
+        return "DayZen accounts aren't available right now. Please try again later.";
+      default:
+        return status >= 500
+            ? 'DayZen is having trouble right now. Please try again in a moment.'
+            : (signingUp
+                ? "We couldn't create your account. Please try again."
+                : "We couldn't sign you in. Please try again.");
+    }
+  }
+
+  /// The message for a request that never got an answer (offline, DNS, timeout).
+  static const String unreachableMessage =
+      "Couldn't reach DayZen. Check your internet connection and try again.";
+
   /// Initialize the auth service and restore previous session if available.
   /// A no-op if already initialized — several call sites (main.dart,
   /// SettingsController.load()) call this on the same shared instance, and
@@ -112,12 +152,6 @@ class JwtAuthService extends ChangeNotifier {
   Future<void> initialize() async {
     if (_initialized) return;
     try {
-      _secureStorage = const FlutterSecureStorage(
-        aOptions: AndroidOptions(
-          resetOnError: true,
-        ),
-      );
-
       // Try to restore previous session from secure storage
       final tokenJson = await _secureStorage.read(key: _tokenKey);
       final userJson = await _secureStorage.read(key: _userKey);
@@ -153,6 +187,7 @@ class JwtAuthService extends ChangeNotifier {
     required String password,
     required String apiBaseUrl,
   }) async {
+    _lastError = null;
     try {
       final url = Uri.parse('$apiBaseUrl/auth/login');
 
@@ -211,8 +246,17 @@ class JwtAuthService extends ChangeNotifier {
         return false;
       } else {
         AppLogger.debug('Sign in failed: ${response.statusCode} - ${response.body}');
+        _lastError = messageForStatus(response.statusCode, signingUp: false);
         return false;
       }
+    } on TimeoutException catch (e) {
+      AppLogger.debug('Sign in timed out: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } on http.ClientException catch (e) {
+      AppLogger.debug('Sign in could not connect: $e');
+      _lastError = unreachableMessage;
+      return false;
     } catch (e) {
       AppLogger.debug('Sign in error: $e');
       return false;
@@ -227,6 +271,7 @@ class JwtAuthService extends ChangeNotifier {
     required String password,
     required String apiBaseUrl,
   }) async {
+    _lastError = null;
     try {
       final url = Uri.parse('$apiBaseUrl/auth/register');
 
@@ -245,16 +290,28 @@ class JwtAuthService extends ChangeNotifier {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
         // Parse token response
-        final tokenData = data['data'] ?? data;
+        final tokenData = (data['data'] ?? data) as Map<String, dynamic>;
+        final accessToken = (tokenData['access_token'] as String?) ??
+            (tokenData['accessToken'] as String?) ??
+            '';
+        final userId = (tokenData['user_id'] as String?) ??
+            (tokenData['userId'] as String?) ??
+            '';
+        if (accessToken.isEmpty || userId.isEmpty) {
+          AppLogger.debug('Sign up: response had no token or user id');
+          _lastError = "We couldn't finish setting up your account. Please try signing in.";
+          return false;
+        }
         _currentToken = JwtToken(
-          accessToken: tokenData['access_token'] as String? ?? tokenData['accessToken'] as String,
-          refreshToken: tokenData['refresh_token'] as String? ?? tokenData['refreshToken'] as String?,
-          expiresAt: _parseTokenExpiry(tokenData['access_token'] as String? ?? tokenData['accessToken'] as String),
+          accessToken: accessToken,
+          refreshToken: (tokenData['refresh_token'] as String?) ??
+              (tokenData['refreshToken'] as String?),
+          expiresAt: _parseTokenExpiry(accessToken),
         );
 
         // Parse user data
         _currentUser = AuthUser(
-          id: tokenData['user_id'] as String? ?? tokenData['userId'] as String,
+          id: userId,
           email: email.trim(),
           name: name.trim(),
         );
@@ -264,8 +321,17 @@ class JwtAuthService extends ChangeNotifier {
         return true;
       } else {
         AppLogger.debug('Sign up failed: ${response.statusCode} - ${response.body}');
+        _lastError = messageForStatus(response.statusCode, signingUp: true);
         return false;
       }
+    } on TimeoutException catch (e) {
+      AppLogger.debug('Sign up timed out: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } on http.ClientException catch (e) {
+      AppLogger.debug('Sign up could not connect: $e');
+      _lastError = unreachableMessage;
+      return false;
     } catch (e) {
       AppLogger.debug('Sign up error: $e');
       return false;

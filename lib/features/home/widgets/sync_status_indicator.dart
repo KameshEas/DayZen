@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/design_system/design_system.dart';
 import '../../../core/services/jwt_auth_service.dart';
 import '../../../core/services/sync_manager.dart';
 import '../../task_controller.dart';
@@ -70,16 +71,7 @@ class SyncStatusIndicator extends StatelessWidget {
                       Row(
                         children: [
                           if (isSyncing)
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            )
+                            const DzSunLoader(width: 28)
                           else
                             Icon(
                               Icons.cloud_done,
@@ -125,12 +117,7 @@ class SyncStatusIndicator extends StatelessWidget {
             width: 24,
             height: 24,
             child: isSyncing
-                ? CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(
-                      Theme.of(context).primaryColor,
-                    ),
-                  )
+                ? const DzSunLoader(width: 24)
                 : Semantics(
                     label: 'Retry sync',
                     button: true,

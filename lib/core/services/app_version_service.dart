@@ -13,10 +13,17 @@ import '../models/app_version_model.dart';
 import 'analytics_service.dart';
 
 class AppVersionService {
-  AppVersionService(this._apiClient, this._analyticsService);
+  AppVersionService(this._apiClient);
 
   final ApiClient _apiClient;
-  final AnalyticsService _analyticsService;
+
+  // Read lazily (only when actually logging, well after Firebase.initializeApp()
+  // has resolved) rather than injected — AnalyticsService.instance reads
+  // FirebaseAnalytics.instance eagerly in its field initializer, which throws
+  // core/no-app if Firebase isn't ready yet. This controller is constructed
+  // synchronously at app start, before Firebase init, so it can't take the
+  // singleton as a constructor argument.
+  AnalyticsService get _analyticsService => AnalyticsService.instance;
 
   String getPlatformName() {
     if (kIsWeb) return 'web';

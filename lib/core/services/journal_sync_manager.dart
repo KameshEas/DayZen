@@ -10,7 +10,7 @@ import '../../core/logging/app_logger.dart';
 
 /// Handles journal sync coordination with conflict resolution.
 ///
-/// The shared sync state machine lives in [SyncCoordinator] â€” see
+/// The shared sync state machine lives in [SyncCoordinator] — see
 /// docs/DEVELOPMENT_PLAN.md Phase 3.2 and [SyncManager] (the task
 /// equivalent of this class). This class owns only what's journal-specific:
 /// building the sync request and reconciling the response.
