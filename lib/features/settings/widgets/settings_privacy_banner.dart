@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/design_system/design_system.dart';
 
 /// Decorative header banner shown at the top of the Settings page.
 class SettingsPrivacyBanner extends StatelessWidget {
   const SettingsPrivacyBanner({super.key});
+
+  // Cached at module scope: the installed version never changes at runtime,
+  // so there's no reason to re-fetch it (and re-show a loading gap) on
+  // every rebuild of this widget.
+  static Future<PackageInfo>? _packageInfo;
+  static Future<PackageInfo> get _version => _packageInfo ??= PackageInfo.fromPlatform();
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +46,18 @@ class SettingsPrivacyBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  'System Version 2.4.0',
-                  style: DzTextStyles.caption.copyWith(
-                    color: DzColors.privacyBannerIcon,
-                    fontWeight: FontWeight.w500,
-                  ),
+                FutureBuilder<PackageInfo>(
+                  future: _version,
+                  builder: (context, snapshot) {
+                    final info = snapshot.data;
+                    return Text(
+                      info == null ? 'App Version' : 'App Version ${info.version}',
+                      style: DzTextStyles.caption.copyWith(
+                        color: DzColors.privacyBannerIcon,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 2),
                 Text(

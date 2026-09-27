@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/routing/route_paths.dart';
+import '../journal/widgets/journal_new_entry_sheet.dart';
 import '../planner/planner_selection.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
@@ -36,6 +37,18 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onFabPressed() {
+    // The centre "+" means "add" for whatever tab is showing: a task
+    // everywhere except the Journal tab, where it means a journal entry
+    // instead — Journal has no separate FAB of its own for that reason.
+    if (_currentIndex == 4) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const JournalNewEntrySheet(),
+      );
+      return;
+    }
     // On the Planner, the new task belongs to the day being viewed.
     final onPlanner = _currentIndex == 1;
     context.push(

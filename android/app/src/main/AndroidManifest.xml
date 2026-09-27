@@ -5,8 +5,10 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <!-- No ad SDK or Firebase Analytics in use; strip AD_ID pulled in transitively by Play Services -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <!-- Firebase Analytics is in use and can use the advertising ID for
+         attribution/audience features on Android 13+, so it must be declared
+         rather than stripped (Play Console otherwise flags the release). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <application
         android:label="Dayzen"
         android:name="${applicationName}"
@@ -47,11 +49,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- In-app behavior analytics only; no ad attribution, so tell the SDK
-             not to collect the advertising ID even if it were present. -->
+        <!-- AD_ID is now declared above, so let Analytics collect it. -->
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
-            android:value="false" />
+            android:value="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
