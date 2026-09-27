@@ -48,6 +48,11 @@ class _NewTaskPageState extends State<NewTaskPage> {
   final _titleFocus = FocusNode();
   final _titleCtrl = TextEditingController();
 
+  /// Set when a save is attempted with an empty title; cleared as soon as
+  /// the user starts typing. Was previously a silent no-op (just refocus,
+  /// no visible feedback) — this makes the "why didn't it save" visible.
+  String? _titleError;
+
   late DateTime _scheduledDate;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
@@ -170,6 +175,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
     if (_saving) return;
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
+      setState(() => _titleError = 'Give your task a title first');
       _titleFocus.requestFocus();
       return;
     }
@@ -262,10 +268,15 @@ class _NewTaskPageState extends State<NewTaskPage> {
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
+                      errorText: _titleError,
+                      errorStyle: DzTextStyles.caption.copyWith(color: DzColors.error),
                     ),
                     maxLines: 3,
                     minLines: 1,
                     textInputAction: TextInputAction.done,
+                    onChanged: (_) {
+                      if (_titleError != null) setState(() => _titleError = null);
+                    },
                     onSubmitted: (_) => _save(),
                   ),
                   const SizedBox(height: DzSpacing.xl),
