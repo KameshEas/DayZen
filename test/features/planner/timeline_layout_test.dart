@@ -11,6 +11,7 @@ PlannerEvent _e(
   bool done = false,
 }) =>
     PlannerEvent(
+      id: title,
       title: title,
       subtitle: '',
       hour: hour,

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 PlannerEvent _e(String title, int hour, {int minute = 0, int minutes = 60, bool done = false}) =>
     PlannerEvent(
+      id: title,
       title: title,
       subtitle: '$hour:${minute.toString().padLeft(2, '0')}',
       hour: hour,

@@ -54,7 +54,15 @@ class DateFormatter {
     return '${formatTime(startHour, startMinute)} – ${formatTime(endHour, endMinute)}';
   }
 
-  static String formatTaskSchedule(DateTime date, int hour, int minute) {
+  /// [endHour]/[endMinute] show the schedule as a start–end range instead of
+  /// a single time — pass both or neither.
+  static String formatTaskSchedule(
+    DateTime date,
+    int hour,
+    int minute, {
+    int? endHour,
+    int? endMinute,
+  }) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selected = DateTime(date.year, date.month, date.day);
@@ -66,7 +74,9 @@ class DateFormatter {
             ? 'Tomorrow'
             : '${weekdayFull(date)}, ${date.day} ${monthAbbr(date.month)}';
 
-    final time = formatTime(hour, minute);
+    final time = (endHour != null && endMinute != null)
+        ? formatTimeRange(hour, minute, endHour, endMinute)
+        : formatTime(hour, minute);
     return '$dayLabel at $time';
   }
 }
