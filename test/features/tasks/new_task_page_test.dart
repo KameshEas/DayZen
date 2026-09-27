@@ -95,8 +95,8 @@ void main() {
 
       final tile = tester.widget<ScheduledTile>(find.byType(ScheduledTile));
       expect(tile.label, startsWith(DateFormatter.formatTaskSchedule(day, 9, 0).split(' at ').first));
-      // A day ahead defaults to 9 AM.
-      expect(tile.label, endsWith('9:00 AM'));
+      // A day ahead defaults to 9-10 AM, shown as a start–end range.
+      expect(tile.label, endsWith('9:00 AM – 10:00 AM'));
     });
 
     testWidgets('with no date it means today', (tester) async {

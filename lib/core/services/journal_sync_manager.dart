@@ -67,9 +67,11 @@ class JournalSyncManager extends SyncCoordinator<JournalController> {
     List<JournalApiResponse> serverEntries,
     List<String> deletedIds,
   ) async {
-    // Delete entries removed on server
+    // Delete entries removed on server. Uses the local-only path â€” going
+    // through controller.deleteEntry here would re-queue a sync for every
+    // entry this sync pass just reconciled, recursing forever.
     for (final id in deletedIds) {
-      await controller.deleteEntry(id);
+      await controller.removeLocal(id);
     }
 
     // Update local entries with server versions
@@ -90,7 +92,7 @@ class JournalSyncManager extends SyncCoordinator<JournalController> {
           timestamp: timestamp,
           accentColor: accentColor,
         );
-        await controller.addEntry(newEntry);
+        await controller.insertLocal(newEntry);
       } else {
         // Update existing entry - for now, server wins
         final updatedEntry = JournalEntry(
@@ -103,25 +105,32 @@ class JournalSyncManager extends SyncCoordinator<JournalController> {
           accentColor: accentColor,
         );
 
-        await controller.deleteEntry(serverEntry.id);
-        await controller.addEntry(updatedEntry);
+        await controller.removeLocal(serverEntry.id);
+        await controller.insertLocal(updatedEntry);
       }
     }
   }
 
-  /// Create a new entry locally and queue for sync.
+  /// Queue a sync push after a local create. The local write already
+  /// happened in [JournalController.addEntry] before this was called, so
+  /// there's nothing left to write here â€” only [withSync]'s try/catch
+  /// wrapper is wanted. Re-doing the write (e.g. by calling back into
+  /// `controller.addEntry`/`insertLocal`) would duplicate the entry, and if
+  /// it re-queued another sync, would recurse forever â€” which is what
+  /// previously made the entry count grow unbounded while the app stayed
+  /// open.
   Future<void> createEntryWithSync(
     JournalController controller,
     JournalEntry entry,
   ) =>
-      withSync(controller, () => controller.addEntry(entry));
+      withSync(controller, () async {});
 
-  /// Delete an entry locally and queue for sync.
+  /// Queue a sync push after a local delete â€” see [createEntryWithSync].
   Future<void> deleteEntryWithSync(
     JournalController controller,
     String entryId,
   ) =>
-      withSync(controller, () => controller.deleteEntry(entryId));
+      withSync(controller, () async {});
 
   /// Sync entries with server. Alias for [sync] matching the original
   /// public method name used by `JournalController`/UI call sites.

@@ -11,6 +11,8 @@ abstract final class RoutePaths {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String forceUpdate = '/force-update';
+  static const String maintenance = '/maintenance';
 
   static String taskDetailPath(String id) => '/task/$id';
   static String journalDetailPath(String id) => '/journal/$id';
@@ -28,4 +30,6 @@ abstract final class RouteNames {
   static const String onboarding = 'onboarding';
   static const String login = 'login';
   static const String signup = 'signup';
+  static const String forceUpdate = 'forceUpdate';
+  static const String maintenance = 'maintenance';
 }

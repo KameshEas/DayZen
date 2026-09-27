@@ -62,9 +62,11 @@ class SyncManager extends SyncCoordinator<TaskController> {
     List<DzTask> serverTasks,
     List<String> deletedIds,
   ) async {
-    // Delete tasks removed on server
+    // Delete tasks removed on server. Uses the local-only path â€” going
+    // through controller.deleteTask here would re-queue a sync for every
+    // task this sync pass just reconciled, recursing forever.
     for (final id in deletedIds) {
-      await controller.deleteTask(id);
+      await controller.removeLocal(id);
     }
 
     // Update local tasks with server versions
@@ -73,7 +75,7 @@ class SyncManager extends SyncCoordinator<TaskController> {
 
       if (localIdx == -1) {
         // New task from server
-        await controller.addTask(serverTask);
+        await controller.insertLocal(serverTask);
       } else {
         // Update existing task - but preserve local completion state if changed
         // (User might have marked task complete locally but not synced yet)
@@ -85,36 +87,32 @@ class SyncManager extends SyncCoordinator<TaskController> {
           );
         }
         // For now, server wins on all fields (can be customized)
-        await controller.updateTask(serverTask.id, serverTask);
+        await controller.updateLocal(serverTask.id, serverTask);
       }
     }
   }
 
-  /// Create a new task locally and queue for sync.
+  /// Queue a sync push after a local create. The local write already
+  /// happened in [TaskController.addTask] before this was called, so
+  /// there's nothing left to write here â€” only [withSync]'s try/catch
+  /// wrapper is wanted. Re-doing the write (e.g. by calling back into
+  /// `controller.addTask`) would duplicate the task, and if it re-queued
+  /// another sync, would recurse forever â€” which is what previously made
+  /// entry/task counts grow unbounded while the app stayed open.
   Future<void> createTaskWithSync(TaskController controller, DzTask task) =>
-      withSync(controller, () => controller.addTask(task));
+      withSync(controller, () async {});
 
-  /// Update a task locally and queue for sync.
+  /// Queue a sync push after a local update â€” see [createTaskWithSync].
   Future<void> updateTaskWithSync(
     TaskController controller,
     String taskId,
     DzTask updatedTask,
   ) =>
-      withSync(controller, () async {
-        // Preserves the original delete+re-add pattern rather than calling
-        // controller.updateTask directly — see git history for context;
-        // not changed here since Phase 3.2 is about where sync logic
-        // lives, not about revisiting this specific update strategy.
-        final idx = controller.all.indexWhere((t) => t.id == taskId);
-        if (idx != -1) {
-          await controller.deleteTask(taskId);
-          await controller.addTask(updatedTask);
-        }
-      });
+      withSync(controller, () async {});
 
-  /// Delete a task locally and queue for sync.
+  /// Queue a sync push after a local delete â€” see [createTaskWithSync].
   Future<void> deleteTaskWithSync(TaskController controller, String taskId) =>
-      withSync(controller, () => controller.deleteTask(taskId));
+      withSync(controller, () async {});
 
   /// Sync tasks with server. Alias for [sync] matching the original public
   /// method name used by `TaskController`/UI call sites.
