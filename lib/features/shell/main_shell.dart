@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/routing/route_paths.dart';
+import '../app_data.dart';
+import '../home/widgets/overdue_tasks_popup.dart';
 import '../journal/widgets/journal_new_entry_sheet.dart';
 import '../planner/planner_selection.dart';
 
@@ -18,6 +20,17 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Once per app session, regardless of which tab the router lands on
+    // first — mirrors AppVersionController's "check once, after first
+    // frame" pattern.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowOverdueTasksPopup(context, TaskScope.of(context));
+    });
+  }
 
   static const _pageTitles = ['DayZen', 'Planner', '', 'Insights', 'Journal'];
   static const _routePaths = [
