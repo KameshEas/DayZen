@@ -27,23 +27,38 @@ class JournalController extends ChangeNotifier {
   }
 
   Future<void> addEntry(JournalEntry entry) async {
-    _entries.insert(0, entry);
-    // Single-row insert — see docs/DATABASE_SCHEMA.md. Replaces the old
-    // "re-serialize and rewrite every entry" pattern.
-    await JournalRepository.insertEntry(entry);
-    notifyListeners();
+    await insertLocal(entry);
     // Queue for sync (fire-and-forget)
     JournalSyncManager.instance.createEntryWithSync(this, entry);
   }
 
   Future<void> deleteEntry(String id) async {
+    await removeLocal(id);
+    // Queue for sync (fire-and-forget)
+    JournalSyncManager.instance.deleteEntryWithSync(this, id);
+  }
+
+  /// Local-only write path (no sync queuing). Used by [addEntry] above and
+  /// by [JournalSyncManager] when reconciling server state â€” calling
+  /// [addEntry] from there would re-queue a sync on every reconciled entry
+  /// and recurse forever (each pass re-inserting the same entry, which is
+  /// what previously caused the entry count to grow unbounded while the
+  /// app stayed open).
+  Future<void> insertLocal(JournalEntry entry) async {
+    _entries.insert(0, entry);
+    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
+    // "re-serialize and rewrite every entry" pattern.
+    await JournalRepository.insertEntry(entry);
+    notifyListeners();
+  }
+
+  /// Local-only delete path (no sync queuing) â€” see [insertLocal].
+  Future<void> removeLocal(String id) async {
     _entries.removeWhere((e) => e.id == id);
     // Soft delete (deleted_at set, row retained for sync visibility) — see
     // docs/DATABASE_SCHEMA.md.
     await JournalRepository.deleteEntry(id);
     notifyListeners();
-    // Queue for sync (fire-and-forget)
-    JournalSyncManager.instance.deleteEntryWithSync(this, id);
   }
 
   /// Sync entries with server (background operation).

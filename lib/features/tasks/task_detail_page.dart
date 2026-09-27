@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
+import '../task_controller.dart';
 
 class TaskDetailPage extends StatelessWidget {
   const TaskDetailPage({
@@ -14,6 +16,16 @@ class TaskDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final taskCtrl = TaskScope.of(context);
+    // Rebuild on every task change (toggling complete below, or the task
+    // being edited/removed elsewhere) — a plain read here would leave the
+    // checkbox showing stale state after tapping it.
+    return ListenableBuilder(
+      listenable: taskCtrl,
+      builder: (context, _) => _buildBody(context, taskCtrl),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, TaskController taskCtrl) {
     final tasks = taskCtrl.all;
     final task = tasks.isEmpty ? null : tasks.cast<dynamic>().fold(
       null,
@@ -84,12 +96,12 @@ class TaskDetailPage extends StatelessWidget {
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Date',
-                              value: task.date.toString(),
+                              value: DateFormatter.formatDateFull(task.date as DateTime),
                             ),
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
-                              label: 'Start Time',
-                              value: task.startTime.toString(),
+                              label: 'Time',
+                              value: task.timeRange as String,
                             ),
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
@@ -107,7 +119,7 @@ class TaskDetailPage extends StatelessWidget {
                       child: CheckboxListTile(
                         title: const Text('Mark as Completed'),
                         value: task.isCompleted as bool,
-                        onChanged: null,
+                        onChanged: (_) => taskCtrl.toggleTask(taskId),
                         dense: true,
                       ),
                     ),

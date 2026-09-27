@@ -188,6 +188,7 @@ class DzTask {
 
 class PlannerEvent {
   const PlannerEvent({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.hour,
@@ -198,6 +199,10 @@ class PlannerEvent {
     this.isCompleted = false,
   });
 
+  /// The [DzTask.id] this event was built from — lets the timeline card
+  /// tap through to that task (view/toggle-complete) rather than being
+  /// purely decorative.
+  final String id;
   final String title;
   final String subtitle;
   final int hour;
@@ -211,6 +216,7 @@ class PlannerEvent {
     final startMins = task.startTime.hour * 60 + task.startTime.minute;
     final endMins = task.endTime.hour * 60 + task.endTime.minute;
     return PlannerEvent(
+      id: task.id,
       title: task.title,
       subtitle: task.timeRange,
       hour: task.startTime.hour,

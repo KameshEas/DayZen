@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
+import '../../../core/services/jwt_auth_service.dart';
 import '../../../core/services/sync_manager.dart';
 import '../../task_controller.dart';
 
@@ -18,6 +19,16 @@ class SyncStatusIndicator extends StatelessWidget {
   });
 
   Future<void> _retry(BuildContext context) async {
+    // Sync needs a signed-in account — an offline-only user tapping this
+    // would otherwise hit the backend and get back a raw "missing
+    // authorization header" error, which is meaningless to them.
+    if (!JwtAuthService.instance.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to sync your tasks across devices.')),
+      );
+      return;
+    }
+
     try {
       await SyncManager.instance.retrySyncTasks(taskController);
       if (context.mounted) {
@@ -28,7 +39,7 @@ class SyncStatusIndicator extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sync failed: $e')),
+          const SnackBar(content: Text('Sync failed. Please try again later.')),
         );
       }
     }

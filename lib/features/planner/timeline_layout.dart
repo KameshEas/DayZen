@@ -119,6 +119,7 @@ List<TimelineSlot> layoutTimeline(
 }
 
 PlannerEvent _notCompleted(PlannerEvent e) => PlannerEvent(
+      id: e.id,
       title: e.title,
       subtitle: e.subtitle,
       hour: e.hour,
