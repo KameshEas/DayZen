@@ -76,7 +76,13 @@ class _NewTaskPageState extends State<NewTaskPage> {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _formatScheduled() {
-    return DateFormatter.formatTaskSchedule(_scheduledDate, _startTime.hour, _startTime.minute);
+    return DateFormatter.formatTaskSchedule(
+      _scheduledDate,
+      _startTime.hour,
+      _startTime.minute,
+      endHour: _endTime.hour,
+      endMinute: _endTime.minute,
+    );
   }
 
   String _focusLabel() {
@@ -121,19 +127,37 @@ class _NewTaskPageState extends State<NewTaskPage> {
     );
     if (!mounted || pickedDate == null) return;
 
-    // Pick time
-    final pickedTime = await showTimePicker(
+    // Pick start time
+    final pickedStart = await showTimePicker(
       context: context,
       initialTime: _startTime,
+      helpText: 'START TIME',
     );
-    if (!mounted || pickedTime == null) return;
+    if (!mounted || pickedStart == null) return;
+
+    final defaultEnd = pickedStart.hour >= 23
+        ? const TimeOfDay(hour: 23, minute: 59)
+        : TimeOfDay(hour: pickedStart.hour + 1, minute: pickedStart.minute);
+
+    // Pick end time
+    final pickedEnd = await showTimePicker(
+      context: context,
+      initialTime: defaultEnd,
+      helpText: 'END TIME',
+    );
+    if (!mounted) return;
+
+    // An end time at or before the start makes for a zero/negative-length
+    // task — fall back to the default hour-long block instead of saving
+    // something nonsensical.
+    final endMinutes = (pickedEnd ?? defaultEnd).hour * 60 + (pickedEnd ?? defaultEnd).minute;
+    final startMinutes = pickedStart.hour * 60 + pickedStart.minute;
+    final resolvedEnd = (pickedEnd != null && endMinutes > startMinutes) ? pickedEnd : defaultEnd;
 
     setState(() {
       _scheduledDate = pickedDate;
-      _startTime = pickedTime;
-      _endTime = pickedTime.hour >= 23
-          ? const TimeOfDay(hour: 23, minute: 59)
-          : TimeOfDay(hour: pickedTime.hour + 1, minute: pickedTime.minute);
+      _startTime = pickedStart;
+      _endTime = resolvedEnd;
     });
   }
 
