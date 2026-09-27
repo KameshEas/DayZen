@@ -37,7 +37,7 @@ class SettingsAiSection extends StatelessWidget {
               const SettingsDivider(),
               SettingsTile(
                 icon: Icons.auto_fix_high_rounded,
-                iconBg: DzColors.indigoTint,
+                iconBg: DzColors.indigo.withValues(alpha: 0.15),
                 iconColor: DzColors.indigo,
                 title: 'Frequency of Tips',
                 subtitle: ctrl.tipFrequency,

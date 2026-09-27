@@ -16,13 +16,11 @@ import 'widgets/day_optimizer_suggestion_tile.dart';
 /// Card widgets split into features/home/widgets/ in Phase 5.1 of
 /// docs/DEVELOPMENT_PLAN.md.
 void showDayOptimizerSheet(BuildContext context, TaskController taskCtrl) {
-  final tasks = taskCtrl.forDate(DateTime.now());
-  final result = DayOptimizer.optimise(tasks);
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _OptimizerSheet(result: result),
+    builder: (_) => _OptimizerSheet(taskCtrl: taskCtrl),
   );
 }
 
@@ -31,11 +29,24 @@ void showDayOptimizerSheet(BuildContext context, TaskController taskCtrl) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _OptimizerSheet extends StatelessWidget {
-  const _OptimizerSheet({required this.result});
-  final DayOptimizationResult result;
+  const _OptimizerSheet({required this.taskCtrl});
+  final TaskController taskCtrl;
 
   @override
   Widget build(BuildContext context) {
+    // Recomputed on every task change (toggling a suggestion below included)
+    // so marking one done updates this sheet immediately, the same way it
+    // already does everywhere else the schedule is shown.
+    return ListenableBuilder(
+      listenable: taskCtrl,
+      builder: (context, _) => _buildSheet(
+        context,
+        DayOptimizer.optimise(taskCtrl.forDate(DateTime.now())),
+      ),
+    );
+  }
+
+  Widget _buildSheet(BuildContext context, DayOptimizationResult result) {
     final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
@@ -155,8 +166,10 @@ class _OptimizerSheet extends StatelessWidget {
                         style: DzTextStyles.heading3
                             .copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: DzSpacing.sm),
-                    ...result.suggestions
-                        .map((s) => DayOptimizerSuggestionTile(suggestion: s)),
+                    ...result.suggestions.map((s) => DayOptimizerSuggestionTile(
+                          suggestion: s,
+                          onCompleteChanged: (_) => taskCtrl.toggleTask(s.task.id),
+                        )),
                     const SizedBox(height: DzSpacing.md),
                   ],
                   // Break recommendation

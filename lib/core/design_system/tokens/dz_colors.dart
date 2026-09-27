@@ -87,7 +87,6 @@ abstract final class DzColors {
   static const Color onboardingBadgeMuted = slateGray;
   static const Color onboardingPillBg = Color(0xFFEFE9E3);
   static const Color pinDotUnfilled = Color(0xFFDDD7D0);
-  static const Color selectedChipBg = Color(0xFFF1EEEA);
   static const Color chartBarInactive = Color(0xFFD5DDE4);
   static const Color privacyBannerGradientStart = Color(0xFFC7D9C0);
   static const Color privacyBannerGradientEnd = Color(0xFFA3C4A0);

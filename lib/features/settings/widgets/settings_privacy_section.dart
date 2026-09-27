@@ -57,7 +57,7 @@ class _SettingsPrivacySectionState extends State<SettingsPrivacySection> {
             children: [
               SettingsTile(
                 icon: Icons.pin_rounded,
-                iconBg: const Color(0xFFFEE2E2),
+                iconBg: DzColors.error.withValues(alpha: 0.15),
                 iconColor: DzColors.error,
                 title: 'PIN Lock',
                 subtitle: _loadingPin
@@ -69,7 +69,7 @@ class _SettingsPrivacySectionState extends State<SettingsPrivacySection> {
               if (_hasPin && ctrl.deviceHasBiometrics) ...[
                 SettingsTile(
                   icon: Icons.fingerprint_rounded,
-                  iconBg: DzColors.errorTint,
+                  iconBg: DzColors.error.withValues(alpha: 0.15),
                   iconColor: DzColors.error,
                   title: 'Biometric Lock',
                   subtitle: ctrl.biometricLabel,
@@ -88,7 +88,7 @@ class _SettingsPrivacySectionState extends State<SettingsPrivacySection> {
               const SettingsDivider(),
               SettingsTile(
                 icon: Icons.delete_outline_rounded,
-                iconBg: DzColors.errorTint,
+                iconBg: DzColors.error.withValues(alpha: 0.15),
                 iconColor: DzColors.error,
                 title: 'Clear History',
                 subtitle: 'Permanently delete logs',

@@ -90,10 +90,10 @@ class CategoryChips extends StatelessWidget {
             onTap: () => onSelect(cat),
             child: AnimatedContainer(
               duration: DzDuration.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected ? primary : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected ? primary : DzColors.borderLight,
                   width: 1.5,
@@ -102,7 +102,7 @@ class CategoryChips extends StatelessWidget {
               ),
               child: Text(
                 cat.label,
-                style: DzTextStyles.body.copyWith(
+                style: DzTextStyles.caption.copyWith(
                   color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
@@ -154,7 +154,7 @@ class PrioritySegment extends StatelessWidget {
                 margin: const EdgeInsets.all(4),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? DzColors.selectedChipBg : Colors.transparent,
+                  color: isSelected ? primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(DzRadius.card - 4),
                 ),
                 child: Text(
@@ -162,7 +162,7 @@ class PrioritySegment extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: DzTextStyles.body.copyWith(
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                    color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: isSelected ? DzColors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

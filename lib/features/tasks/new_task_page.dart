@@ -249,14 +249,14 @@ class _NewTaskPageState extends State<NewTaskPage> {
                     controller: _titleCtrl,
                     focusNode: _titleFocus,
                     style: DzTextStyles.heading1.copyWith(
-                      fontSize: 28,
+                      fontSize: 22,
                       color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w400,
                     ),
                     decoration: InputDecoration(
                       hintText: "What's on your mind?",
                       hintStyle: DzTextStyles.heading1.copyWith(
-                        fontSize: 28,
+                        fontSize: 22,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
                         fontWeight: FontWeight.w400,
                       ),
