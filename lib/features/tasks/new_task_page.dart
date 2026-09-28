@@ -35,10 +35,15 @@ import 'widgets/new_task_shared_widgets.dart';
 }
 
 class NewTaskPage extends StatefulWidget {
-  /// Optional initial date (defaults to today).
+  /// Optional initial date (defaults to today). Ignored when [task] is set.
   final DateTime? initialDate;
 
-  const NewTaskPage({super.key, this.initialDate});
+  /// When set, the page edits this existing task in place instead of
+  /// creating a new one — fields are pre-filled and saving calls
+  /// [TaskController.updateTask] instead of [TaskController.addTask].
+  final DzTask? task;
+
+  const NewTaskPage({super.key, this.initialDate, this.task});
 
   @override
   State<NewTaskPage> createState() => _NewTaskPageState();
@@ -60,13 +65,25 @@ class _NewTaskPageState extends State<NewTaskPage> {
   TaskCategory _category = TaskCategory.work;
   NewTaskPriorityLevel _priority = NewTaskPriorityLevel.medium;
 
+  bool get _isEditing => widget.task != null;
+
   @override
   void initState() {
     super.initState();
-    _scheduledDate = dayOnly(widget.initialDate ?? DateTime.now());
-    final times = defaultTaskTimes(_scheduledDate, DateTime.now());
-    _startTime = times.$1;
-    _endTime = times.$2;
+    final existing = widget.task;
+    if (existing != null) {
+      _titleCtrl.text = existing.title;
+      _scheduledDate = existing.date;
+      _startTime = existing.startTime;
+      _endTime = existing.endTime;
+      _category = existing.category;
+      _priority = _fromDzPriority(existing.priority);
+    } else {
+      _scheduledDate = dayOnly(widget.initialDate ?? DateTime.now());
+      final times = defaultTaskTimes(_scheduledDate, DateTime.now());
+      _startTime = times.$1;
+      _endTime = times.$2;
+    }
     // Auto-focus the title field
     WidgetsBinding.instance.addPostFrameCallback((_) => _titleFocus.requestFocus());
   }
@@ -80,14 +97,18 @@ class _NewTaskPageState extends State<NewTaskPage> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
+  bool get _spansToNextDay =>
+      (_endTime.hour * 60 + _endTime.minute) <= (_startTime.hour * 60 + _startTime.minute);
+
   String _formatScheduled() {
-    return DateFormatter.formatTaskSchedule(
+    final base = DateFormatter.formatTaskSchedule(
       _scheduledDate,
       _startTime.hour,
       _startTime.minute,
       endHour: _endTime.hour,
       endMinute: _endTime.minute,
     );
+    return _spansToNextDay ? '$base (+1 day)' : base;
   }
 
   String _focusLabel() {
@@ -110,6 +131,14 @@ class _NewTaskPageState extends State<NewTaskPage> {
         NewTaskPriorityLevel.low => TaskPriority.low,
         NewTaskPriorityLevel.medium => TaskPriority.routine,
         NewTaskPriorityLevel.high => TaskPriority.high,
+      };
+
+  // Zen has no dedicated slot in this 3-level form — closest fit is medium.
+  static NewTaskPriorityLevel _fromDzPriority(TaskPriority p) => switch (p) {
+        TaskPriority.low => NewTaskPriorityLevel.low,
+        TaskPriority.routine => NewTaskPriorityLevel.medium,
+        TaskPriority.zen => NewTaskPriorityLevel.medium,
+        TaskPriority.high => NewTaskPriorityLevel.high,
       };
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -152,17 +181,14 @@ class _NewTaskPageState extends State<NewTaskPage> {
     );
     if (!mounted) return;
 
-    // An end time at or before the start makes for a zero/negative-length
-    // task — fall back to the default hour-long block instead of saving
-    // something nonsensical.
-    final endMinutes = (pickedEnd ?? defaultEnd).hour * 60 + (pickedEnd ?? defaultEnd).minute;
-    final startMinutes = pickedStart.hour * 60 + pickedStart.minute;
-    final resolvedEnd = (pickedEnd != null && endMinutes > startMinutes) ? pickedEnd : defaultEnd;
-
+    // An end time at or before the start is a genuine overnight span (e.g.
+    // Sleep 10:30 PM → 5:00 AM the next day), not a mistake — it's accepted
+    // as-is and treated as spanning into the next day wherever duration is
+    // computed, rather than being silently discarded.
     setState(() {
       _scheduledDate = pickedDate;
       _startTime = pickedStart;
-      _endTime = resolvedEnd;
+      _endTime = pickedEnd ?? defaultEnd;
     });
   }
 
@@ -181,20 +207,26 @@ class _NewTaskPageState extends State<NewTaskPage> {
     }
     _saving = true;
 
+    final existing = widget.task;
     final task = DzTask(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       startTime: _startTime,
       endTime: _endTime,
       priority: _toDzPriority(),
       category: _category,
       icon: _categoryIcon(_category),
+      isCompleted: existing?.isCompleted ?? false,
       date: _scheduledDate,
     );
 
     final tasks = TaskScope.of(context);
     try {
-      await tasks.addTask(task);
+      if (existing != null) {
+        await tasks.updateTask(existing.id, task);
+      } else {
+        await tasks.addTask(task);
+      }
     } catch (_) {
       // Let the user try again instead of leaving the button dead.
       _saving = false;
@@ -228,7 +260,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
           color: Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(
-          'New Task',
+          _isEditing ? 'Edit Task' : 'New Task',
           style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
@@ -328,7 +360,11 @@ class _NewTaskPageState extends State<NewTaskPage> {
           ],
         ),
       ),
-      bottomNavigationBar: NewTaskBottomBar(primary: primary, onSave: _save),
+      bottomNavigationBar: NewTaskBottomBar(
+        primary: primary,
+        onSave: _save,
+        label: _isEditing ? 'Save Changes' : 'Add to My Day',
+      ),
     );
   }
 }

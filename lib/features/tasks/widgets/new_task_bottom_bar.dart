@@ -8,10 +8,12 @@ class NewTaskBottomBar extends StatelessWidget {
     super.key,
     required this.primary,
     required this.onSave,
+    this.label = 'Add to My Day',
   });
 
   final Color primary;
   final VoidCallback onSave;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class NewTaskBottomBar extends StatelessWidget {
             icon: const Icon(Icons.check_circle_outline_rounded,
                 color: DzColors.white, size: 20),
             label: Text(
-              'Add to My Day',
+              label,
               style: DzTextStyles.body.copyWith(
                 color: DzColors.white,
                 fontWeight: FontWeight.w600,

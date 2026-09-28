@@ -11,6 +11,7 @@ import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
 import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
+import '../../features/home/models/task_model.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/maintenance/maintenance_screen.dart';
@@ -215,9 +216,11 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.newTask,
           name: RouteNames.newTask,
-          // The Planner passes the day being viewed as `extra`.
+          // The Planner passes the day being viewed as `extra` (DateTime);
+          // editing an existing task passes the task itself (DzTask).
           builder: (context, state) => NewTaskPage(
             initialDate: state.extra is DateTime ? state.extra as DateTime : null,
+            task: state.extra is DzTask ? state.extra as DzTask : null,
           ),
         ),
         GoRoute(

@@ -100,11 +100,18 @@ class NotificationService {
       task.startTime.hour,
       task.startTime.minute,
     );
+    // An end time at or before the start is a genuine overnight span (e.g.
+    // Sleep 10:30 PM → 5:00 AM) — the end falls on the following day.
+    final endsNextDay = (task.endTime.hour * 60 + task.endTime.minute) <=
+        (task.startTime.hour * 60 + task.startTime.minute);
+    final taskEndDate = endsNextDay
+        ? task.date.add(const Duration(days: 1))
+        : task.date;
     final taskEndDateTime = tz.TZDateTime(
       tz.local,
-      task.date.year,
-      task.date.month,
-      task.date.day,
+      taskEndDate.year,
+      taskEndDate.month,
+      taskEndDate.day,
       task.endTime.hour,
       task.endTime.minute,
     );
