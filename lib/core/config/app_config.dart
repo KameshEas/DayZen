@@ -95,6 +95,17 @@ class AppConfig {
   static const int heavyWorkloadThresholdMinutes = 240;
   static const int moderateWorkloadThresholdMinutes = 150;
 
+  // ── Task Completion Follow-up ─────────────────────────────────────────
+  // How long after a task's scheduled end time to ask whether it happened.
+  static const int taskFollowUpDelayMinutes = 8;
+  static const String taskFollowUpDoneAction = 'Done';
+  static const String taskFollowUpSkipAction = "Didn't happen";
+  static const String overdueTaskPopupDoneLabel = 'Yes, done';
+  // Shorter than the original "No, didn't happen" — that wrapped to two
+  // lines in the half-width button next to "Yes, done" and looked broken.
+  static const String overdueTaskPopupSkipLabel = "Didn't happen";
+  static const String overdueTaskPopupTitle = 'Did you get to these?';
+
   // ── Timeline View Configuration ──────────────────────────────────────
   static const double timelineHourHeight = 72.0;
   static const int timelineStartHour = 6;

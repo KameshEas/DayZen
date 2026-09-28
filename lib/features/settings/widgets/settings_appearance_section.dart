@@ -25,7 +25,7 @@ class SettingsAppearanceSection extends StatelessWidget {
             children: [
               SettingsTile(
                 icon: Icons.dark_mode_rounded,
-                iconBg: DzColors.indigoTint,
+                iconBg: DzColors.indigo.withValues(alpha: 0.15),
                 iconColor: DzColors.indigo,
                 title: 'Light/Dark Mode',
                 subtitle: ctrl.themeModeLabel,
@@ -34,7 +34,7 @@ class SettingsAppearanceSection extends StatelessWidget {
               const SettingsDivider(),
               SettingsTile(
                 icon: Icons.palette_rounded,
-                iconBg: DzColors.successTint,
+                iconBg: DzColors.zenGreen.withValues(alpha: 0.15),
                 iconColor: DzColors.zenGreen,
                 title: 'Theme Accent',
                 subtitle: '${ctrl.accent} selected',
