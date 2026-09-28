@@ -172,9 +172,17 @@ class _PlannerPageState extends State<PlannerPage> {
           ),
         ),
         if (_showAiSuggestions) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
-            child: ScheduleSuggestionsWidget(tasks: dayTasks),
+          // Capped and independently scrollable: with the offline optimizer
+          // this reliably renders one card per task (previously the remote
+          // version rarely got past its compact loading/error card), and an
+          // unbounded list here would push the Column below past the
+          // screen — a bottom overflow, not just a cosmetic issue.
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.35),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+              child: ScheduleSuggestionsWidget(tasks: dayTasks),
+            ),
           ),
           const SizedBox(height: DzSpacing.md),
         ],

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/routing/route_paths.dart';
+import '../app_data.dart';
+import '../home/widgets/overdue_tasks_popup.dart';
+import '../journal/widgets/journal_new_entry_sheet.dart';
 import '../planner/planner_selection.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
@@ -17,6 +20,17 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Once per app session, regardless of which tab the router lands on
+    // first — mirrors AppVersionController's "check once, after first
+    // frame" pattern.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowOverdueTasksPopup(context, TaskScope.of(context));
+    });
+  }
 
   static const _pageTitles = ['DayZen', 'Planner', '', 'Insights', 'Journal'];
   static const _routePaths = [
@@ -36,6 +50,18 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onFabPressed() {
+    // The centre "+" means "add" for whatever tab is showing: a task
+    // everywhere except the Journal tab, where it means a journal entry
+    // instead — Journal has no separate FAB of its own for that reason.
+    if (_currentIndex == 4) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const JournalNewEntrySheet(),
+      );
+      return;
+    }
     // On the Planner, the new task belongs to the day being viewed.
     final onPlanner = _currentIndex == 1;
     context.push(

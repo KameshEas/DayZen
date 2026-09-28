@@ -27,7 +27,7 @@ class SettingsAccountSection extends StatelessWidget {
                 : Icons.cloud_off_rounded,
             iconBg: ctrl.isSignedIn
                 ? Theme.of(context).colorScheme.primaryContainer
-                : DzColors.warningTint,
+                : DzColors.warning.withValues(alpha: 0.15),
             iconColor: ctrl.isSignedIn
                 ? Theme.of(context).colorScheme.primary
                 : DzColors.warning,

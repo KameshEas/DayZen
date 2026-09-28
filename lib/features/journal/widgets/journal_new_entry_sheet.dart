@@ -15,6 +15,10 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
   final _bodyController = TextEditingController();
   JournalMood _selectedMood = JournalMood.happy;
 
+  /// Set when Save is tapped with an empty title; cleared once the user
+  /// starts typing. Was previously a silent no-op (nothing happened at all).
+  String? _titleError;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -86,6 +90,10 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
               controller: _titleController,
               label: 'Title',
               hint: 'What\'s on your mind?',
+              errorText: _titleError,
+              onChanged: (_) {
+                if (_titleError != null) setState(() => _titleError = null);
+              },
             ),
             const SizedBox(height: DzSpacing.md),
             DzTextField(
@@ -100,7 +108,10 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
               onPressed: () {
                 final title = _titleController.text.trim();
                 final body = _bodyController.text.trim();
-                if (title.isEmpty) return;
+                if (title.isEmpty) {
+                  setState(() => _titleError = 'Give your entry a title first');
+                  return;
+                }
                 final entry = JournalEntry(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   title: title,
