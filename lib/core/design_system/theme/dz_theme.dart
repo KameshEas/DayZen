@@ -190,8 +190,11 @@ abstract final class DzTheme {
 
       // ── FAB ───────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: DzColors.sunrise,
-        foregroundColor: DzColors.navy,
+        // Was hardcoded to sunrise/navy regardless of brightness or the
+        // user's chosen accent — follow the same accent/onPrimary pair
+        // every other primary-action control (buttons, nav) already uses.
+        backgroundColor: accent,
+        foregroundColor: onPrimary,
         elevation: 0,
         focusElevation: 0,
         hoverElevation: 0,
