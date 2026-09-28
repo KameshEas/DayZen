@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/routing/route_paths.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
@@ -36,8 +38,18 @@ class TaskDetailPage extends StatelessWidget {
     }
 
     return DzAuthScaffold(
-      appBar: const DzAppBar(
+      appBar: DzAppBar(
         title: 'Task Details',
+        actions: task == null
+            ? null
+            : [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit task',
+                  onPressed: () =>
+                      context.push(RoutePaths.newTask, extra: task),
+                ),
+              ],
       ),
       body: task == null
           ? DzEmptyState(
@@ -136,7 +148,8 @@ class TaskDetailPage extends StatelessWidget {
   int _durationMinutes(DzTask task) {
     final start = task.startTime.hour * 60 + task.startTime.minute;
     final end = task.endTime.hour * 60 + task.endTime.minute;
-    return end - start;
+    // end <= start spans into the next day (e.g. an overnight Sleep task).
+    return end > start ? end - start : (1440 - start) + end;
   }
 }
 
