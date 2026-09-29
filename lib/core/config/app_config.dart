@@ -30,12 +30,18 @@ class AppConfig {
       String.fromEnvironment('AUTH_BASE_URL', defaultValue: 'https://api.aspired2d.cloud');
 
   // client_id of the "DayZen Mobile Chat Panel" OAuth client, registered
-  // once on the auth service via:
+  // once on the (production) auth service via:
   //   python scripts/seed_oauth_client.py --name "DayZen Mobile Chat Panel" \
   //     --redirect-uri dayzen://oauth/callback --scope dayzen
-  // Must be set per-deployment via --dart-define; the chat assistant's
-  // "Connect" step fails gracefully if left blank.
-  static const String mcpOauthClientId = String.fromEnvironment('MCP_OAUTH_CLIENT_ID');
+  // Public client (no client_secret - PKCE-only), so baking the id itself
+  // into source is fine, same as apiBaseUrl/appId above. CI (see
+  // .github/workflows/build-and-deploy.yml -> gha-templates'
+  // flutter-release.yml) never passes --dart-define-from-file, so this
+  // default is what every Firebase/Play Store build actually gets -
+  // override via --dart-define=MCP_OAUTH_CLIENT_ID=... only for local runs
+  // against a different auth deployment (e.g. a separately-seeded dev client).
+  static const String mcpOauthClientId =
+      String.fromEnvironment('MCP_OAUTH_CLIENT_ID', defaultValue: 'mcp-client-b857a27af0ffcb58');
 
   static const String mcpOauthRedirectUri = 'dayzen://oauth/callback';
   static const String mcpOauthScope = 'dayzen';
