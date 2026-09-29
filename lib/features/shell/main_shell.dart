@@ -106,6 +106,19 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                 ),
               ),
         actions: [
+          Semantics(
+            label: 'AI Assistant',
+            button: true,
+            enabled: true,
+            onTap: () => context.push(RoutePaths.aiAssistant),
+            child: IconButton(
+              icon: const Icon(Icons.auto_awesome_outlined),
+              tooltip: 'AI Assistant',
+              onPressed: () {
+                context.push(RoutePaths.aiAssistant);
+              },
+            ),
+          ),
           // The notification test page is a developer tool: debug builds only.
           if (kDebugMode)
             Semantics(

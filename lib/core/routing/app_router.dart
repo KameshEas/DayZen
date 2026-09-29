@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
 import '../../core/services/user_service.dart';
+import '../../features/ai_assistant/ai_assistant_screen.dart';
 import '../../features/app_update/app_version_controller.dart';
 import '../../features/app_update/update_showcase_page.dart';
 import '../../features/auth/login_page.dart';
@@ -227,6 +228,11 @@ class AppRouter {
           path: RoutePaths.settings,
           name: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.aiAssistant,
+          name: RouteNames.aiAssistant,
+          builder: (context, state) => const AiAssistantScreen(),
         ),
 
         // ── Task detail ────────────────────────────────────────────────
