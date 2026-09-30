@@ -302,9 +302,13 @@ class _NewTaskPageState extends State<NewTaskPage> {
                       contentPadding: EdgeInsets.zero,
                       errorText: _titleError,
                       errorStyle: DzTextStyles.caption.copyWith(color: DzColors.error),
+                      counterText: '',
                     ),
                     maxLines: 3,
                     minLines: 1,
+                    // Matches TaskCreate.title's server-side cap
+                    // (services/dayzen/app/schemas/task.py).
+                    maxLength: 200,
                     textInputAction: TextInputAction.done,
                     onChanged: (_) {
                       if (_titleError != null) setState(() => _titleError = null);
