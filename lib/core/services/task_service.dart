@@ -231,18 +231,19 @@ class TaskService {
   /// OPTIMIZATION: Single POST, no batching needed
   Future<DzTask> createTask(DzTask task) async {
     try {
+      final dateStr = '${task.date.year}-${task.date.month.toString().padLeft(2, '0')}-${task.date.day.toString().padLeft(2, '0')}';
       final body = {
         'id': task.id,
         'title': task.title,
-        'date_ms': task.date.millisecondsSinceEpoch,
+        'description': task.subtitle,
+        'scheduled_date': dateStr,
         'start_hour': task.startTime.hour,
         'start_minute': task.startTime.minute,
         'end_hour': task.endTime.hour,
         'end_minute': task.endTime.minute,
         'priority': task.priority.name,
         'category': task.category.name,
-        'icon_code': task.icon?.codePoint,
-        'subtitle': task.subtitle,
+        'accent_color_value': null,
         'is_completed': task.isCompleted,
       };
 
@@ -266,10 +267,12 @@ class TaskService {
     try {
       final body = <String, dynamic>{};
       if (task.title.isNotEmpty) body['title'] = task.title;
-      if (task.subtitle != null) body['subtitle'] = task.subtitle;
+      if (task.subtitle != null) body['description'] = task.subtitle;
       body['is_completed'] = task.isCompleted;
       body['start_hour'] = task.startTime.hour;
+      body['start_minute'] = task.startTime.minute;
       body['end_hour'] = task.endTime.hour;
+      body['end_minute'] = task.endTime.minute;
 
       final response = await _apiClient.put('/tasks/$taskId', body);
       final apiTask = TaskApiResponse.fromJson(response);
@@ -336,6 +339,10 @@ class TaskService {
           'category': t.category.name,
           'is_completed': t.isCompleted,
           'accent_color_value': null, // TODO: Store accent color in model
+          'start_hour': t.startTime.hour,
+          'start_minute': t.startTime.minute,
+          'end_hour': t.endTime.hour,
+          'end_minute': t.endTime.minute,
         };
       }).toList();
 

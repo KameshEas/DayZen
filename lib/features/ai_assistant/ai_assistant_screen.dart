@@ -157,12 +157,18 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                                 controller: _inputController,
                                 minLines: 1,
                                 maxLines: 4,
+                                // Matches the backend's N8nChatRequest.message cap
+                                // (services/dayzen/app/schemas/n8n_chat.py) - the
+                                // message is forwarded verbatim to an LLM via n8n,
+                                // so an unbounded length is a resource/cost risk.
+                                maxLength: 4000,
                                 textInputAction: TextInputAction.send,
                                 onSubmitted: (_) => _send(),
                                 enabled: !_isSending,
                                 decoration: const InputDecoration(
                                   hintText: "What's on my plate today?",
                                   filled: true,
+                                  counterText: '',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.all(Radius.circular(24)),
                                     borderSide: BorderSide.none,
