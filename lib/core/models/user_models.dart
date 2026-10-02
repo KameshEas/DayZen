@@ -20,9 +20,12 @@ class UserProfileModel {
   });
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
+    // Backend returns 'id' (DayZen has been JWT-only, not Firebase, since
+    // the FIREBASE_TO_JWT_MIGRATION - this field is named firebaseUid for
+    // historical/call-site-compatibility reasons only).
     try {
       return UserProfileModel(
-        firebaseUid: json['firebase_uid'] as String? ?? '',
+        firebaseUid: json['id'] as String? ?? '',
         email: json['email'] as String? ?? '',
         displayName: json['display_name'] as String?,
         avatarUrl: json['avatar_url'] as String?,
@@ -31,7 +34,7 @@ class UserProfileModel {
       );
     } catch (e) {
       return UserProfileModel(
-        firebaseUid: json['firebase_uid'] as String? ?? '',
+        firebaseUid: json['id'] as String? ?? '',
         email: json['email'] as String? ?? '',
         displayName: null,
         avatarUrl: null,

@@ -91,6 +91,9 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
               label: 'Title',
               hint: 'What\'s on your mind?',
               errorText: _titleError,
+              // Matches JournalCreate.title's server-side cap
+              // (services/dayzen/app/schemas/journal.py).
+              maxLength: 200,
               onChanged: (_) {
                 if (_titleError != null) setState(() => _titleError = null);
               },
@@ -101,6 +104,8 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
               label: 'Write your thoughts…',
               hint: '',
               maxLines: 4,
+              // Matches JournalCreate.body's server-side cap.
+              maxLength: 20000,
             ),
             const SizedBox(height: DzSpacing.lg),
             DzPrimaryButton(

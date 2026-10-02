@@ -27,6 +27,7 @@ class DzTextField extends StatelessWidget {
     this.onSubmitted,
     this.maxLines = 1,
     this.minLines,
+    this.maxLength,
     this.readOnly = false,
     this.enabled = true,
     this.focusNode,
@@ -47,6 +48,7 @@ class DzTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final int? maxLines;
   final int? minLines;
+  final int? maxLength;
   final bool readOnly;
   final bool enabled;
   final FocusNode? focusNode;
@@ -64,6 +66,7 @@ class DzTextField extends StatelessWidget {
       onSubmitted: onSubmitted,
       maxLines: obscureText ? 1 : maxLines,
       minLines: minLines,
+      maxLength: maxLength,
       readOnly: readOnly,
       enabled: enabled,
       autofocus: autofocus,
