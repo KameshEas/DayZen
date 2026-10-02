@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
 import '../../core/services/user_service.dart';
+import '../../features/ai_assistant/ai_assistant_screen.dart';
 import '../../features/app_update/app_version_controller.dart';
 import '../../features/app_update/update_showcase_page.dart';
 import '../../features/auth/login_page.dart';
@@ -11,6 +12,7 @@ import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
 import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
+import '../../features/home/models/task_model.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/maintenance/maintenance_screen.dart';
@@ -215,15 +217,22 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.newTask,
           name: RouteNames.newTask,
-          // The Planner passes the day being viewed as `extra`.
+          // The Planner passes the day being viewed as `extra` (DateTime);
+          // editing an existing task passes the task itself (DzTask).
           builder: (context, state) => NewTaskPage(
             initialDate: state.extra is DateTime ? state.extra as DateTime : null,
+            task: state.extra is DzTask ? state.extra as DzTask : null,
           ),
         ),
         GoRoute(
           path: RoutePaths.settings,
           name: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.aiAssistant,
+          name: RouteNames.aiAssistant,
+          builder: (context, state) => const AiAssistantScreen(),
         ),
 
         // ── Task detail ────────────────────────────────────────────────

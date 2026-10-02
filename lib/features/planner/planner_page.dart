@@ -57,6 +57,7 @@ class _PlannerPageState extends State<PlannerPage> {
   @override
   void initState() {
     super.initState();
+    _selection.catchUpToToday();
     AppPrefs.firstUseDate().then((d) {
       if (mounted && d != null) setState(() => _firstUse = d);
     });
