@@ -5,7 +5,7 @@ import '../../../core/routing/route_paths.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "ACCOUNT" card on the Settings page â€” sign-in status, account sheet,
+/// The "ACCOUNT" card on the Settings page — sign-in status, account sheet,
 /// and navigation to the sign-in flow.
 class SettingsAccountSection extends StatelessWidget {
   const SettingsAccountSection({super.key, required this.ctrl});
@@ -34,7 +34,7 @@ class SettingsAccountSection extends StatelessWidget {
             title: ctrl.isSignedIn ? 'Account' : 'Sign In & Sync',
             subtitle: ctrl.isSignedIn
                 ? ctrl.userEmail ?? 'Signed in'
-                : 'Offline mode â€” tap to sign in',
+                : 'Offline mode — tap to sign in',
             onTap: () {
               if (ctrl.isSignedIn) {
                 _showAccountSheet(context, ctrl);
@@ -100,7 +100,7 @@ class SettingsAccountSection extends StatelessWidget {
                       Text(
                         'Sync is active',
                         style: DzTextStyles.caption
-                            .copyWith(color: DzColors.textSecondary),
+                            .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),

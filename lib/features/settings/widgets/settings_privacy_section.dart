@@ -10,7 +10,7 @@ import '../../biometric/biometric_setup_guide_page.dart';
 import '../settings_controller.dart';
 import 'settings_shared_widgets.dart';
 
-/// The "PRIVACY" card on the Settings page â€” biometric lock, data export,
+/// The "PRIVACY" card on the Settings page — biometric lock, data export,
 /// and clear-history.
 class SettingsPrivacySection extends StatelessWidget {
   const SettingsPrivacySection({super.key, required this.ctrl});
@@ -31,7 +31,7 @@ class SettingsPrivacySection extends StatelessWidget {
               if (ctrl.deviceHasBiometrics) ...[
                 SettingsTile(
                   icon: Icons.fingerprint_rounded,
-                  iconBg: const Color(0xFFFEE2E2),
+                  iconBg: DzColors.errorTint,
                   iconColor: DzColors.error,
                   title: 'Biometric Lock',
                   subtitle: ctrl.biometricLabel,
@@ -50,7 +50,7 @@ class SettingsPrivacySection extends StatelessWidget {
               const SettingsDivider(),
               SettingsTile(
                 icon: Icons.delete_outline_rounded,
-                iconBg: const Color(0xFFFEE2E2),
+                iconBg: DzColors.errorTint,
                 iconColor: DzColors.error,
                 title: 'Clear History',
                 subtitle: 'Permanently delete logs',
@@ -93,14 +93,17 @@ class SettingsPrivacySection extends StatelessWidget {
             onPressed: () async {
               final tasks = TaskScope.of(context);
               final journal = JournalScope.of(context);
-              await tasks.clearAll();
-              await journal.clearAll();
-              if (ctx.mounted) ctx.pop();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All history cleared.')),
-                );
-              }
+              ctx.pop();
+              await DzProgress.run<void>(
+                context,
+                message: 'Clearing your history…',
+                successMessage: 'History cleared',
+                alwaysShow: true,
+                task: () async {
+                  await tasks.clearAll();
+                  await journal.clearAll();
+                },
+              );
             },
             child: const Text('Clear',
                 style: TextStyle(color: DzColors.error)),
@@ -125,9 +128,9 @@ class SettingsPrivacySection extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Biometric sheet â€” requests real biometric auth before enabling
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric sheet — requests real biometric auth before enabling
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _BiometricSheet extends StatefulWidget {
   const _BiometricSheet({required this.ctrl});
@@ -238,11 +241,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
             children: [
               const Text('Enable Biometric Lock', style: DzTextStyles.body),
               if (_checking)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                const DzSunLoader(width: 40)
               else
                 Switch.adaptive(
                   value: widget.ctrl.biometricEnabled,
@@ -256,7 +255,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
             Container(
               padding: const EdgeInsets.all(DzSpacing.md),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
+                color: DzColors.errorTint,
                 borderRadius: BorderRadius.circular(DzRadius.card),
                 border: Border.all(color: DzColors.error.withValues(alpha: 0.3)),
               ),
@@ -301,7 +300,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
             const SizedBox(height: DzSpacing.lg),
             Text('Lock after inactivity',
                 style: DzTextStyles.caption
-                    .copyWith(color: DzColors.textSecondary)),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: DzSpacing.sm),
             Row(
               children: [1, 5, 10, 15].map((m) {
@@ -319,7 +318,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                       decoration: BoxDecoration(
                         color: selected
                             ? Theme.of(context).colorScheme.primary
-                            : const Color(0xFFF8FAFC),
+                            : DzColors.appBackground,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: selected
@@ -334,7 +333,7 @@ class _BiometricSheetState extends State<_BiometricSheet> {
                         style: DzTextStyles.small.copyWith(
                           color: selected
                               ? DzColors.white
-                              : DzColors.textSecondary,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

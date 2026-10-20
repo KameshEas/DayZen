@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dayzen/features/settings/settings_controller.dart';
+import 'package:dayzen/core/design_system/tokens/dz_colors.dart';
 
 void main() {
   late SettingsController controller;
@@ -19,24 +20,26 @@ void main() {
   group('SettingsController', () {
     test('initializes with defaults', () {
       expect(controller.themeMode, equals(ThemeMode.system));
-      expect(controller.accent, equals('Zen Green'));
+      expect(controller.accent, equals('Brand Navy'));
       expect(controller.fontSize, equals('Standard (16px)'));
       expect(controller.quietHours, true);
       expect(controller.focusAlerts, true);
     });
 
     test('provides correct accent color for each option', () {
-      controller.setAccent('Ocean Blue');
-      expect(controller.accent, equals('Ocean Blue'));
+      controller.setAccent('Sunrise');
+      expect(controller.accent, equals('Sunrise'));
+      expect(controller.accentColor, equals(DzColors.sunrise));
 
-      controller.setAccent('Sunset Orange');
-      expect(controller.accent, equals('Sunset Orange'));
+      controller.setAccent('Sage');
+      expect(controller.accent, equals('Sage'));
 
       controller.setAccent('Lavender');
       expect(controller.accent, equals('Lavender'));
 
-      controller.setAccent('Zen Green');
-      expect(controller.accent, equals('Zen Green'));
+      controller.setAccent('Brand Navy');
+      expect(controller.accent, equals('Brand Navy'));
+      expect(controller.accentColor, equals(DzColors.navy));
     });
 
     test('toggles quiet hours', () {

@@ -38,13 +38,13 @@ class HomeStatsRow extends StatelessWidget {
                 Text(
                   'Focus Time',
                   style: DzTextStyles.small
-                      .copyWith(color: DzColors.textSecondary),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   focusLabel,
                   style: DzTextStyles.heading2.copyWith(
-                    color: DzColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -73,13 +73,13 @@ class HomeStatsRow extends StatelessWidget {
                 Text(
                   'Zen Sessions',
                   style: DzTextStyles.small
-                      .copyWith(color: DzColors.textSecondary),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '$zenSessionsCount',
                   style: DzTextStyles.heading2.copyWith(
-                    color: DzColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
