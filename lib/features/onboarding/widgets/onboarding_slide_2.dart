@@ -3,7 +3,7 @@ import '../../../core/design_system/design_system.dart';
 import 'onboarding_decoration_widgets.dart';
 import 'onboarding_text_widgets.dart';
 
-/// Slide 2 â€” "Your Data Stays With You"
+/// Slide 2 — "Your Data Stays With You"
 class OnboardingSlide2 extends StatelessWidget {
   const OnboardingSlide2({
     super.key,
@@ -27,7 +27,7 @@ class OnboardingSlide2 extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // Back card â€” slightly rotated left
+                // Back card — slightly rotated left
                 Positioned(
                   left: 20,
                   top: 0,
@@ -46,7 +46,7 @@ class OnboardingSlide2 extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Front card â€” bottom-right, lock icon
+                // Front card — bottom-right, lock icon
                 Positioned(
                   right: 20,
                   bottom: 0,

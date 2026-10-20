@@ -10,7 +10,7 @@ import '../../core/logging/app_logger.dart';
 /// Handles task sync coordination with conflict resolution.
 ///
 /// The shared sync state machine (isSyncing guard, sync-status formatting,
-/// retry/withSync wrappers) lives in [SyncCoordinator] â€” see
+/// retry/withSync wrappers) lives in [SyncCoordinator] — see
 /// docs/DEVELOPMENT_PLAN.md Phase 3.2. This class owns only what's
 /// task-specific: building the sync request and reconciling the response.
 class SyncManager extends SyncCoordinator<TaskController> {
@@ -102,7 +102,7 @@ class SyncManager extends SyncCoordinator<TaskController> {
   ) =>
       withSync(controller, () async {
         // Preserves the original delete+re-add pattern rather than calling
-        // controller.updateTask directly â€” see git history for context;
+        // controller.updateTask directly — see git history for context;
         // not changed here since Phase 3.2 is about where sync logic
         // lives, not about revisiting this specific update strategy.
         final idx = controller.all.indexWhere((t) => t.id == taskId);

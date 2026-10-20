@@ -9,7 +9,7 @@ class AuthController extends ChangeNotifier {
 
   /// Creates an [AuthController] with a [JwtAuthService] instance.
   AuthController({JwtAuthService? authService})
-      : _authService = authService ?? JwtAuthService();
+      : _authService = authService ?? JwtAuthService.instance;
 
   bool _isLoading = false;
   String? _error;
@@ -38,7 +38,7 @@ class AuthController extends ChangeNotifier {
   Future<bool> signIn({
     required String email,
     required String password,
-    required void Function() onSuccess,
+    void Function()? onSuccess,
   }) async {
     if (email.trim().isEmpty || password.isEmpty) {
       _setError('Please fill in all fields.');
@@ -56,10 +56,10 @@ class AuthController extends ChangeNotifier {
       if (success) {
         _setLoading(false);
         notifyListeners();
-        onSuccess();
+        onSuccess?.call();
         return true;
       } else {
-        _setError('Incorrect email or password.');
+        _setError(_authService.lastError ?? 'Incorrect email or password.');
         return false;
       }
     } catch (e) {
@@ -74,7 +74,7 @@ class AuthController extends ChangeNotifier {
     required String fullName,
     required String email,
     required String password,
-    required void Function() onSuccess,
+    void Function()? onSuccess,
   }) async {
     if (fullName.trim().isEmpty || email.trim().isEmpty || password.isEmpty) {
       _setError('Please fill in all fields.');
@@ -97,10 +97,11 @@ class AuthController extends ChangeNotifier {
       if (success) {
         _setLoading(false);
         notifyListeners();
-        onSuccess();
+        onSuccess?.call();
         return true;
       } else {
-        _setError('Failed to create account. Please try again.');
+        _setError(_authService.lastError ??
+            'Failed to create account. Please try again.');
         return false;
       }
     } catch (e) {

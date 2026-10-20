@@ -67,7 +67,7 @@ class _HomeFocusScoreCardState extends State<HomeFocusScoreCard>
               Text(
                 'Focus Score',
                 style: DzTextStyles.caption.copyWith(
-                  color: DzColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -105,11 +105,11 @@ class _HomeFocusScoreCardState extends State<HomeFocusScoreCard>
                     children: [
                       Text(
                         '${_scoreAnimation.value}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'InterDisplay',
                           fontSize: 32,
                           fontWeight: FontWeight.w700,
-                          color: DzColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                           height: 1,
                         ),
                       ),
@@ -117,7 +117,7 @@ class _HomeFocusScoreCardState extends State<HomeFocusScoreCard>
                         'ZEN INDEX',
                         style: DzTextStyles.small.copyWith(
                           letterSpacing: 0.8,
-                          color: DzColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -136,7 +136,7 @@ class _HomeFocusScoreCardState extends State<HomeFocusScoreCard>
                         ? AppConfig.messageGood
                         : AppConfig.messageNeedImprovement,
             style: DzTextStyles.body.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

@@ -43,16 +43,22 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
-    _controller.signIn(
-      email: email,
-      password: _passwordCtrl.text,
-      onSuccess: () {
-        SettingsScope.of(context).setSignedIn(true, email);
-        widget.onSignedIn(email);
-      },
+    final settings = SettingsScope.of(context);
+    final ok = await DzProgress.run<bool>(
+      context,
+      message: 'Signing you in…',
+      successMessage: 'Welcome back',
+      isSuccess: (ok) => ok,
+      task: () => _controller.signIn(
+        email: email,
+        password: _passwordCtrl.text,
+      ),
     );
+    if (ok != true || !mounted) return;
+    settings.setSignedIn(true, email);
+    widget.onSignedIn(email);
   }
 
   Future<void> _showForgotPasswordDialog(BuildContext context) async {
@@ -78,17 +84,20 @@ class _LoginPageState extends State<LoginPage> {
             ),
             TextButton(
               onPressed: () async {
+                final address = resetEmailCtrl.text;
                 Navigator.of(dialogContext).pop();
-                final sent = await _controller.sendPasswordReset(
-                  email: resetEmailCtrl.text,
+                final sent = await DzProgress.run<bool>(
+                  context,
+                  message: 'Sending reset link…',
+                  successMessage: 'Check your inbox',
+                  isSuccess: (ok) => ok,
+                  task: () => _controller.sendPasswordReset(email: address),
                 );
-                if (!context.mounted) return;
+                if (sent == true || !context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      sent
-                          ? 'Password reset email sent. Check your inbox.'
-                          : _controller.error ?? 'Failed to send reset email.',
+                      _controller.error ?? 'Failed to send reset email.',
                     ),
                   ),
                 );
@@ -117,7 +126,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -149,7 +157,9 @@ class _LoginPageState extends State<LoginPage> {
 
                   // ── Brand ─────────────────────────────────────────
                   const SizedBox(height: DzSpacing.lg),
-                  const Center(child: DzLogo(size: DzLogoSize.large)),
+                  const Center(
+                    child: DzLogo(layout: DzLogoLayout.stacked, width: 190),
+                  ),
                   const SizedBox(height: DzSpacing.xl),
 
                   // ── Card ──────────────────────────────────────────
@@ -189,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     '© 2024 DAYZEN AI. ALL RIGHTS RESERVED.',
                     style: DzTextStyles.caption.copyWith(
-                      color: DzColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 10,
                       letterSpacing: 0.6,
                     ),

@@ -97,7 +97,7 @@ class _DayOptimizerSuggestionTileState extends State<DayOptimizerSuggestionTile>
                                       ? TextDecoration.lineThrough
                                       : null,
                                   color: task.isCompleted
-                                      ? DzColors.textSecondary
+                                      ? Theme.of(context).colorScheme.onSurfaceVariant
                                       : null,
                                 ),
                               ),
@@ -118,7 +118,7 @@ class _DayOptimizerSuggestionTileState extends State<DayOptimizerSuggestionTile>
                         Text(
                           widget.suggestion.reason,
                           style: DzTextStyles.caption
-                              .copyWith(color: DzColors.textSecondary),
+                              .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),

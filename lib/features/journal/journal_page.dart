@@ -39,7 +39,6 @@ class _JournalPageState extends State<JournalPage> {
     return ListenableBuilder(
       listenable: journalCtrl,
       builder: (context, _) => Scaffold(
-        backgroundColor: DzColors.appBackground,
         floatingActionButton: FloatingActionButton(
           backgroundColor: Theme.of(context).colorScheme.primary,
           onPressed: _openNewEntry,
