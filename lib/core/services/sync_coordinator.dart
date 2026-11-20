@@ -1,5 +1,29 @@
 ﻿import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/logging/app_logger.dart';
+
+/// Persisted pull cursor ("server time of the last successful sync") per
+/// entity. Kept in SharedPreferences so a cold start does a delta sync
+/// instead of a full re-download.
+class SyncCursor {
+  SyncCursor._();
+
+  static Future<DateTime?> load(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  static Future<void> save(String key, DateTime value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value.toUtc().toIso8601String());
+  }
+
+  static Future<void> clear(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+}
 
 /// Result of a single sync attempt. Subclasses log entity-specific conflict
 /// details themselves (task/entry ids and resolutions differ per entity);
@@ -69,23 +93,32 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
     }
   }
 
-  /// Runs [localWrite], then attempts a sync. Matches the original
-  /// `create*WithSync`/`delete*WithSync` behavior exactly: both the local
-  /// write *and* the sync attempt are wrapped in the same try/catch, so a
-  /// failing [localWrite] is logged and swallowed the same way a failing
-  /// sync is — this preserves existing behavior as-is rather than fixing
-  /// it as a side effect of this extraction (worth revisiting separately;
-  /// see docs/ARCHITECTURE.md).
-  Future<void> withSync(
-    TController controller,
-    Future<void> Function() localWrite,
-  ) async {
-    try {
-      await localWrite();
-      await sync(controller);
-    } catch (e) {
-      AppLogger.debug('$entityLabel changed locally but sync failed: $e');
+  bool _resyncRequested = false;
+
+  /// Fire-and-forget push after a local write. Never throws.
+  ///
+  /// Controllers call this *after* they have written locally; it must never
+  /// call back into a controller mutator. (The old `withSync(localWrite)`
+  /// did, and since every mutator queued another `withSync`, each add or
+  /// delete re-ran itself forever — see docs/MOBILE_PROJECT_PLAN.md P0-1.)
+  ///
+  /// A request that arrives while a sync is in flight is not dropped: it
+  /// schedules exactly one follow-up sync, so a write made mid-sync is still
+  /// pushed promptly.
+  Future<void> requestSync(TController controller) async {
+    if (_isSyncing) {
+      _resyncRequested = true;
+      return;
     }
+    do {
+      _resyncRequested = false;
+      try {
+        await sync(controller);
+      } catch (e) {
+        AppLogger.debug('$entityLabel sync failed; changes stay queued: $e');
+        return;
+      }
+    } while (_resyncRequested);
   }
 
   Future<void> retrySync(TController controller) async {
@@ -101,6 +134,7 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
   void clearSyncState() {
     _lastSuccessfulSync = null;
     _isSyncing = false;
+    _resyncRequested = false;
   }
 
   /// Human-readable sync status for UI display.

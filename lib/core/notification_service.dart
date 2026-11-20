@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../features/home/models/task_model.dart';
@@ -18,9 +20,10 @@ class NotificationService {
     if (_initialized) return;
 
     tz.initializeTimeZones();
-    final localTz = tz.local;
-    // Use device-local timezone (falls back to UTC if unknown)
-    tz.setLocalLocation(localTz);
+    // `tz.local` is UTC until set explicitly. Without this every reminder
+    // fired at the task's wall-clock time *in UTC* (e.g. 14:30 instead of
+    // 09:00 in IST). See docs/MOBILE_PROJECT_PLAN.md P0-2.
+    await refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwinSettings = DarwinInitializationSettings(
@@ -40,6 +43,52 @@ class NotificationService {
     );
     _initialized = true;
   }
+
+  // ── Time zone ─────────────────────────────────────────────────────────
+
+  /// Points `tz.local` at the device's current zone. Returns true when it
+  /// changed (travel, DST-region switch), so callers know to reschedule.
+  Future<bool> refreshTimeZone() async {
+    String? name;
+    try {
+      name = (await FlutterTimezone.getLocalTimezone()).identifier;
+    } catch (e) {
+      AppLogger.warning('Could not read device time zone: $e');
+    }
+    final location = resolveLocation(name);
+    if (location.name == tz.local.name) return false;
+    tz.setLocalLocation(location);
+    AppLogger.debug('NotificationService: time zone set to ${location.name}');
+    return true;
+  }
+
+  /// The tz location for an IANA [name]. When the name is missing or not in
+  /// the bundled database, falls back to a zone whose current offset matches
+  /// the device clock, so reminders still fire at the right local time.
+  @visibleForTesting
+  static tz.Location resolveLocation(String? name, {Duration? deviceOffset}) {
+    if (name != null) {
+      try {
+        return tz.getLocation(name);
+      } catch (_) {}
+    }
+    final offset = deviceOffset ?? DateTime.now().timeZoneOffset;
+    for (final location in tz.timeZoneDatabase.locations.values) {
+      if (location.currentTimeZone.offset == offset) return location;
+    }
+    return tz.UTC;
+  }
+
+  /// When [task] starts, in the device's local zone.
+  @visibleForTesting
+  static tz.TZDateTime taskStart(DzTask task) => tz.TZDateTime(
+        tz.local,
+        task.date.year,
+        task.date.month,
+        task.date.day,
+        task.startTime.hour,
+        task.startTime.minute,
+      );
 
   // ── Request permission (Android 13+) ──────────────────────────────────
 
@@ -62,14 +111,7 @@ class NotificationService {
     if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    final taskDateTime = tz.TZDateTime(
-      tz.local,
-      task.date.year,
-      task.date.month,
-      task.date.day,
-      task.startTime.hour,
-      task.startTime.minute,
-    );
+    final taskDateTime = taskStart(task);
     // Build timezone-aware datetimes
     const preReminderMinutes = 5;
     final preDateTime = taskDateTime.subtract(const Duration(minutes: preReminderMinutes));

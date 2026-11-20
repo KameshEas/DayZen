@@ -35,10 +35,55 @@ class JournalDao extends DatabaseAccessor<AppDatabase>
 
   /// Soft delete — see [Tasks.deletedAt] docs for the equivalent rationale.
   Future<void> softDeleteEntry(String id) {
+    final now = DateTime.now();
+    return (update(journalEntries)..where((e) => e.id.equals(id))).write(
+      JournalEntriesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ),
+    );
+  }
+
+  // ── Sync bookkeeping (same contract as TaskDao) ─────────────────────
+
+  /// Rows with unacknowledged local changes, tombstones included.
+  Future<List<JournalEntryRow>> getDirty() {
+    return (select(journalEntries)..where((e) => e.dirty.equals(true))).get();
+  }
+
+  Future<JournalEntryRow?> getById(String id) {
+    return (select(journalEntries)..where((e) => e.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  /// Clears `dirty` only on rows unchanged since they were sent.
+  Future<void> markSynced(List<JournalEntryRow> sent) {
+    return transaction(() async {
+      for (final row in sent) {
+        final current = await getById(row.id);
+        if (current == row) {
+          await (update(journalEntries)..where((e) => e.id.equals(row.id)))
+              .write(const JournalEntriesCompanion(dirty: Value(false)));
+        }
+      }
+    });
+  }
+
+  /// Writes a server row, stored clean.
+  Future<void> upsertFromServer(JournalEntriesCompanion row) {
+    return into(journalEntries).insert(
+      row.copyWith(dirty: const Value(false)),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// Applies a server-side delete: soft delete, stored clean.
+  Future<void> deleteFromServer(String id) {
     return (update(journalEntries)..where((e) => e.id.equals(id))).write(
       JournalEntriesCompanion(
         deletedAt: Value(DateTime.now()),
-        dirty: const Value(true),
+        dirty: const Value(false),
       ),
     );
   }

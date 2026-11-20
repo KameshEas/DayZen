@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
-import '../../core/services/user_service.dart';
 import 'widgets/pin_pad.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,22 +45,12 @@ class _PinSetupPageState extends State<PinSetupPage> {
       setState(() => _errorMessage = AppConfig.pinSetupError);
       return;
     }
+    // The PIN never leaves the device. Its hash used to be synced to the
+    // backend, but a 4-digit PIN has only 10,000 values, so anyone with
+    // server access could recover it instantly from hash + salt
+    // (docs/MOBILE_PROJECT_PLAN.md P0-4).
     await AppPrefs.savePin(_pin);
-    unawaited(_syncPinToServer());
     if (mounted) widget.onPinSet(context);
-  }
-
-  /// Best-effort: an offline-only user (no account) or a network failure
-  /// should never block local PIN setup from completing.
-  Future<void> _syncPinToServer() async {
-    try {
-      final stored = await AppPrefs.getPinHashAndSalt();
-      if (stored == null) return;
-      await UserService.instance.syncPinToServer(stored.hash, stored.salt);
-    } catch (_) {
-      // Ignore — the PIN still works locally; it just won't survive a
-      // reinstall until the next successful sync.
-    }
   }
 
   @override
