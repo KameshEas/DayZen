@@ -32,9 +32,6 @@ jobs:
       # IconData lookups in task_repository.dart/task_service.dart/task_model.dart
       # break Flutter's icon tree-shaker on release builds.
       no-tree-shake-icons: true
-      # Test suite is incomplete (see CLAUDE.md "Testing" -- coverage still low),
-      # so `flutter test` failures don't block the smoke build / Firebase
-      # distribution / release. Set to false once the suite is trustworthy
-      # enough to gate the pipeline on it.
-      test-continue-on-error: true
+      # Tests gate the pipeline: a failing `flutter test` blocks the build.
+      test-continue-on-error: false
     secrets: inherit

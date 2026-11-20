@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/services/journal_sync_manager.dart';
 import '../../core/services/jwt_auth_service.dart';
+import '../../core/services/sync_manager.dart';
 
 /// Persisted settings for the DayZen app.
 class SettingsController extends ChangeNotifier {
@@ -130,8 +132,11 @@ class SettingsController extends ChangeNotifier {
     // Reconcile with the real JWT session (source of truth), in case a prior
     // sign-in/sign-up flow didn't update this flag — e.g. accounts created
     // before this flag existed, or before sign-up wired it up.
-    final authService = JwtAuthService();
-    await authService.initialize();
+    // Must be the shared instance: a second instance re-reads storage and
+    // can refresh the same refresh token concurrently with the real one,
+    // which (with rotating refresh tokens) signs the user out.
+    final authService = JwtAuthService.instance;
+    if (!authService.isInitialized) await authService.initialize();
     if (authService.isAuthenticated != _isSignedIn ||
         authService.userEmail != _userEmail) {
       _isSignedIn = authService.isAuthenticated;
@@ -220,6 +225,9 @@ class SettingsController extends ChangeNotifier {
     _userEmail = null;
     notifyListeners();
     _save();
+    // Forget the pull cursors so a later sign-in does a full pull.
+    SyncManager.instance.clearSyncState();
+    JournalSyncManager.instance.clearSyncState();
     await JwtAuthService.instance.signOut();
   }
 

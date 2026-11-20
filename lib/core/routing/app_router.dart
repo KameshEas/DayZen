@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
-import '../../core/services/user_service.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
@@ -217,29 +216,13 @@ class AppRouter {
   }
 
   /// Routes to the correct next screen after a successful login/signup/
-  /// continue-offline action: PIN setup only if no PIN exists yet (locally
-  /// or restorable from the backend — e.g. after an uninstall/reinstall),
-  /// otherwise straight to home (the user just authenticated).
+  /// continue-offline action: PIN setup if this device has no PIN yet,
+  /// otherwise straight to home (the user just authenticated). The app-lock
+  /// PIN is device-local; after a reinstall the user sets a new one.
   static Future<void> _routeAfterAuth(BuildContext context) async {
-    var hasPin = await AppPrefs.hasPin();
-    if (!hasPin) {
-      hasPin = await _tryRestorePinFromServer();
-    }
+    final hasPin = await AppPrefs.hasPin();
     if (!context.mounted) return;
     context.go(hasPin ? RoutePaths.home : '/pin-setup');
-  }
-
-  /// Best-effort: an offline-only user or a network failure should just
-  /// fall through to normal PIN setup, not block or error out.
-  static Future<bool> _tryRestorePinFromServer() async {
-    try {
-      final stored = await UserService.instance.fetchPinFromServer();
-      if (stored == null) return false;
-      await AppPrefs.restoreHashedPin(stored.hash, stored.salt);
-      return true;
-    } catch (_) {
-      return false;
-    }
   }
 
   static String resolveInitialRoute({

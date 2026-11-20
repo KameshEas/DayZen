@@ -40,6 +40,26 @@ class TaskRepository {
     return _dao.hardDeleteAll();
   }
 
+  // ── Sync ──────────────────────────────────────────────────────────
+
+  /// Rows not yet acknowledged by the server, soft-deleted ones included.
+  static Future<List<TaskRow>> dirtyRows() => _dao.getDirty();
+
+  /// See [TaskDao.markSynced].
+  static Future<void> markSynced(List<TaskRow> sent) => _dao.markSynced(sent);
+
+  /// True when [id] has a local change still waiting to be pushed.
+  static Future<bool> hasPendingChanges(String id) async =>
+      (await _dao.getById(id))?.dirty ?? false;
+
+  /// Stores a server copy without marking it dirty (no push loop).
+  static Future<void> upsertFromServer(DzTask task) =>
+      _dao.upsertFromServer(_toCompanion(task));
+
+  static Future<void> deleteFromServer(String id) => _dao.deleteFromServer(id);
+
+  static DzTask fromRow(TaskRow row) => _fromRow(row);
+
   static DzTask _fromRow(TaskRow row) => DzTask(
         id: row.id,
         title: row.title,

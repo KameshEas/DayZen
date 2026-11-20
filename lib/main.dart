@@ -20,6 +20,8 @@ import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
+AppLifecycleListener? _lifecycleListener;
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   _runApp();
@@ -85,7 +87,12 @@ Future<String> _bootstrap({
   final hasBiometrics = deviceHasBiometrics();
   await Future.wait([
     authService.initialize(),
-    Firebase.initializeApp().then((_) => _initCrashReporting()),
+    // Crash reporting is optional: a missing/invalid Firebase config (e.g. no
+    // GoogleService-Info.plist on iOS yet) must not abort startup, which is
+    // what happened when this threw inside Future.wait.
+    Firebase.initializeApp()
+        .then((_) => _initCrashReporting())
+        .catchError((Object e) => debugPrint('Crash reporting disabled: $e')),
     LegacyDataMigrator.migrateIfNeeded(),
   ]);
   settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
@@ -113,6 +120,16 @@ Future<String> _bootstrap({
 
   final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
   taskCtrl.setNotificationsEnabled(notificationsOn);
+
+  // Travel or a zone change while backgrounded moves every reminder's real
+  // time; re-check the zone whenever the app comes back to the foreground.
+  _lifecycleListener ??= AppLifecycleListener(
+    onResume: () async {
+      if (await NotificationService.instance.refreshTimeZone()) {
+        await taskCtrl.rescheduleNotifications();
+      }
+    },
+  );
 
   return AppRouter.resolveInitialRoute(
     showOnboarding: !seenOnboarding,

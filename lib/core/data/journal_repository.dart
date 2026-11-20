@@ -42,6 +42,25 @@ class JournalRepository {
     return _dao.hardDeleteAll();
   }
 
+  // ── Sync ──────────────────────────────────────────────────────────
+
+  /// Rows not yet acknowledged by the server, soft-deleted ones included.
+  static Future<List<JournalEntryRow>> dirtyRows() => _dao.getDirty();
+
+  static Future<void> markSynced(List<JournalEntryRow> sent) =>
+      _dao.markSynced(sent);
+
+  static Future<bool> hasPendingChanges(String id) async =>
+      (await _dao.getById(id))?.dirty ?? false;
+
+  /// Stores a server copy without marking it dirty (no push loop).
+  static Future<void> upsertFromServer(JournalEntry entry) =>
+      _dao.upsertFromServer(_toCompanion(entry));
+
+  static Future<void> deleteFromServer(String id) => _dao.deleteFromServer(id);
+
+  static JournalEntry fromRow(JournalEntryRow row) => _fromRow(row);
+
   static JournalEntry _fromRow(JournalEntryRow row) => JournalEntry(
         id: row.id,
         title: row.title,

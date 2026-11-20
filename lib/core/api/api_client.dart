@@ -4,6 +4,7 @@ library;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import '../services/jwt_auth_service.dart';
 import '../config/app_config.dart';
 
@@ -78,44 +79,8 @@ class ApiClient {
   Future<Map<String, dynamic>> get(
     String endpoint, {
     Map<String, String>? headers,
-    int retryCount = 0,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final authHeaders = await _authService.getAuthHeaders();
-      final mergedHeaders = {
-        ..._defaultHeaders,
-        ...authHeaders,
-        ...?headers,
-      };
-
-      final response = await _client
-          .get(url, headers: mergedHeaders)
-          .timeout(timeout, onTimeout: () {
-        throw TimeoutException('GET request to $endpoint timed out after ${timeout.inSeconds}s');
-      });
-
-      return _handleResponse(response, endpoint, 'GET');
-    } on TimeoutException catch (e) {
-      throw ApiException(
-        e.message,
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      if (retryCount < maxRetries) {
-        await Future.delayed(Duration(milliseconds: 100 * (retryCount + 1)));
-        return get(endpoint, headers: headers, retryCount: retryCount + 1);
-      }
-      throw ApiException(
-        'GET request to $endpoint failed: $e',
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    }
-  }
+  }) =>
+      _send('GET', endpoint, headers: headers);
 
   /// Make a POST request with automatic retry on failure.
   /// Automatically includes JWT authentication token.
@@ -123,48 +88,8 @@ class ApiClient {
     String endpoint,
     Map<String, dynamic> body, {
     Map<String, String>? headers,
-    int retryCount = 0,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final authHeaders = await _authService.getAuthHeaders();
-      final mergedHeaders = {
-        ..._defaultHeaders,
-        ...authHeaders,
-        ...?headers,
-      };
-
-      final response = await _client
-          .post(
-            url,
-            headers: mergedHeaders,
-            body: jsonEncode(body),
-          )
-          .timeout(timeout, onTimeout: () {
-        throw TimeoutException('POST request to $endpoint timed out after ${timeout.inSeconds}s');
-      });
-
-      return _handleResponse(response, endpoint, 'POST');
-    } on TimeoutException catch (e) {
-      throw ApiException(
-        e.message,
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      if (retryCount < maxRetries) {
-        await Future.delayed(Duration(milliseconds: 100 * (retryCount + 1)));
-        return post(endpoint, body, headers: headers, retryCount: retryCount + 1);
-      }
-      throw ApiException(
-        'POST request to $endpoint failed: $e',
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    }
-  }
+  }) =>
+      _send('POST', endpoint, body: body, headers: headers);
 
   /// Make a PUT request.
   /// Automatically includes JWT authentication token.
@@ -172,91 +97,100 @@ class ApiClient {
     String endpoint,
     Map<String, dynamic> body, {
     Map<String, String>? headers,
-    int retryCount = 0,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final authHeaders = await _authService.getAuthHeaders();
-      final mergedHeaders = {
-        ..._defaultHeaders,
-        ...authHeaders,
-        ...?headers,
-      };
-
-      final response = await _client
-          .put(
-            url,
-            headers: mergedHeaders,
-            body: jsonEncode(body),
-          )
-          .timeout(timeout, onTimeout: () {
-        throw TimeoutException('PUT request to $endpoint timed out after ${timeout.inSeconds}s');
-      });
-
-      return _handleResponse(response, endpoint, 'PUT');
-    } on TimeoutException catch (e) {
-      throw ApiException(
-        e.message,
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      if (retryCount < maxRetries) {
-        await Future.delayed(Duration(milliseconds: 100 * (retryCount + 1)));
-        return put(endpoint, body, headers: headers, retryCount: retryCount + 1);
-      }
-      throw ApiException(
-        'PUT request to $endpoint failed: $e',
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    }
-  }
+  }) =>
+      _send('PUT', endpoint, body: body, headers: headers);
 
   /// Make a DELETE request.
   /// Automatically includes JWT authentication token.
   Future<Map<String, dynamic>> delete(
     String endpoint, {
     Map<String, String>? headers,
-    int retryCount = 0,
+  }) =>
+      _send('DELETE', endpoint, headers: headers);
+
+  /// Make a public GET request (no authentication required).
+  /// Used for endpoints like /quotes/daily that don't require auth.
+  Future<Map<String, dynamic>> publicGet(
+    String endpoint, {
+    Map<String, String>? headers,
+  }) =>
+      _send('GET', endpoint, headers: headers, authenticated: false);
+
+  /// One request with the shared policy:
+  /// - a connection error is retried up to [maxRetries] times; a timeout or
+  ///   an HTTP error response is not.
+  /// - writes carry an `Idempotency-Key` that stays the same across those
+  ///   retries, so a server that honours it never applies a write twice when
+  ///   only the response was lost.
+  /// - a 401 on an authenticated request triggers one token refresh and one
+  ///   retry before it is reported as an authentication error.
+  Future<Map<String, dynamic>> _send(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+    bool authenticated = true,
   }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final authHeaders = await _authService.getAuthHeaders();
-      final mergedHeaders = {
-        ..._defaultHeaders,
-        ...authHeaders,
-        ...?headers,
-      };
+    final url = Uri.parse('$baseUrl$endpoint');
+    final payload = body == null ? null : jsonEncode(body);
+    final idempotencyKey = method == 'GET' ? null : _newIdempotencyKey();
+    var networkRetries = 0;
+    var refreshedAfter401 = false;
 
-      final response = await _client
-          .delete(url, headers: mergedHeaders)
-          .timeout(timeout, onTimeout: () {
-        throw TimeoutException('DELETE request to $endpoint timed out after ${timeout.inSeconds}s');
-      });
+    while (true) {
+      final http.Response response;
+      try {
+        final authHeaders = authenticated
+            ? await _authService.getAuthHeaders()
+            : const <String, String>{};
+        final request = http.Request(method, url)
+          ..headers.addAll({
+            ..._defaultHeaders,
+            ...authHeaders,
+            if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey,
+            ...?headers,
+          });
+        if (payload != null) request.body = payload;
 
-      return _handleResponse(response, endpoint, 'DELETE');
-    } on TimeoutException catch (e) {
-      throw ApiException(
-        e.message,
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      if (retryCount < maxRetries) {
-        await Future.delayed(Duration(milliseconds: 100 * (retryCount + 1)));
-        return delete(endpoint, headers: headers, retryCount: retryCount + 1);
+        response = await _client
+            .send(request)
+            .then(http.Response.fromStream)
+            .timeout(timeout, onTimeout: () {
+          throw TimeoutException(
+              '$method request to $endpoint timed out after ${timeout.inSeconds}s');
+        });
+      } on TimeoutException catch (e) {
+        throw ApiException(
+          e.message,
+          originalError: e,
+          errorType: ApiErrorType.networkError,
+        );
+      } catch (e) {
+        if (networkRetries < maxRetries) {
+          networkRetries++;
+          await Future.delayed(Duration(milliseconds: 100 * networkRetries));
+          continue;
+        }
+        throw ApiException(
+          '$method request to $endpoint failed: $e',
+          originalError: e,
+          errorType: ApiErrorType.networkError,
+        );
       }
-      throw ApiException(
-        'DELETE request to $endpoint failed: $e',
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
+
+      if (response.statusCode == 401 && authenticated && !refreshedAfter401) {
+        refreshedAfter401 = true;
+        if (await _authService.refreshAfterUnauthorized()) continue;
+      }
+      return _handleResponse(response, endpoint, method);
     }
+  }
+
+  static final Random _random = Random.secure();
+
+  static String _newIdempotencyKey() {
+    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   /// Handle HTTP response and parse JSON.
@@ -321,49 +255,6 @@ class ApiClient {
       return ApiErrorType.serverError;
     }
     return ApiErrorType.unknown;
-  }
-
-  /// Make a public GET request (no authentication required).
-  /// Used for endpoints like /quotes/daily that don't require auth.
-  Future<Map<String, dynamic>> publicGet(
-    String endpoint, {
-    Map<String, String>? headers,
-    int retryCount = 0,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl$endpoint');
-      final mergedHeaders = {
-        ..._defaultHeaders,
-        ...?headers,
-      };
-
-      final response = await _client
-          .get(url, headers: mergedHeaders)
-          .timeout(timeout, onTimeout: () {
-        throw TimeoutException(
-            'Public GET request to $endpoint timed out after ${timeout.inSeconds}s');
-      });
-
-      return _handleResponse(response, endpoint, 'GET');
-    } on TimeoutException catch (e) {
-      throw ApiException(
-        e.message,
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      if (retryCount < maxRetries) {
-        await Future.delayed(Duration(milliseconds: 100 * (retryCount + 1)));
-        return publicGet(endpoint, headers: headers, retryCount: retryCount + 1);
-      }
-      throw ApiException(
-        'Public GET request to $endpoint failed: $e',
-        originalError: e,
-        errorType: ApiErrorType.networkError,
-      );
-    }
   }
 
   /// Get user-friendly error message from ApiException

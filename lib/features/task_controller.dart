@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
 import '../core/domain/task_analytics.dart';
 import '../core/notification_service.dart';
 import '../core/services/sync_manager.dart';
 import 'home/models/task_model.dart';
-import '../core/logging/app_logger.dart';
 
 class TaskController extends ChangeNotifier {
   List<DzTask> _tasks = [];
@@ -19,6 +20,14 @@ class TaskController extends ChangeNotifier {
       NotificationService.instance.cancelAll();
     } else {
       NotificationService.instance.rescheduleAll(_tasks);
+    }
+  }
+
+  /// Re-creates all reminders (e.g. after the device time zone changed).
+  /// No-op when reminders are off.
+  Future<void> rescheduleNotifications() async {
+    if (_notificationsEnabled) {
+      await NotificationService.instance.rescheduleAll(_tasks);
     }
   }
 
@@ -88,19 +97,13 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
     }
-    // Sync with server in background
-    syncWithServer();
+    // Push anything left unsynced from the last session, pull server changes.
+    unawaited(syncWithServer());
   }
 
-  /// Sync tasks with server (background operation).
-  Future<void> syncWithServer() async {
-    try {
-      await SyncManager.instance.syncTasks(this);
-    } catch (e) {
-      AppLogger.debug('Background sync failed: $e');
-      // Silently fail - local state is preserved
-    }
-  }
+  /// Sync tasks with server (background operation). Never throws; failed
+  /// changes stay dirty in SQLite and go out on the next sync.
+  Future<void> syncWithServer() => SyncManager.instance.requestSync(this);
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
@@ -112,7 +115,7 @@ class TaskController extends ChangeNotifier {
       await NotificationService.instance.scheduleForTask(task);
     }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.createTaskWithSync(this, task);
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> toggleTask(String id) async {
@@ -131,7 +134,7 @@ class TaskController extends ChangeNotifier {
       }
     }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> updateTask(String id, DzTask updatedTask) async {
@@ -148,7 +151,7 @@ class TaskController extends ChangeNotifier {
       }
     }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> deleteTask(String id) async {
@@ -161,7 +164,47 @@ class TaskController extends ChangeNotifier {
       await NotificationService.instance.cancelForTask(id);
     }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.deleteTaskWithSync(this, id);
+    unawaited(SyncManager.instance.requestSync(this));
+  }
+
+  /// Applies changes pulled from the server. Unlike the CRUD methods above,
+  /// this writes rows clean and never requests another sync. A task with a
+  /// local edit still waiting to be pushed is left alone; that edit goes out
+  /// on the next sync and the server resolves it.
+  Future<void> applyServerChanges({
+    required List<DzTask> upserts,
+    required List<String> deletedIds,
+  }) async {
+    if (upserts.isEmpty && deletedIds.isEmpty) return;
+
+    for (final id in deletedIds) {
+      if (await TaskRepository.hasPendingChanges(id)) continue;
+      await TaskRepository.deleteFromServer(id);
+      _tasks.removeWhere((t) => t.id == id);
+      if (_notificationsEnabled) {
+        await NotificationService.instance.cancelForTask(id);
+      }
+    }
+
+    for (final task in upserts) {
+      if (await TaskRepository.hasPendingChanges(task.id)) continue;
+      await TaskRepository.upsertFromServer(task);
+      final idx = _tasks.indexWhere((t) => t.id == task.id);
+      if (idx == -1) {
+        _tasks.add(task);
+      } else {
+        _tasks[idx] = task;
+      }
+      if (_notificationsEnabled) {
+        if (task.isCompleted) {
+          await NotificationService.instance.cancelForTask(task.id);
+        } else {
+          await NotificationService.instance.scheduleForTask(task);
+        }
+      }
+    }
+
+    notifyListeners();
   }
 
   Future<void> clearAll() async {

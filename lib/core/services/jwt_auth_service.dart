@@ -74,20 +74,32 @@ class JwtAuthService extends ChangeNotifier {
   /// instance has no tokens and never sees a sign-in made elsewhere.
   static final JwtAuthService instance = JwtAuthService();
 
+  /// [httpClient] and [storage] are injectable for tests.
+  JwtAuthService({http.Client? httpClient, FlutterSecureStorage? storage})
+      : _http = httpClient ?? http.Client(),
+        _storageOverride = storage;
+
+  final http.Client _http;
+  final FlutterSecureStorage? _storageOverride;
+
   // Created on first use, so an instance that was never `initialize()`d can still
   // save or clear a session instead of failing (and the failure being swallowed).
-  late final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(resetOnError: true),
-  );
+  late final FlutterSecureStorage _secureStorage = _storageOverride ??
+      const FlutterSecureStorage(
+        aOptions: AndroidOptions(resetOnError: true),
+      );
   JwtToken? _currentToken;
   AuthUser? _currentUser;
   bool _initialized = false;
+  Future<bool>? _refreshInFlight;
 
   /// Get the currently authenticated user
   AuthUser? get currentUser => _currentUser;
 
-  /// Check if user is authenticated
-  bool get isAuthenticated => _currentUser != null && _currentToken != null && !_currentToken!.isExpired;
+  /// True while a session exists. The access token itself may have expired;
+  /// it is refreshed on demand. Requiring an unexpired token here made the
+  /// app report "signed out" whenever it was opened offline after expiry.
+  bool get isAuthenticated => _currentUser != null && _currentToken != null;
 
   /// Get user ID
   String? get userId => _currentUser?.id;
@@ -172,7 +184,7 @@ class JwtAuthService extends ChangeNotifier {
     try {
       final url = Uri.parse('$apiBaseUrl/auth/login');
 
-      final response = await http.post(
+      final response = await _http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -256,7 +268,7 @@ class JwtAuthService extends ChangeNotifier {
     try {
       final url = Uri.parse('$apiBaseUrl/auth/register');
 
-      final response = await http.post(
+      final response = await _http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -319,48 +331,78 @@ class JwtAuthService extends ChangeNotifier {
     }
   }
 
-  /// Refresh the access token using refresh token
-  Future<bool> _refreshToken() async {
-    try {
-      if (_currentToken?.refreshToken == null) {
-        await _clearSession();
-        notifyListeners();
-        return false;
-      }
+  /// Refreshes the access token. Concurrent callers share one request
+  /// (single flight), so one refresh token is never spent twice.
+  Future<bool> _refreshToken() =>
+      _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
 
-      final url = Uri.parse('${AppConfig.apiBaseUrl}/auth/refresh');
+  /// Called by the API client after a 401: forces one refresh. Returns true
+  /// when a new access token is available and the request is worth retrying.
+  Future<bool> refreshAfterUnauthorized() async {
+    if (_currentToken == null) return false;
+    return _refreshToken();
+  }
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'refresh_token': _currentToken!.refreshToken,
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final tokenData = data['data'] ?? data;
-
-        _currentToken = JwtToken(
-          accessToken: tokenData['access_token'] as String? ?? tokenData['accessToken'] as String,
-          refreshToken: tokenData['refresh_token'] as String? ?? _currentToken!.refreshToken,
-          expiresAt: _parseTokenExpiry(tokenData['access_token'] as String? ?? tokenData['accessToken'] as String),
-        );
-
-        await _saveSession();
-        return true;
-      } else {
-        await _clearSession();
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      AppLogger.debug('Token refresh error: $e');
+  /// The session is cleared only when the server definitively rejects the
+  /// refresh token (400/401/403). Network failures, timeouts and 5xx keep the
+  /// session: an offline-first app must not sign the user out because the
+  /// phone had no signal when it started (docs/MOBILE_PROJECT_PLAN.md P0-3).
+  Future<bool> _doRefresh() async {
+    final refreshToken = _currentToken?.refreshToken;
+    if (refreshToken == null) {
       await _clearSession();
       notifyListeners();
       return false;
     }
+
+    final http.Response response;
+    try {
+      response = await _http
+          .post(
+            Uri.parse('${AppConfig.apiBaseUrl}/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      AppLogger.debug('Token refresh could not reach the server; keeping session: $e');
+      return false;
+    }
+
+    if (response.statusCode == 200) {
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final tokenData = (data['data'] ?? data) as Map<String, dynamic>;
+        final access = (tokenData['access_token'] ?? tokenData['accessToken']) as String?;
+        if (access == null || access.isEmpty) {
+          AppLogger.debug('Token refresh: no access token in response; keeping session');
+          return false;
+        }
+        _currentToken = JwtToken(
+          accessToken: access,
+          refreshToken: (tokenData['refresh_token'] ?? tokenData['refreshToken']) as String? ??
+              refreshToken,
+          expiresAt: _parseTokenExpiry(access),
+        );
+        await _saveSession();
+        return true;
+      } catch (e) {
+        AppLogger.debug('Token refresh: unreadable response; keeping session: $e');
+        return false;
+      }
+    }
+
+    if (response.statusCode == 400 ||
+        response.statusCode == 401 ||
+        response.statusCode == 403) {
+      AppLogger.debug('Refresh token rejected (${response.statusCode}); signing out');
+      await _clearSession();
+      notifyListeners();
+      return false;
+    }
+
+    AppLogger.debug('Token refresh failed with ${response.statusCode}; keeping session');
+    return false;
   }
 
   /// Get valid access token, refreshing if necessary
@@ -398,7 +440,7 @@ class JwtAuthService extends ChangeNotifier {
     try {
       final url = Uri.parse('$apiBaseUrl/auth/request-password-reset');
 
-      final response = await http.post(
+      final response = await _http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim()}),
