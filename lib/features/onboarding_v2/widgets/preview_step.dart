@@ -84,25 +84,6 @@ class PreviewStep extends StatelessWidget {
   }
 }
 
-/// A Day Load input for an existing task.
-LoadTask loadTaskOf(DzTask t) => LoadTask(
-      id: t.id,
-      date: t.date,
-      status: switch (t.status) {
-        TaskStatus.active => LoadStatus.active,
-        TaskStatus.done => LoadStatus.done,
-        TaskStatus.released => LoadStatus.released,
-      },
-      effort: t.effort,
-      priorityRank: switch (t.priority) {
-        TaskPriority.high => 4,
-        TaskPriority.zen => 3,
-        TaskPriority.routine => 2,
-        TaskPriority.low => 1,
-      },
-      startMinute: t.startTime.hour * 60 + t.startTime.minute,
-    );
-
 class _TomorrowRow extends StatelessWidget {
   const _TomorrowRow({required this.planned});
   final PlannedDraft planned;
