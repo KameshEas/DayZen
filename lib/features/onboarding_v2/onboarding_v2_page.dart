@@ -22,7 +22,12 @@ class OnboardingV2Page extends StatefulWidget {
     required this.onFinished,
     required this.onRestore,
     this.effects,
+    this.clock,
   });
+
+  /// Test seam: a fixed "now" so plans (and goldens) don't depend on the
+  /// time of day.
+  final DateTime Function()? clock;
 
   /// After finishing or skipping.
   final VoidCallback onFinished;
@@ -45,7 +50,10 @@ class _OnboardingV2PageState extends State<OnboardingV2Page> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _controller ??= OnboardingController(effects: widget.effects ?? _realEffects())
+    _controller ??= OnboardingController(
+      effects: widget.effects ?? _realEffects(),
+      clock: widget.clock,
+    )
       ..addListener(_onChange);
   }
 

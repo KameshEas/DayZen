@@ -167,11 +167,13 @@ class DayLoadPill extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: fg),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: DzTextStyles.caption.copyWith(
-                      color: fg,
-                      fontWeight: FontWeight.w600,
-                    )),
+                Flexible(
+                  child: Text(label,
+                      style: DzTextStyles.caption.copyWith(
+                        color: fg,
+                        fontWeight: FontWeight.w600,
+                      )),
+                ),
               ],
             ),
           ),
