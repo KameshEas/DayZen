@@ -65,6 +65,16 @@ class AuthUser {
 
 /// Service for managing JWT authentication tokens and auth state.
 /// Tokens are stored securely in platform keychain/keystore.
+///
+/// [instance] is the shared app-wide session: main.dart, ApiClient's
+/// default, AuthController and SettingsController should all use it so they
+/// see the same in-memory session. Previously each of those call sites did
+/// `JwtAuthService()`, creating its own separate, never-initialized
+/// instance — so e.g. ApiClient's fallback always had a null token and
+/// every authenticated request (task sync included) went out with no
+/// Authorization header no matter how the user had actually signed in
+/// elsewhere in the app. The plain constructor is kept (rather than made
+/// private) so tests can still create isolated fake/mock subclasses.
 class JwtAuthService extends ChangeNotifier {
   static const String _tokenKey = 'jwt_token';
   static const String _userKey = 'auth_user';
@@ -143,8 +153,13 @@ class JwtAuthService extends ChangeNotifier {
   static const String unreachableMessage =
       "Couldn't reach DayZen. Check your internet connection and try again.";
 
-  /// Initialize the auth service and restore previous session if available
+  /// Initialize the auth service and restore previous session if available.
+  /// A no-op if already initialized — several call sites (main.dart,
+  /// SettingsController.load()) call this on the same shared instance, and
+  /// re-reading storage after the in-memory state is already live (e.g.
+  /// right after a fresh sign-in) could stomp it with stale data.
   Future<void> initialize() async {
+    if (_initialized) return;
     try {
       // Try to restore previous session from secure storage
       final tokenJson = await _secureStorage.read(key: _tokenKey);
