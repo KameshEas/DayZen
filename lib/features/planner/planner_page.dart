@@ -9,7 +9,6 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
 import 'planner_selection.dart';
-import 'schedule_suggestions_widget.dart';
 import 'widgets/planner_date_header.dart';
 import 'widgets/planner_timeline_view.dart';
 import 'widgets/planner_week_strip.dart';
@@ -31,7 +30,6 @@ class PlannerPage extends StatefulWidget {
 }
 
 class _PlannerPageState extends State<PlannerPage> {
-  bool _showAiSuggestions = false;
 
   /// The day the app was first opened (null until read), the far end of the
   /// calendar you can browse back to.
@@ -126,28 +124,6 @@ class _PlannerPageState extends State<PlannerPage> {
           day: selected,
           onAdd: () => _addTask(selected),
         ),
-
-        // ── AI schedule suggestions (opt-in) ────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: DzGhostButton(
-              label: _showAiSuggestions
-                  ? AppConfig.plannerHideAiSuggestions
-                  : AppConfig.plannerShowAiSuggestions,
-              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-              onPressed: () => setState(() => _showAiSuggestions = !_showAiSuggestions),
-            ),
-          ),
-        ),
-        if (_showAiSuggestions) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
-            child: ScheduleSuggestionsWidget(tasks: dayTasks),
-          ),
-          const SizedBox(height: DzSpacing.md),
-        ],
 
         // ── Timeline ─────────────────────────────────────────────
         Expanded(

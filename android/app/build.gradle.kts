@@ -7,6 +7,9 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// See the debug build type below.
+val sideBySideDebug = System.getenv("DAYZEN_SIDE_BY_SIDE") == "1"
+
 android {
     namespace = "com.aspiredesignovation.dayzen"
     compileSdk = flutter.compileSdkVersion
@@ -23,6 +26,7 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders["appLabel"] = "Dayzen"
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.aspiredesignovation.dayzen"
         // You can update the following values to match your application needs.
@@ -65,6 +69,26 @@ android {
                 signingConfigs.getByName("debug")
             }
         }
+        debug {
+            // Opt-in side-by-side install for testing on a phone that already
+            // has a release DayZen with real data: DAYZEN_SIDE_BY_SIDE=1 gives
+            // the debug build its own app id and label, so installing it never
+            // replaces (or reads) the release app's data.
+            if (sideBySideDebug) {
+                applicationIdSuffix = ".debug"
+                manifestPlaceholders["appLabel"] = "DayZen Dev"
+            }
+        }
+    }
+}
+
+// google-services.json only registers the release app id. The side-by-side
+// debug build skips the Google Services step instead of faking a Firebase
+// registration; Firebase init then fails and is ignored (see lib/main.dart),
+// so that build simply runs without Crashlytics.
+if (sideBySideDebug) {
+    tasks.configureEach {
+        if (name == "processDebugGoogleServices") enabled = false
     }
 }
 

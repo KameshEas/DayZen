@@ -24,29 +24,29 @@ class AnimatedOnboardingSlideWelcome extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: FadeInUp(
-              duration: const Duration(milliseconds: 800),
-              child: const DzIllustrationWidget(
+            child: const FadeInUp(
+              duration: Duration(milliseconds: 800),
+              child: DzIllustrationWidget(
                 illustration: DzIllustration.welcome,
                 height: 260,
               ),
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'Welcome to DayZen',
               subtitle:
                   'Your personal day optimizer. Plan, track, and optimize every moment for maximum focus and productivity.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.psychology_rounded,
               label: 'AI-POWERED INSIGHTS',
               style: OnboardingPillStyle.blue,
@@ -78,30 +78,30 @@ class AnimatedOnboardingSlidePlan extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: ScaleFadeIn(
-              duration: const Duration(milliseconds: 800),
-              delay: const Duration(milliseconds: 100),
-              child: const DzIllustrationWidget(
+            child: const ScaleFadeIn(
+              duration: Duration(milliseconds: 800),
+              delay: Duration(milliseconds: 100),
+              child: DzIllustrationWidget(
                 illustration: DzIllustration.plan,
                 height: 260,
               ),
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'Smart Planning',
               subtitle:
                   'Set your priorities and let AI help you organize your day. Break down goals into actionable tasks.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.lightbulb_outline_rounded,
               label: 'INTELLIGENT SUGGESTIONS',
               style: OnboardingPillStyle.amber,
@@ -133,30 +133,30 @@ class AnimatedOnboardingSlideReflect extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: BounceIn(
-              duration: const Duration(milliseconds: 900),
-              delay: const Duration(milliseconds: 100),
-              child: const DzIllustrationWidget(
+            child: const BounceIn(
+              duration: Duration(milliseconds: 900),
+              delay: Duration(milliseconds: 100),
+              child: DzIllustrationWidget(
                 illustration: DzIllustration.reflect,
                 height: 260,
               ),
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'Daily Reflection',
               subtitle:
                   'Journal your thoughts and progress. Get insights into your patterns and growth over time.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.auto_awesome_rounded,
               label: 'MINDFUL JOURNALING',
               style: OnboardingPillStyle.purple,
@@ -188,12 +188,12 @@ class AnimatedOnboardingSlideGrow extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: FloatingAnimation(
-              duration: const Duration(milliseconds: 3500),
+            child: const FloatingAnimation(
+              duration: Duration(milliseconds: 3500),
               child: ScaleFadeIn(
-                duration: const Duration(milliseconds: 800),
-                delay: const Duration(milliseconds: 100),
-                child: const DzIllustrationWidget(
+                duration: Duration(milliseconds: 800),
+                delay: Duration(milliseconds: 100),
+                child: DzIllustrationWidget(
                   illustration: DzIllustration.grow,
                   height: 260,
                 ),
@@ -201,20 +201,20 @@ class AnimatedOnboardingSlideGrow extends StatelessWidget {
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'Continuous Growth',
               subtitle:
                   'Build better habits and track your progress. Watch yourself improve day after day with real-time feedback.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.trending_up_rounded,
               label: 'HABIT TRACKING',
               style: OnboardingPillStyle.green,
@@ -246,30 +246,30 @@ class AnimatedOnboardingSlidePrivacy extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: BounceIn(
-              duration: const Duration(milliseconds: 900),
-              delay: const Duration(milliseconds: 100),
-              child: const DzIllustrationWidget(
+            child: const BounceIn(
+              duration: Duration(milliseconds: 900),
+              delay: Duration(milliseconds: 100),
+              child: DzIllustrationWidget(
                 illustration: DzIllustration.privacy,
                 height: 260,
               ),
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'Your Privacy First',
               subtitle:
                   'Everything stays on your device. No tracking, no ads, no cloud by default. Your data is yours alone.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.lock_rounded,
               label: 'OFFLINE-FIRST SECURITY',
               style: OnboardingPillStyle.red,
@@ -301,14 +301,14 @@ class AnimatedOnboardingSlideReady extends StatelessWidget {
           ParallaxIllustration(
             controller: controller,
             index: index,
-            child: FloatingAnimation(
-              duration: const Duration(milliseconds: 3000),
+            child: const FloatingAnimation(
+              duration: Duration(milliseconds: 3000),
               child: ScaleFadeIn(
-                duration: const Duration(milliseconds: 900),
-                delay: const Duration(milliseconds: 100),
+                duration: Duration(milliseconds: 900),
+                delay: Duration(milliseconds: 100),
                 curve: Curves.elasticOut,
                 scale: 0.7,
-                child: const DzIllustrationWidget(
+                child: DzIllustrationWidget(
                   illustration: DzIllustration.ready,
                   height: 260,
                 ),
@@ -316,20 +316,20 @@ class AnimatedOnboardingSlideReady extends StatelessWidget {
             ),
           ),
           const SizedBox(height: DzSpacing.xl),
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingSlideText(
+          const FadeInUp(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingSlideText(
               title: 'All Set!',
               subtitle:
                   'You\'re ready to optimize your day. Let\'s get started and make the most of every moment.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            duration: const Duration(milliseconds: 800),
-            child: const OnboardingPillBadge(
+          const FadeInUp(
+            delay: Duration(milliseconds: 400),
+            duration: Duration(milliseconds: 800),
+            child: OnboardingPillBadge(
               icon: Icons.check_circle_rounded,
               label: 'READY TO BEGIN',
               style: OnboardingPillStyle.teal,

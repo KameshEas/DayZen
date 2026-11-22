@@ -76,9 +76,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: Row(
                   children: [
                     const SizedBox(width: 56),
-                    Expanded(
+                    const Expanded(
                       child: Center(
-                        child: const DzLogo(
+                        child: DzLogo(
                           layout: DzLogoLayout.horizontal,
                           width: 170,
                         ),

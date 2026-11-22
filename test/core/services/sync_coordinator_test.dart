@@ -35,6 +35,7 @@ void main() {
   setUp(() {
     coordinator = _FakeSyncCoordinator();
     controller = _FakeController();
+    SyncCoordinator.isSignedIn = () => true;
   });
 
   group('SyncCoordinator.sync', () {
@@ -80,6 +81,14 @@ void main() {
   });
 
   group('SyncCoordinator.requestSync', () {
+    test('does nothing while signed out (no request that can only 401)',
+        () async {
+      SyncCoordinator.isSignedIn = () => false;
+      await coordinator.requestSync(controller);
+      expect(coordinator.performSyncCallCount, 0);
+      expect(coordinator.isSyncing, isFalse);
+    });
+
     test('runs one sync and never touches the controller', () async {
       await coordinator.requestSync(controller);
 

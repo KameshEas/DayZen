@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'jwt_auth_service.dart';
 import 'notification_sync_service.dart';
 import '../../core/logging/app_logger.dart';
 
@@ -30,8 +31,11 @@ class NotificationSyncManager extends ChangeNotifier {
   List<NotificationPreference>? get preferences => _preferences;
   List<NotificationDelivery>? get deliveryHistory => _deliveryHistory;
 
-  /// Load notification preferences.
+  /// Load notification preferences. Signed out there is no account to read
+  /// them from (the request could only fail with 401); they load on sign-in
+  /// instead (SyncTriggers in main.dart).
   Future<void> loadPreferences() async {
+    if (!JwtAuthService.instance.isAuthenticated) return;
     try {
       _preferences = await _service.getPreferences();
       notifyListeners();

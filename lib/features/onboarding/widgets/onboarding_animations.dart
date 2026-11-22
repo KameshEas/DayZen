@@ -259,7 +259,7 @@ class _FloatingAnimationState extends State<FloatingAnimation>
     )..repeat(reverse: true);
 
     _animation = Tween<Offset>(
-      begin: Offset(0, 0),
+      begin: const Offset(0, 0),
       end: Offset(0, -widget.offset),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }

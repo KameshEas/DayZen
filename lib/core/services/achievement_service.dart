@@ -82,50 +82,16 @@ class AchievementService {
 
   static AchievementService get instance => _instance;
 
-  static final ApiClient _apiClient = ApiClient();
-
-  // Cache
-  List<Achievement>? _cachedAchievements;
-  DateTime? _lastFetchTime;
-
-  static const int _cacheDurationHours = 24;
-
-  /// BINDING 25: Get all achievements for current user.
-  /// API: GET /achievements
-  /// Cache: 24 hours
-  /// Returns: List of achievements with progress and unlock status
+  /// All achievements with progress and unlock status.
+  ///
+  /// There is no server source: the app used to call GET /achievements,
+  /// which the DayZen API has never had, so the page always showed an error.
+  /// Achievements will be computed on the device (DEVELOPMENT_PLAN.md
+  /// M-1.13, gentle milestones); until then there are none.
   Future<List<Achievement>> getAchievements({
     bool forceRefresh = false,
-  }) async {
-    try {
-      // Check cache validity
-      if (!forceRefresh && _cachedAchievements != null && _lastFetchTime != null) {
-        final hoursSinceFetch = DateTime.now().difference(_lastFetchTime!).inHours;
-        if (hoursSinceFetch < _cacheDurationHours) {
-          return _cachedAchievements!;
-        }
-      }
-
-      // Fetch fresh achievements
-      final response = await _apiClient.get('/achievements');
-
-      final achievements = (response['achievements'] as List<dynamic>?)
-          ?.map((a) => Achievement.fromJson(a as Map<String, dynamic>))
-          .toList() ?? [];
-
-      // Cache the result
-      _cachedAchievements = achievements;
-      _lastFetchTime = DateTime.now();
-
-      return achievements;
-    } on ApiException {
-      // Return cached if available
-      if (_cachedAchievements != null) {
-        return _cachedAchievements!;
-      }
-      rethrow;
-    }
-  }
+  }) async =>
+      const [];
 
   /// Get only unlocked achievements.
   Future<List<Achievement>> getUnlockedAchievements({
@@ -177,11 +143,8 @@ class AchievementService {
     return totalPercentage / all.length;
   }
 
-  /// Clear cache (on logout).
-  void clearCache() {
-    _cachedAchievements = null;
-    _lastFetchTime = null;
-  }
+  /// Nothing is cached (see [getAchievements]); kept for callers.
+  void clearCache() {}
 
   /// Get error message.
   static String getErrorMessage(ApiException exception) {
