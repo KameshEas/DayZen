@@ -17,6 +17,9 @@ abstract final class RoutePaths {
   static const String released = '/released';
   static const String achievements = '/achievements';
 
+  /// Hidden tester screen (M-1.11); reachable in release builds.
+  static const String counters = '/debug/counters';
+
   static String journalDetailPath(String id) => '/journal/$id';
 }
 
