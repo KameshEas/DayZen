@@ -22,9 +22,24 @@ void main() {
     for (final from in GeneratedHelper.versions) {
       final schema = await verifier.schemaAt(from);
       final db = AppDatabase.forTesting(schema.newConnection());
-      await verifier.migrateAndValidate(db, 2);
+      await verifier.migrateAndValidate(db, 3);
       await db.close();
     }
+  });
+
+  test('v2 -> v3 adds the weekly Rhythm history and keeps everything else',
+      () async {
+    final schema = await verifier.schemaAt(2);
+    final db = AppDatabase.forTesting(schema.newConnection());
+    await verifier.migrateAndValidate(db, 3);
+    await db.localOnlyDao.saveRhythmWeek(RhythmProfileHistoryCompanion.insert(
+      weekStart: DateTime(2027, 3, 1),
+      curve: List.filled(24, '0.5').join(','),
+      confidence: 3,
+      savedAt: DateTime(2027, 3, 3),
+    ));
+    expect(await db.localOnlyDao.rhythmHistory(), hasLength(1));
+    await db.close();
   });
 
   test('v1 -> v2 keeps tasks and backfills status and completedAt', () async {
@@ -47,7 +62,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.forTesting(schema.newConnection());
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, 3);
 
     final rows = {for (final r in await db.select(db.tasks).get()) r.id: r};
     expect(rows.keys, containsAll(['open', 'finished', 'deleted']));
