@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
 import 'core/api/api_client.dart';
 import 'core/services/app_version_service.dart';
+import 'core/services/gentle_prompts.dart';
 import 'core/services/sync_triggers.dart';
 import 'features/app_data.dart';
 import 'features/app_update/app_version_controller.dart';
@@ -151,6 +152,10 @@ Future<String> _bootstrap({
     quietWindow: settingsCtrl.quietWindow,
   );
 
+  // Evening Close the Day prompt and energy check-ins (own switches).
+  GentlePrompts.instance ??= GentlePrompts(settings: settingsCtrl);
+  unawaited(GentlePrompts.instance!.apply());
+
   // Travel or a zone change while backgrounded moves every reminder's real
   // time; re-check the zone whenever the app comes back to the foreground.
   // Pull the account's data right after sign-in and whenever the app comes
@@ -171,6 +176,8 @@ Future<String> _bootstrap({
       // other resumes it finds nothing to move. It pulls before rolling
       // over, so it also covers the usual resume sync for tasks.
       unawaited(taskCtrl.syncThenRollOver());
+      // A new day means new check-in times.
+      unawaited(GentlePrompts.instance?.apply());
       _syncTriggers?.onResume();
       if (await NotificationService.instance.refreshTimeZone()) {
         await taskCtrl.rescheduleNotifications();

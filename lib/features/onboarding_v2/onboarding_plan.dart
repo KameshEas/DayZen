@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/domain/brain_dump_parser.dart';
 import '../../core/domain/rhythm/energy_profile.dart';
 import '../../core/domain/rhythm/rhythm_scheduler.dart';
+import '../../core/utils/ids.dart';
 import '../home/models/task_model.dart';
 
 /// A draft with the slot it will be saved in.
@@ -126,17 +127,16 @@ class OnboardingPlan {
         TaskCategory.study => Icons.menu_book_rounded,
       };
 
-  /// Real tasks for a plan. [idPrefix] keeps ids unique per save.
+  /// Real tasks for a plan, each with a globally unique id (see [newId]).
   static List<DzTask> toTasks(
     List<PlannedDraft> plan, {
     required DateTime now,
-    required String idPrefix,
   }) {
     final today = DateTime(now.year, now.month, now.day);
     return [
       for (final p in plan)
         DzTask(
-          id: '$idPrefix-${p.index}',
+          id: newId('task', now: now),
           title: p.draft.title,
           startTime: _time(p.startMinute),
           endTime: _time(p.endMinute),

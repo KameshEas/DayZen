@@ -9,6 +9,7 @@ import '../../features/app_update/update_showcase_page.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
+import '../../features/close_day/close_day_page.dart';
 import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/home/models/task_model.dart';
@@ -218,6 +219,11 @@ class AppRouter {
           path: RoutePaths.settings,
           name: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.closeDay,
+          name: RouteNames.closeDay,
+          builder: (context, state) => const CloseDayPage(),
         ),
         GoRoute(
           path: RoutePaths.aiAssistant,
