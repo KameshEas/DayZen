@@ -4,6 +4,7 @@ import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/routing/route_paths.dart';
 import '../app_data.dart';
+import 'widgets/lifts_you_card.dart';
 import 'widgets/insights_ai_suggestion_card.dart';
 import 'widgets/insights_data.dart';
 import 'widgets/insights_focus_trend_card.dart';
@@ -67,6 +68,7 @@ class InsightsPage extends StatelessWidget {
                 InsightsTopCategoryCard(data: d),
               ],
               const SizedBox(height: DzSpacing.md),
+              const LiftsYouCard(),
               InsightsMindfulnessCard(data: d),
               const SizedBox(height: DzSpacing.md),
               const InsightsReflectionImageCard(),
