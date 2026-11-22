@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import '../app_data.dart';
 import 'auth_controller.dart';
+import 'forgot_password_page.dart';
 import 'sign_up_page.dart';
 import 'widgets/auth_shared_widgets.dart';
 import 'widgets/login_form_card.dart';
 
-/// LoginPage — composes LoginFormCard under features/auth/widgets/. Split
-/// from a single 389-line file in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
+/// LoginPage — composes LoginFormCard under features/auth/widgets/.
 class LoginPage extends StatefulWidget {
   /// Called when the user successfully signs in, with the email used.
   final ValueChanged<String> onSignedIn;
@@ -61,54 +61,19 @@ class _LoginPageState extends State<LoginPage> {
     widget.onSignedIn(email);
   }
 
-  Future<void> _showForgotPasswordDialog(BuildContext context) async {
-    final resetEmailCtrl = TextEditingController();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Reset Password'),
-          content: TextField(
-            controller: resetEmailCtrl,
-            keyboardType: TextInputType.emailAddress,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Email address',
-              hintText: 'name@example.com',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final address = resetEmailCtrl.text;
-                Navigator.of(dialogContext).pop();
-                final sent = await DzProgress.run<bool>(
-                  context,
-                  message: 'Sending reset link…',
-                  successMessage: 'Check your inbox',
-                  isSuccess: (ok) => ok,
-                  task: () => _controller.sendPasswordReset(email: address),
-                );
-                if (sent == true || !context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _controller.error ?? 'Failed to send reset email.',
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Send Reset Email'),
-            ),
-          ],
-        );
-      },
+  Future<void> _openForgotPassword(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final email = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordPage(initialEmail: _emailCtrl.text.trim()),
+      ),
     );
-    resetEmailCtrl.dispose();
+    if (email == null || !mounted) return;
+    _emailCtrl.text = email;
+    _passwordCtrl.clear();
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Password updated. Sign in with your new password.'),
+    ));
   }
 
   void _goToSignUp(BuildContext context) {
@@ -171,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                     onToggleObscurePassword: () => setState(
                         () => _obscurePassword = !_obscurePassword),
                     onSubmit: _submit,
-                    onForgotPassword: () => _showForgotPasswordDialog(context),
+                    onForgotPassword: () => _openForgotPassword(context),
                     canGoBack: widget.canGoBack,
                     onContinueOffline: widget.onContinueOffline,
                     onSignUpTap: () => _goToSignUp(context),
@@ -189,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                       SizedBox(width: DzSpacing.xl),
                       AuthTrustBadge(
                         icon: Icons.storage_rounded,
-                        label: 'Local Storage',
+                        label: 'Works Offline',
                       ),
                     ],
                   ),
@@ -197,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // ── Copyright ──────────────────────────────────────
                   Text(
-                    '© 2024 DAYZEN AI. ALL RIGHTS RESERVED.',
+                    '© ${DateTime.now().year} DAYZEN',
                     style: DzTextStyles.caption.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 10,

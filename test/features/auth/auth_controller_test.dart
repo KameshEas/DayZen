@@ -37,14 +37,6 @@ class _FakeJwtAuthService extends JwtAuthService {
   }
 
   @override
-  Future<void> requestPasswordReset({
-    required String email,
-    required String apiBaseUrl,
-  }) async {
-    if (throwOnNextCall != null) throw throwOnNextCall!;
-  }
-
-  @override
   Future<void> signOut() async {}
 }
 
@@ -237,12 +229,24 @@ void main() {
       final result = await controller.signUp(
         fullName: 'Test User',
         email: 'test@example.com',
-        password: '12345',
+        password: '1234567', // 7: one short of the minimum
         onSuccess: () {},
       );
 
       expect(result, false);
-      expect(controller.error, 'Password must be at least 6 characters.');
+      expect(controller.error, 'Password must be at least 8 characters.');
+    });
+
+    test('signUp accepts a password of exactly 8 characters', () async {
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: '12345678',
+        onSuccess: () {},
+      );
+
+      expect(result, true);
+      expect(controller.error, isNull);
     });
 
     test('signUp with empty password returns error', () async {
@@ -255,13 +259,6 @@ void main() {
 
       expect(result, false);
       expect(controller.error, 'Please fill in all fields.');
-    });
-
-    test('sendPasswordReset with empty email returns error', () async {
-      final result = await controller.sendPasswordReset(email: '');
-
-      expect(result, false);
-      expect(controller.error, 'Please enter your email address.');
     });
   });
 
@@ -319,14 +316,6 @@ void main() {
       expect(result, false);
       expect(controller.error, 'An unexpected error occurred. Please try again.');
     });
-
-    test('sendPasswordReset throwing shows the reset-failed message', () async {
-      fakeAuthService.throwOnNextCall = Exception('network down');
-      final result = await controller.sendPasswordReset(email: 'test@example.com');
-
-      expect(result, false);
-      expect(controller.error, 'Failed to send reset email. Please try again.');
-    });
   });
 
   group('AuthController - success path', () {
@@ -358,13 +347,6 @@ void main() {
       expect(controller.isLoading, false);
       expect(controller.error, null);
     });
-
-    test('sendPasswordReset success clears loading', () async {
-      final result = await controller.sendPasswordReset(email: 'test@example.com');
-
-      expect(result, true);
-      expect(controller.isLoading, false);
-    });
   });
 
   group('AuthController - loading state', () {
@@ -385,12 +367,6 @@ void main() {
         password: 'password123',
         onSuccess: () {},
       );
-
-      expect(controller.isLoading, false);
-    });
-
-    test('sendPasswordReset resets loading to false', () async {
-      await controller.sendPasswordReset(email: 'test@example.com');
 
       expect(controller.isLoading, false);
     });

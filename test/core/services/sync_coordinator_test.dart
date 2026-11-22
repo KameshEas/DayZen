@@ -35,6 +35,7 @@ void main() {
   setUp(() {
     coordinator = _FakeSyncCoordinator();
     controller = _FakeController();
+    SyncCoordinator.isSignedIn = () => true;
   });
 
   group('SyncCoordinator.sync', () {
@@ -79,35 +80,49 @@ void main() {
     });
   });
 
-  group('SyncCoordinator.withSync', () {
-    test('runs the local write then syncs', () async {
-      await coordinator.withSync(controller, () async {
-        controller.localWrites++;
-      });
-
-      expect(controller.localWrites, 1);
-      expect(coordinator.performSyncCallCount, 1);
-      expect(coordinator.lastSuccessfulSync, isNotNull);
+  group('SyncCoordinator.requestSync', () {
+    test('does nothing while signed out (no request that can only 401)',
+        () async {
+      SyncCoordinator.isSignedIn = () => false;
+      await coordinator.requestSync(controller);
+      expect(coordinator.performSyncCallCount, 0);
+      expect(coordinator.isSyncing, isFalse);
     });
 
-    test('swallows a failing local write without rethrowing', () async {
-      await coordinator.withSync(controller, () async {
-        throw Exception('local write failed');
-      });
-      // No exception propagates — matches the original
-      // create*WithSync/delete*WithSync behavior being preserved as-is.
+    test('runs one sync and never touches the controller', () async {
+      await coordinator.requestSync(controller);
+
+      expect(coordinator.performSyncCallCount, 1);
+      expect(controller.localWrites, 0);
+      expect(coordinator.lastSuccessfulSync, isNotNull);
     });
 
     test('swallows a failing sync without rethrowing', () async {
       coordinator.performSyncImpl = (_) => Future.error(Exception('sync failed'));
+      await coordinator.requestSync(controller);
+      expect(coordinator.isSyncing, isFalse);
+    });
 
-      await coordinator.withSync(controller, () async {
-        controller.localWrites++;
-      });
+    test('requests during an in-flight sync coalesce into one follow-up',
+        () async {
+      final first = Completer<SyncOutcome>();
+      var calls = 0;
+      coordinator.performSyncImpl = (_) {
+        calls++;
+        return calls == 1 ? first.future : Future.value(const SyncOutcome());
+      };
 
-      expect(controller.localWrites, 1); // local write still happened
+      final running = coordinator.requestSync(controller);
+      await Future<void>.delayed(Duration.zero);
+      await coordinator.requestSync(controller);
+      await coordinator.requestSync(controller);
+      first.complete(const SyncOutcome());
+      await running;
+
+      expect(coordinator.performSyncCallCount, 2);
     });
   });
+
 
   group('SyncCoordinator.retrySync', () {
     test('succeeds silently on success', () async {
@@ -115,7 +130,7 @@ void main() {
       expect(coordinator.lastSuccessfulSync, isNotNull);
     });
 
-    test('rethrows on failure (unlike withSync)', () async {
+    test('rethrows on failure (unlike requestSync)', () async {
       coordinator.performSyncImpl = (_) => Future.error(Exception('retry failed'));
       await expectLater(coordinator.retrySync(controller), throwsException);
     });

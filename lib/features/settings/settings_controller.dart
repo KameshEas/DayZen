@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../core/domain/quiet_window.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/services/journal_sync_manager.dart';
 import '../../core/services/jwt_auth_service.dart';
+import '../../core/services/sync_manager.dart';
 
 /// Persisted settings for the DayZen app.
 class SettingsController extends ChangeNotifier {
@@ -49,11 +52,15 @@ class SettingsController extends ChangeNotifier {
   String get fontSize => _fontSize;
 
   // ── Notifications ──────────────────────────────────────────────────────
-  bool _quietHours = true;
-  bool get quietHours => _quietHours;
+  /// Task reminders on/off (P1-10: used to be "quiet hours OR focus
+  /// alerts", where turning quiet hours on enabled reminders).
+  bool _remindersEnabled = true;
+  bool get remindersEnabled => _remindersEnabled;
 
-  bool _focusAlerts = true;
-  bool get focusAlerts => _focusAlerts;
+  /// Reminders inside this daily window stay silent; null = no quiet hours.
+  QuietWindow? _quietWindow;
+  QuietWindow? get quietWindow => _quietWindow;
+
 
   // ── Units ──────────────────────────────────────────────────────────────
   bool _use24Hour = true;
@@ -115,8 +122,17 @@ class SettingsController extends ChangeNotifier {
     // Older builds saved names (e.g. 'Zen Green') that no longer exist.
     _accent = accentColorMap.containsKey(savedAccent) ? savedAccent! : defaultAccent;
     _fontSize = prefs.getString('s_fontSize') ?? 'Standard (16px)';
-    _quietHours = prefs.getBool('s_quietHours') ?? true;
-    _focusAlerts = prefs.getBool('s_focusAlerts') ?? true;
+    // Older builds stored two flags; reminders were on if either was on.
+    // Quiet hours start off for them: the old "quiet hours" flag never
+    // silenced anything, so turning a window on would change behaviour.
+    _remindersEnabled = prefs.getBool('s_reminders') ??
+        ((prefs.getBool('s_quietHours') ?? true) ||
+            (prefs.getBool('s_focusAlerts') ?? true));
+    final quietStart = prefs.getInt('s_quietStart');
+    final quietEnd = prefs.getInt('s_quietEnd');
+    _quietWindow = quietStart != null && quietEnd != null
+        ? QuietWindow(startMinutes: quietStart, endMinutes: quietEnd)
+        : null;
     _use24Hour = prefs.getBool('s_use24Hour') ?? true;
     _metricUnits = prefs.getBool('s_metricUnits') ?? true;
     _biometricEnabled = prefs.getBool('s_biometricEnabled') ?? false;
@@ -130,8 +146,11 @@ class SettingsController extends ChangeNotifier {
     // Reconcile with the real JWT session (source of truth), in case a prior
     // sign-in/sign-up flow didn't update this flag — e.g. accounts created
     // before this flag existed, or before sign-up wired it up.
+    // Must be the shared instance: a second instance re-reads storage and
+    // can refresh the same refresh token concurrently with the real one,
+    // which (with rotating refresh tokens) signs the user out.
     final authService = JwtAuthService.instance;
-    await authService.initialize();
+    if (!authService.isInitialized) await authService.initialize();
     if (authService.isAuthenticated != _isSignedIn ||
         authService.userEmail != _userEmail) {
       _isSignedIn = authService.isAuthenticated;
@@ -147,8 +166,17 @@ class SettingsController extends ChangeNotifier {
     await prefs.setInt('s_themeMode', _themeMode.index);
     await prefs.setString('s_accent', _accent);
     await prefs.setString('s_fontSize', _fontSize);
-    await prefs.setBool('s_quietHours', _quietHours);
-    await prefs.setBool('s_focusAlerts', _focusAlerts);
+    await prefs.setBool('s_reminders', _remindersEnabled);
+    final window = _quietWindow;
+    if (window != null) {
+      await prefs.setInt('s_quietStart', window.startMinutes);
+      await prefs.setInt('s_quietEnd', window.endMinutes);
+    } else {
+      await prefs.remove('s_quietStart');
+      await prefs.remove('s_quietEnd');
+    }
+    await prefs.remove('s_quietHours'); // legacy
+    await prefs.remove('s_focusAlerts'); // legacy
     await prefs.setBool('s_use24Hour', _use24Hour);
     await prefs.setBool('s_metricUnits', _metricUnits);
     await prefs.setBool('s_biometricEnabled', _biometricEnabled);
@@ -184,14 +212,14 @@ class SettingsController extends ChangeNotifier {
     _save();
   }
 
-  void setQuietHours(bool value) {
-    _quietHours = value;
+  void setRemindersEnabled(bool value) {
+    _remindersEnabled = value;
     notifyListeners();
     _save();
   }
 
-  void setFocusAlerts(bool value) {
-    _focusAlerts = value;
+  void setQuietWindow(QuietWindow? window) {
+    _quietWindow = window;
     notifyListeners();
     _save();
   }
@@ -220,6 +248,9 @@ class SettingsController extends ChangeNotifier {
     _userEmail = null;
     notifyListeners();
     _save();
+    // Forget the pull cursors so a later sign-in does a full pull.
+    SyncManager.instance.clearSyncState();
+    JournalSyncManager.instance.clearSyncState();
     await JwtAuthService.instance.signOut();
   }
 

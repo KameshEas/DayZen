@@ -14,8 +14,8 @@ class JournalEntries extends Table {
   /// [JournalMood] enum name (e.g. "happy", "peaceful").
   TextColumn get mood => text()();
 
-  /// Entry timestamp — this is "entry_timestamp" in docs/DEVELOPMENT_PLAN.md's
-  /// original schema note. Indexed — entries are always queried newest-first.
+  /// Entry timestamp ("entry_timestamp" in the API). Indexed — entries are
+  /// always queried newest-first.
   DateTimeColumn get timestamp => dateTime()();
 
   /// ARGB int from [Color.toARGB32], nullable — [JournalEntry.accentColor]

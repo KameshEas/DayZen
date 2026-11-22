@@ -73,6 +73,13 @@ class UserProfileModel {
 class UserSettingsModel {
   final bool quietHoursEnabled;
   final bool focusAlertsEnabled;
+
+  /// Task reminders on/off. Null from servers older than A-0.6.
+  final bool? remindersEnabled;
+
+  /// Quiet hours as "HH:MM"; both null = no quiet hours.
+  final String? quietStart;
+  final String? quietEnd;
   final String timezone;
   final String themeMode;
   final String accentColor;
@@ -89,6 +96,9 @@ class UserSettingsModel {
   UserSettingsModel({
     required this.quietHoursEnabled,
     required this.focusAlertsEnabled,
+    this.remindersEnabled,
+    this.quietStart,
+    this.quietEnd,
     required this.timezone,
     required this.themeMode,
     required this.accentColor,
@@ -107,6 +117,9 @@ class UserSettingsModel {
     return UserSettingsModel(
       quietHoursEnabled: json['quiet_hours_enabled'] as bool? ?? true,
       focusAlertsEnabled: json['focus_alerts_enabled'] as bool? ?? true,
+      remindersEnabled: json['reminders_enabled'] as bool?,
+      quietStart: json['quiet_start'] as String?,
+      quietEnd: json['quiet_end'] as String?,
       timezone: json['timezone'] as String? ?? 'UTC',
       themeMode: json['theme_mode'] as String? ?? 'dark',
       accentColor: json['accent_color'] as String? ?? 'Brand Navy',
@@ -125,6 +138,9 @@ class UserSettingsModel {
   Map<String, dynamic> toJson() => {
     'quiet_hours_enabled': quietHoursEnabled,
     'focus_alerts_enabled': focusAlertsEnabled,
+    'reminders_enabled': remindersEnabled,
+    'quiet_start': quietStart,
+    'quiet_end': quietEnd,
     'timezone': timezone,
     'theme_mode': themeMode,
     'accent_color': accentColor,
@@ -158,6 +174,9 @@ class UserSettingsModel {
     return UserSettingsModel(
       quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
       focusAlertsEnabled: focusAlertsEnabled ?? this.focusAlertsEnabled,
+      remindersEnabled: remindersEnabled,
+      quietStart: quietStart,
+      quietEnd: quietEnd,
       timezone: timezone ?? this.timezone,
       themeMode: themeMode ?? this.themeMode,
       accentColor: accentColor ?? this.accentColor,

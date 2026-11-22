@@ -16,11 +16,7 @@ import 'widgets/sync_status_indicator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomePage — composes the individual card widgets under
-// features/home/widgets/. Split from a single 409-line file in Phase 5.1
-// of docs/DEVELOPMENT_PLAN.md. Also removed `_showAddTaskSheet`/`_TaskItem`
-// here — confirmed genuinely dead code (zero references anywhere in the
-// codebase) flagged since the docs/BASELINE_METRICS.md Phase 0 audit and
-// explicitly deferred to this phase rather than fixed opportunistically.
+// features/home/widgets/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomePage extends StatelessWidget {

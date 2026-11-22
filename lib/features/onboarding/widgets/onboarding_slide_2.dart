@@ -77,7 +77,7 @@ class OnboardingSlide2 extends StatelessWidget {
           const OnboardingSlideText(
             title: 'Your Data Stays\nWith You',
             subtitle:
-                'Everything is stored locally. No tracking. No cloud by default. Experience productivity with total peace of mind.',
+                'Stored on this phone. Sync is optional and only after you sign in. No ads, no analytics.',
           ),
           const SizedBox(height: DzSpacing.lg),
           const OnboardingPillBadge(

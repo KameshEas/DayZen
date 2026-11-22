@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../core/security/password_policy.dart';
 import '../../core/services/jwt_auth_service.dart';
 import '../../core/config/app_config.dart';
 import '../../core/logging/app_logger.dart';
@@ -80,8 +81,9 @@ class AuthController extends ChangeNotifier {
       _setError('Please fill in all fields.');
       return false;
     }
-    if (password.length < 6) {
-      _setError('Password must be at least 6 characters.');
+    final policyError = passwordPolicyError(password);
+    if (policyError != null) {
+      _setError(policyError);
       return false;
     }
 
@@ -119,29 +121,6 @@ class AuthController extends ChangeNotifier {
     } catch (e) {
       AppLogger.debug('Sign out error: $e');
       _setError('Failed to sign out. Please try again.');
-    }
-  }
-
-  /// Send password reset email via backend
-  /// Backend will send a reset email with a link/token
-  Future<bool> sendPasswordReset({required String email}) async {
-    if (email.trim().isEmpty) {
-      _setError('Please enter your email address.');
-      return false;
-    }
-    _setLoading(true);
-    try {
-      await _authService.requestPasswordReset(
-        email: email.trim(),
-        apiBaseUrl: AppConfig.apiBaseUrl,
-      );
-      _setLoading(false);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      AppLogger.debug('Password reset error: $e');
-      _setError('Failed to send reset email. Please try again.');
-      return false;
     }
   }
 }

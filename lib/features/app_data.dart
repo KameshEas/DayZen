@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'task_controller.dart';
 import 'journal_controller.dart';
 import 'settings/settings_controller.dart';
-import 'insights_controller.dart';
-import 'ai_optimization_controller.dart';
 import 'notification_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Per-controller scopes (Phase 3.3 of docs/DEVELOPMENT_PLAN.md)
+// Per-controller scopes
 //
 // Replaces the single `AppData` InheritedWidget that used to wrap all six
 // controllers together. With one shared InheritedWidget, a widget calling
@@ -22,8 +20,7 @@ import 'notification_controller.dart';
 // Each `InheritedNotifier` below wraps exactly one controller. A widget
 // depending on `TaskScope` only rebuilds when `TaskController` itself calls
 // `notifyListeners()` — a `SettingsController` change is invisible to it.
-// See docs/ARCHITECTURE.md for the full rationale and a DevTools-based
-// verification note.
+// test/features/app_data_test.dart verifies this automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class TaskScope extends InheritedNotifier<TaskController> {
@@ -62,30 +59,6 @@ class SettingsScope extends InheritedNotifier<SettingsController> {
       .notifier!;
 }
 
-class InsightsScope extends InheritedNotifier<InsightsController> {
-  const InsightsScope({
-    super.key,
-    required InsightsController controller,
-    required super.child,
-  }) : super(notifier: controller);
-
-  static InsightsController of(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<InsightsScope>()!
-      .notifier!;
-}
-
-class AIOptimizationScope extends InheritedNotifier<AIOptimizationController> {
-  const AIOptimizationScope({
-    super.key,
-    required AIOptimizationController controller,
-    required super.child,
-  }) : super(notifier: controller);
-
-  static AIOptimizationController of(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<AIOptimizationScope>()!
-      .notifier!;
-}
-
 class NotificationScope extends InheritedNotifier<NotificationController> {
   const NotificationScope({
     super.key,
@@ -98,18 +71,15 @@ class NotificationScope extends InheritedNotifier<NotificationController> {
       .notifier!;
 }
 
-/// Composes all six per-controller scopes into one widget so `main.dart`'s
+/// Composes the per-controller scopes into one widget so `main.dart`'s
 /// app-root wiring reads the same as it did with the single `AppData`
-/// widget, despite now nesting six separate `InheritedNotifier`s under the
-/// hood.
+/// widget, despite nesting separate `InheritedNotifier`s under the hood.
 class AppScopes extends StatelessWidget {
   const AppScopes({
     super.key,
     required this.tasks,
     required this.journal,
     required this.settings,
-    required this.insights,
-    required this.aiOptimization,
     required this.notifications,
     required this.child,
   });
@@ -117,8 +87,6 @@ class AppScopes extends StatelessWidget {
   final TaskController tasks;
   final JournalController journal;
   final SettingsController settings;
-  final InsightsController insights;
-  final AIOptimizationController aiOptimization;
   final NotificationController notifications;
   final Widget child;
 
@@ -130,15 +98,9 @@ class AppScopes extends StatelessWidget {
         controller: journal,
         child: SettingsScope(
           controller: settings,
-          child: InsightsScope(
-            controller: insights,
-            child: AIOptimizationScope(
-              controller: aiOptimization,
-              child: NotificationScope(
-                controller: notifications,
-                child: child,
-              ),
-            ),
+          child: NotificationScope(
+            controller: notifications,
+            child: child,
           ),
         ),
       ),

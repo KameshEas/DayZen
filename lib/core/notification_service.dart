@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'app_prefs.dart';
 import 'config/app_config.dart';
 import 'data/task_repository.dart';
 import '../features/home/models/task_model.dart';
+import 'domain/quiet_window.dart';
 import './logging/app_logger.dart';
 
 const _followUpCategoryId = 'task_followup';
@@ -21,15 +24,26 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
+  /// Reminders that would fire inside this window aren't scheduled (null =
+  /// no quiet hours). Set from Settings; call [rescheduleAll] after changing
+  /// it so already-scheduled reminders follow the new window.
+  QuietWindow? quietWindow;
+
+  /// Whether a reminder at [when] should actually be delivered.
+  @visibleForTesting
+  static bool allowedAt(DateTime when, QuietWindow? window) =>
+      window == null || !window.contains(when.hour, when.minute);
+
   // ── Initialise ────────────────────────────────────────────────────────
 
   Future<void> init() async {
     if (_initialized) return;
 
     tz.initializeTimeZones();
-    final localTz = tz.local;
-    // Use device-local timezone (falls back to UTC if unknown)
-    tz.setLocalLocation(localTz);
+    // `tz.local` is UTC until set explicitly. Without this every reminder
+    // fired at the task's wall-clock time *in UTC* (e.g. 14:30 instead of
+    // 09:00 in IST). Audit item P0-2.
+    await refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     final darwinSettings = DarwinInitializationSettings(
@@ -69,6 +83,52 @@ class NotificationService {
     _initialized = true;
   }
 
+  // ── Time zone ─────────────────────────────────────────────────────────
+
+  /// Points `tz.local` at the device's current zone. Returns true when it
+  /// changed (travel, DST-region switch), so callers know to reschedule.
+  Future<bool> refreshTimeZone() async {
+    String? name;
+    try {
+      name = (await FlutterTimezone.getLocalTimezone()).identifier;
+    } catch (e) {
+      AppLogger.warning('Could not read device time zone: $e');
+    }
+    final location = resolveLocation(name);
+    if (location.name == tz.local.name) return false;
+    tz.setLocalLocation(location);
+    AppLogger.debug('NotificationService: time zone set to ${location.name}');
+    return true;
+  }
+
+  /// The tz location for an IANA [name]. When the name is missing or not in
+  /// the bundled database, falls back to a zone whose current offset matches
+  /// the device clock, so reminders still fire at the right local time.
+  @visibleForTesting
+  static tz.Location resolveLocation(String? name, {Duration? deviceOffset}) {
+    if (name != null) {
+      try {
+        return tz.getLocation(name);
+      } catch (_) {}
+    }
+    final offset = deviceOffset ?? DateTime.now().timeZoneOffset;
+    for (final location in tz.timeZoneDatabase.locations.values) {
+      if (location.currentTimeZone.offset == offset) return location;
+    }
+    return tz.UTC;
+  }
+
+  /// When [task] starts, in the device's local zone.
+  @visibleForTesting
+  static tz.TZDateTime taskStart(DzTask task) => tz.TZDateTime(
+        tz.local,
+        task.date.year,
+        task.date.month,
+        task.date.day,
+        task.startTime.hour,
+        task.startTime.minute,
+      );
+
   // ── Request permission (Android 13+) ──────────────────────────────────
 
   Future<bool> requestPermission() async {
@@ -92,14 +152,7 @@ class NotificationService {
     if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    final taskDateTime = tz.TZDateTime(
-      tz.local,
-      task.date.year,
-      task.date.month,
-      task.date.day,
-      task.startTime.hour,
-      task.startTime.minute,
-    );
+    final taskDateTime = taskStart(task);
     // An end time at or before the start is a genuine overnight span (e.g.
     // Sleep 10:30 PM → 5:00 AM) — the end falls on the following day.
     final endsNextDay = (task.endTime.hour * 60 + task.endTime.minute) <=
@@ -121,10 +174,13 @@ class NotificationService {
     final followUpDateTime =
         taskEndDateTime.add(const Duration(minutes: AppConfig.taskFollowUpDelayMinutes));
 
-    // Don't schedule notifications in the past
-    final shouldScheduleOnTime = taskDateTime.isAfter(now);
-    final shouldSchedulePre = preDateTime.isAfter(now);
-    final shouldScheduleFollowUp = followUpDateTime.isAfter(now);
+    // Don't schedule notifications in the past, or inside quiet hours.
+    final shouldScheduleOnTime =
+        taskDateTime.isAfter(now) && allowedAt(taskDateTime, quietWindow);
+    final shouldSchedulePre =
+        preDateTime.isAfter(now) && allowedAt(preDateTime, quietWindow);
+    final shouldScheduleFollowUp = followUpDateTime.isAfter(now) &&
+        allowedAt(followUpDateTime, quietWindow);
 
     AppLogger.debug('NotificationService: scheduling task ${task.id}');
     AppLogger.debug(' - now: $now');
@@ -189,6 +245,12 @@ class NotificationService {
         categoryIdentifier: _followUpCategoryId,
       ),
     );
+
+    // A skipped reminder may still be scheduled from before (the task was
+    // moved into quiet hours, or the window changed): cancel it.
+    if (!shouldSchedulePre) await _plugin.cancel(id: preId);
+    if (!shouldScheduleOnTime) await _plugin.cancel(id: onTimeId);
+    if (!shouldScheduleFollowUp) await _plugin.cancel(id: followUpId);
 
     // Schedule pre-reminder 5 minutes before (if in future)
     if (shouldSchedulePre) {

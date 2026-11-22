@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'DayZen';
 
   @override
-  String get appDescription => 'Offline AI Day Optimizer';
+  String get appDescription => 'Calm day planner and journal';
 
   @override
   String get greetingMorning => 'Good Morning';

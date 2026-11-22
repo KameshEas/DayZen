@@ -14,12 +14,11 @@ import 'package:dayzen/core/domain/task_analytics.dart';
 import 'package:dayzen/features/home/models/task_model.dart';
 import 'package:dayzen/features/journal/models/journal_entry.dart';
 
-/// Phase 4.3 of docs/DEVELOPMENT_PLAN.md: verify performance at a
+/// Verify performance at a
 /// realistic multi-year data scale (2,000 tasks / 1,000 journal entries).
 ///
 /// A literal on-device scroll-performance/DevTools-timeline test isn't
-/// possible in this environment (no attached device or emulator) — see
-/// docs/PERFORMANCE_TESTING.md for that manual procedure. This is the
+/// possible in this environment (no attached device or emulator). This is the
 /// automated substitute: measure the actual code paths that matter (real
 /// on-disk SQLite writes/reads via drift, and TaskAnalytics/
 /// JournalAnalytics computation) with explicit timing budgets, so a
@@ -81,8 +80,7 @@ void main() {
     debugPrint('Inserted 2000 tasks in ${sw.elapsedMilliseconds}ms '
         '(${(sw.elapsedMilliseconds / 2000).toStringAsFixed(2)}ms/task)');
     // Calibrated against observed local timing with headroom for slower
-    // CI machines — see docs/PERFORMANCE_TESTING.md for the baseline
-    // number this was calibrated from.
+    // CI machines.
     expect(sw.elapsedMilliseconds, lessThan(30000),
         reason:
             '2000 single-row inserts should not take 30+ seconds even on '

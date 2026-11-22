@@ -28,7 +28,7 @@ void main() {
     expect(find.text('Email address'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     // The rule is visible up front, not only after a failed attempt.
-    expect(find.text('At least 6 characters'), findsOneWidget);
+    expect(find.text('At least 8 characters'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);
     expect(find.text('Use offline instead'), findsOneWidget);
     expect(find.textContaining('Already have an account?', findRichText: true), findsOneWidget);
@@ -70,11 +70,11 @@ void main() {
     await tester.pumpWidget(_page());
     await tester.enterText(find.byType(TextField).at(0), 'Alex');
     await tester.enterText(find.byType(TextField).at(1), 'alex@example.com');
-    await tester.enterText(find.byType(TextField).at(2), '123');
+    await tester.enterText(find.byType(TextField).at(2), '1234567');
     await tester.tap(find.text('Create account'));
     await tester.pump();
 
-    expect(find.text('Password must be at least 6 characters.'), findsOneWidget);
+    expect(find.text('Password must be at least 8 characters.'), findsOneWidget);
   });
 
   testWidgets('the password can be shown and hidden', (tester) async {

@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:async';
+import '../core/domain/quiet_window.dart';
+
+import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
 import '../core/domain/task_analytics.dart';
 import '../core/notification_service.dart';
 import '../core/services/sync_manager.dart';
 import 'home/models/task_model.dart';
-import '../core/logging/app_logger.dart';
 
 class TaskController extends ChangeNotifier {
   List<DzTask> _tasks = [];
@@ -19,6 +21,21 @@ class TaskController extends ChangeNotifier {
       NotificationService.instance.cancelAll();
     } else {
       NotificationService.instance.rescheduleAll(_tasks);
+    }
+  }
+
+  /// Applies the Settings reminder choices: on/off and quiet hours.
+  /// Re-schedules every reminder so the new window applies to existing ones.
+  void applyReminderSettings({required bool enabled, QuietWindow? quietWindow}) {
+    NotificationService.instance.quietWindow = quietWindow;
+    setNotificationsEnabled(enabled);
+  }
+
+  /// Re-creates all reminders (e.g. after the device time zone changed).
+  /// No-op when reminders are off.
+  Future<void> rescheduleNotifications() async {
+    if (_notificationsEnabled) {
+      await NotificationService.instance.rescheduleAll(_tasks);
     }
   }
 
@@ -88,66 +105,47 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
     }
-    // Sync with server in background
-    syncWithServer();
+    // Push anything left unsynced from the last session, pull server changes.
+    unawaited(syncWithServer());
   }
 
-  /// Sync tasks with server (background operation).
-  Future<void> syncWithServer() async {
-    try {
-      await SyncManager.instance.syncTasks(this);
-    } catch (e) {
-      AppLogger.debug('Background sync failed: $e');
-      // Silently fail - local state is preserved
-    }
-  }
+  /// Sync tasks with server (background operation). Never throws; failed
+  /// changes stay dirty in SQLite and go out on the next sync.
+  Future<void> syncWithServer() => SyncManager.instance.requestSync(this);
 
   Future<void> addTask(DzTask task) async {
-    await insertLocal(task);
+    _tasks.add(task);
+    // Single-row insert. Replaces the old "re-serialize and rewrite the
+    // entire task list" pattern.
+    await TaskRepository.insertTask(task);
+    notifyListeners();
+    if (_notificationsEnabled) {
+      await NotificationService.instance.scheduleForTask(task);
+    }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.createTaskWithSync(this, task);
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> toggleTask(String id) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
-    await updateLocal(id, updatedTask);
+    _tasks[idx] = updatedTask;
+    await TaskRepository.updateTask(updatedTask);
+    notifyListeners();
+    // Cancel notification if completed; re-schedule if unchecked
+    if (_notificationsEnabled) {
+      if (updatedTask.isCompleted) {
+        await NotificationService.instance.cancelForTask(id);
+      } else {
+        await NotificationService.instance.scheduleForTask(updatedTask);
+      }
+    }
     // Queue for sync (fire-and-forget)
-    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> updateTask(String id, DzTask updatedTask) async {
-    await updateLocal(id, updatedTask);
-    // Queue for sync (fire-and-forget)
-    SyncManager.instance.updateTaskWithSync(this, id, updatedTask);
-  }
-
-  Future<void> deleteTask(String id) async {
-    await removeLocal(id);
-    // Queue for sync (fire-and-forget)
-    SyncManager.instance.deleteTaskWithSync(this, id);
-  }
-
-  /// Local-only write path (no sync queuing). Used by the public CRUD
-  /// methods above and by [SyncManager] when reconciling server state â€”
-  /// calling back into `addTask`/`updateTask`/`deleteTask` from there would
-  /// re-queue a sync for every task each sync pass reconciles and recurse
-  /// forever (each pass re-inserting the same task, which is what
-  /// previously caused counts to grow unbounded while the app stayed open).
-  Future<void> insertLocal(DzTask task) async {
-    _tasks.add(task);
-    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
-    // "re-serialize and rewrite the entire task list" pattern.
-    await TaskRepository.insertTask(task);
-    notifyListeners();
-    if (_notificationsEnabled) {
-      await NotificationService.instance.scheduleForTask(task);
-    }
-  }
-
-  /// Local-only update path (no sync queuing) â€” see [insertLocal].
-  Future<void> updateLocal(String id, DzTask updatedTask) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
     _tasks[idx] = updatedTask;
@@ -160,18 +158,60 @@ class TaskController extends ChangeNotifier {
         await NotificationService.instance.scheduleForTask(updatedTask);
       }
     }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
-  /// Local-only delete path (no sync queuing) â€” see [insertLocal].
-  Future<void> removeLocal(String id) async {
+  Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
-    // Soft delete (deleted_at set, row retained for sync visibility) — see
-    // docs/DATABASE_SCHEMA.md.
+    // Soft delete (deleted_at set, row retained so sync can push the delete).
     await TaskRepository.deleteTask(id);
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.cancelForTask(id);
     }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
+  }
+
+  /// Applies changes pulled from the server. Unlike the CRUD methods above,
+  /// this writes rows clean and never requests another sync. A task with a
+  /// local edit still waiting to be pushed is left alone; that edit goes out
+  /// on the next sync and the server resolves it.
+  Future<void> applyServerChanges({
+    required List<DzTask> upserts,
+    required List<String> deletedIds,
+  }) async {
+    if (upserts.isEmpty && deletedIds.isEmpty) return;
+
+    for (final id in deletedIds) {
+      if (await TaskRepository.hasPendingChanges(id)) continue;
+      await TaskRepository.deleteFromServer(id);
+      _tasks.removeWhere((t) => t.id == id);
+      if (_notificationsEnabled) {
+        await NotificationService.instance.cancelForTask(id);
+      }
+    }
+
+    for (final task in upserts) {
+      if (await TaskRepository.hasPendingChanges(task.id)) continue;
+      await TaskRepository.upsertFromServer(task);
+      final idx = _tasks.indexWhere((t) => t.id == task.id);
+      if (idx == -1) {
+        _tasks.add(task);
+      } else {
+        _tasks[idx] = task;
+      }
+      if (_notificationsEnabled) {
+        if (task.isCompleted) {
+          await NotificationService.instance.cancelForTask(task.id);
+        } else {
+          await NotificationService.instance.scheduleForTask(task);
+        }
+      }
+    }
+
+    notifyListeners();
   }
 
   Future<void> clearAll() async {

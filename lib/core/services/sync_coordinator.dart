@@ -1,5 +1,30 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/logging/app_logger.dart';
+import 'jwt_auth_service.dart';
+
+/// Persisted pull cursor ("server time of the last successful sync") per
+/// entity. Kept in SharedPreferences so a cold start does a delta sync
+/// instead of a full re-download.
+class SyncCursor {
+  SyncCursor._();
+
+  static Future<DateTime?> load(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  static Future<void> save(String key, DateTime value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value.toUtc().toIso8601String());
+  }
+
+  static Future<void> clear(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+}
 
 /// Result of a single sync attempt. Subclasses log entity-specific conflict
 /// details themselves (task/entry ids and resolutions differ per entity);
@@ -10,8 +35,7 @@ class SyncOutcome {
 }
 
 /// Base class for the offline-first "local write → mark dirty →
-/// background push → clear dirty on success" sync pattern (Phase 3.2 of
-/// docs/DEVELOPMENT_PLAN.md).
+/// background push → clear dirty on success" sync pattern.
 ///
 /// Extracted from `SyncManager` (tasks) and `JournalSyncManager` (journal
 /// entries), which had hand-copied this exact state machine — the
@@ -22,11 +46,16 @@ class SyncOutcome {
 /// else lives here once.
 ///
 /// **Not** used by `InsightsSyncManager`: insights are read-only/server-
-/// computed from the client's perspective (see `InsightsController`'s own
+/// computed from the client's perspective (see the old `InsightsController`'s
 /// doc comment) — there's no local write to push, only a cache-freshness
 /// pull. That's a different pattern, and forcing it into this shape would
-/// be a worse fit than leaving it separate. See docs/ARCHITECTURE.md.
+/// be a worse fit than leaving it separate.
 abstract class SyncCoordinator<TController> extends ChangeNotifier {
+  /// Whether a session exists. Replaceable in tests.
+  @visibleForTesting
+  static bool Function() isSignedIn =
+      () => JwtAuthService.instance.isAuthenticated;
+
   bool _isSyncing = false;
   DateTime? _lastSuccessfulSync;
 
@@ -69,23 +98,36 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
     }
   }
 
-  /// Runs [localWrite], then attempts a sync. Matches the original
-  /// `create*WithSync`/`delete*WithSync` behavior exactly: both the local
-  /// write *and* the sync attempt are wrapped in the same try/catch, so a
-  /// failing [localWrite] is logged and swallowed the same way a failing
-  /// sync is — this preserves existing behavior as-is rather than fixing
-  /// it as a side effect of this extraction (worth revisiting separately;
-  /// see docs/ARCHITECTURE.md).
-  Future<void> withSync(
-    TController controller,
-    Future<void> Function() localWrite,
-  ) async {
-    try {
-      await localWrite();
-      await sync(controller);
-    } catch (e) {
-      AppLogger.debug('$entityLabel changed locally but sync failed: $e');
+  bool _resyncRequested = false;
+
+  /// Fire-and-forget push after a local write. Never throws.
+  ///
+  /// Controllers call this *after* they have written locally; it must never
+  /// call back into a controller mutator. (The old `withSync(localWrite)`
+  /// did, and since every mutator queued another `withSync`, each add or
+  /// delete re-ran itself forever — audit item P0-1.)
+  ///
+  /// A request that arrives while a sync is in flight is not dropped: it
+  /// schedules exactly one follow-up sync, so a write made mid-sync is still
+  /// pushed promptly.
+  Future<void> requestSync(TController controller) async {
+    // Signed out (offline mode): there is no account to sync with, so don't
+    // send requests that can only fail with 401. Local changes stay dirty
+    // and go out after sign-in (see SyncTriggers).
+    if (!isSignedIn()) return;
+    if (_isSyncing) {
+      _resyncRequested = true;
+      return;
     }
+    do {
+      _resyncRequested = false;
+      try {
+        await sync(controller);
+      } catch (e) {
+        AppLogger.debug('$entityLabel sync failed; changes stay queued: $e');
+        return;
+      }
+    } while (_resyncRequested);
   }
 
   Future<void> retrySync(TController controller) async {
@@ -101,6 +143,7 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
   void clearSyncState() {
     _lastSuccessfulSync = null;
     _isSyncing = false;
+    _resyncRequested = false;
   }
 
   /// Human-readable sync status for UI display.

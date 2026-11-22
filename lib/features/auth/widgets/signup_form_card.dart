@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/security/password_policy.dart';
 import '../../../core/design_system/design_system.dart';
 import '../auth_controller.dart';
 import 'auth_shared_widgets.dart';
@@ -69,7 +70,7 @@ class SignUpFormCard extends StatelessWidget {
           const _FieldLabel('Password'),
           DzTextField(
             controller: passwordCtrl,
-            hint: 'At least 6 characters',
+            hint: 'At least $minPasswordLength characters',
             obscureText: obscurePassword,
             textInputAction: TextInputAction.done,
             prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
