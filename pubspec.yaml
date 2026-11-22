@@ -21,6 +21,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.6
   drift: 2.35.4
+  # Direct dependency for the one-time in-place encryption of an existing
+  # database (M-2.7); drift itself uses it underneath.
+  sqlite3: ^3.5.0
   path_provider: ^2.1.6
   path: ^1.9.1
   logger: ^2.3.0
@@ -165,3 +168,11 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: assets/branding/icons/png/android-adaptive-foreground-432.png
   adaptive_icon_monochrome: assets/branding/icons/png/android-adaptive-monochrome-432.png
+
+# Whole-database encryption (plan M-2.7): build package:sqlite3 against
+# SQLite3MultipleCiphers instead of plain SQLite. The key lives in secure
+# storage; see lib/core/data/database/db_encryption.dart.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
