@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
@@ -6,6 +6,7 @@ import '../../../core/app_prefs.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../core/services/account_deletion_service.dart';
+import '../../../core/services/data_export_service.dart';
 import '../../app_data.dart';
 import '../settings_controller.dart';
 import 'delete_account_dialog.dart';
@@ -51,8 +52,43 @@ class SettingsAccountSection extends StatelessWidget {
             },
           ),
         ),
+        const SizedBox(height: DzSpacing.sm),
+        DzCard(
+          padding: EdgeInsets.zero,
+          child: SettingsTile(
+            key: const Key('export-data-tile'),
+            icon: Icons.download_rounded,
+            iconBg: Theme.of(context).colorScheme.primaryContainer,
+            iconColor: Theme.of(context).colorScheme.primary,
+            title: 'Export my data',
+            subtitle: ctrl.isSignedIn
+                ? 'Everything in your account, as a JSON file'
+                : 'Everything on this phone, as a JSON file',
+            onTap: () => _export(context),
+          ),
+        ),
       ],
     );
+  }
+
+  /// Plan M-2.8: signed in → the server export; signed out → this phone's
+  /// data in the same shape. Opens the share sheet to save or send it.
+  Future<void> _export(BuildContext context) async {
+    final service = DataExportService();
+    try {
+      await DzProgress.run<void>(
+        context,
+        message: 'Preparing your data…',
+        task: () => service.exportAndShare(signedIn: ctrl.isSignedIn),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e is ApiException && e.statusCode == 429
+            ? 'An export was made a moment ago. Try again in a few minutes.'
+            : "Couldn't prepare the export. Check your connection and try again."),
+      ));
+    }
   }
 
   void _navigateToSignIn(BuildContext context, SettingsController ctrl) {
