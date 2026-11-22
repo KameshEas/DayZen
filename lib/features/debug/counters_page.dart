@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/design_system/design_system.dart';
+import '../../core/data/database/db_encryption.dart';
 import '../../core/services/counters_service.dart';
 
 /// Tester-only counters screen (plan M-1.11). Hidden: opened by tapping the
@@ -16,11 +17,13 @@ class CountersPage extends StatefulWidget {
 }
 
 class _CountersPageState extends State<CountersPage> {
-  late Future<({Map<String, int> counts, List<int> ttfp})> _data = _load();
+  late Future<({Map<String, int> counts, List<int> ttfp, List<int> dbOpen})> _data =
+      _load();
 
-  Future<({Map<String, int> counts, List<int> ttfp})> _load() async => (
+  Future<({Map<String, int> counts, List<int> ttfp, List<int> dbOpen})> _load() async => (
         counts: await CountersService.instance.snapshot(),
         ttfp: await CountersService.instance.ttfpSamples(),
+        dbOpen: await DbEncryption.openSamples(),
       );
 
   Future<void> _copy() async {
@@ -82,6 +85,18 @@ class _CountersPageState extends State<CountersPage> {
                 subtitle: Text('${d.ttfp.length} samples'),
                 trailing: Text(
                   median == null ? '—' : '${(median / 1000).toStringAsFixed(1)} s',
+                  style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Encrypted database open (median)'),
+                subtitle: Text('${d.dbOpen.length} starts · for the cold-start benchmark'),
+                trailing: Text(
+                  CountersService.median(d.dbOpen) == null
+                      ? '—'
+                      : '${CountersService.median(d.dbOpen)} ms',
                   style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),

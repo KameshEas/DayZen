@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../../core/data/database/db_encryption.dart';
 import '../../core/notification_service.dart';
 import '../../core/routing/route_paths.dart';
 import '../../core/services/counters_service.dart';
@@ -34,7 +35,31 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       PlannerSelection.instance.catchUpToToday();
       // A notification tapped while the app was closed or locked.
       _openPendingRoute();
+      _maybeShowRecoveryNotice();
     });
+  }
+
+  /// Once, after the encrypted database couldn't be unlocked and DayZen
+  /// started fresh (M-2.7). Synced data comes back on sign-in.
+  Future<void> _maybeShowRecoveryNotice() async {
+    if (!await DbEncryption.takeRecoveryNotice() || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('A fresh start on this phone'),
+        content: const Text(
+          "Your saved data on this phone couldn't be unlocked (this can "
+          'happen after restoring to a new phone), so DayZen started fresh. '
+          'If you use sync, sign in and your tasks and journal come back.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Opens the screen a tapped notification asked for (Close the Day,
