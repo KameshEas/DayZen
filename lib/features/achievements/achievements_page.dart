@@ -28,7 +28,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Achievements'),
+        title: const Text('Milestones'),
         elevation: 0,
       ),
       body: FutureBuilder<List<Achievement>>(
@@ -75,7 +75,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
                     child: Text(
-                      'Unlocked (${unlocked.length})',
+                      'Reached (${unlocked.length})',
                       style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -89,7 +89,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
                     child: Text(
-                      'Locked (${locked.length})',
+                      'Still ahead (${locked.length})',
                       style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),

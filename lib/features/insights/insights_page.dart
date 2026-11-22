@@ -70,6 +70,17 @@ class InsightsPage extends StatelessWidget {
               InsightsMindfulnessCard(data: d),
               const SizedBox(height: DzSpacing.md),
               const InsightsReflectionImageCard(),
+              const SizedBox(height: DzSpacing.md),
+              DzCard(
+                onTap: () => context.push(RoutePaths.achievements),
+                child: const ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Text('🌿', style: TextStyle(fontSize: 24)),
+                  title: Text('Milestones'),
+                  subtitle: Text('Small markers that only ever go up.'),
+                  trailing: Icon(Icons.chevron_right_rounded),
+                ),
+              ),
             ],
           ],
         );
