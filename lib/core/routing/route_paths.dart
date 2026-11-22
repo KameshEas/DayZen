@@ -16,6 +16,7 @@ abstract final class RoutePaths {
   static const String closeDay = '/close-day';
   static const String released = '/released';
   static const String achievements = '/achievements';
+  static const String checkin = '/checkin';
 
   /// Hidden tester screen (M-1.11); reachable in release builds.
   static const String counters = '/debug/counters';
