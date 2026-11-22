@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
+import '../../core/notification_service.dart';
 import '../../core/routing/route_paths.dart';
+import '../../core/services/counters_service.dart';
 import '../app_data.dart';
 import '../home/widgets/overdue_tasks_popup.dart';
 import '../journal/widgets/journal_new_entry_sheet.dart';
@@ -25,6 +27,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    NotificationService.instance.pendingRoute.addListener(_openPendingRoute);
     // Once per app session, regardless of which tab the router lands on
     // first — mirrors AppVersionController's "check once, after first
     // frame" pattern.
@@ -32,11 +35,27 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       if (!mounted) return;
       PlannerSelection.instance.catchUpToToday();
       maybeShowOverdueTasksPopup(context, TaskScope.of(context));
+      // A notification tapped while the app was closed or locked.
+      _openPendingRoute();
     });
+  }
+
+  /// Opens the screen a tapped notification asked for (Close the Day,
+  /// check-in). The shell only exists once the app is unlocked, so a PIN or
+  /// biometric lock always comes first.
+  void _openPendingRoute() {
+    final route = NotificationService.instance.pendingRoute.value;
+    if (route == null || !mounted) return;
+    NotificationService.instance.pendingRoute.value = null;
+    if (route == RoutePaths.closeDay) {
+      CountersService.instance.increment(CountersService.closePrompts);
+    }
+    context.push(route);
   }
 
   @override
   void dispose() {
+    NotificationService.instance.pendingRoute.removeListener(_openPendingRoute);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

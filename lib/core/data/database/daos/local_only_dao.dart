@@ -25,6 +25,12 @@ class LocalOnlyDao extends DatabaseAccessor<AppDatabase>
       (select(dayCloses)..where((d) => d.date.equals(midnight)))
           .getSingleOrNull();
 
+  Future<List<DayCloseRow>> dayClosesBetween(DateTime from, DateTime to) =>
+      (select(dayCloses)
+            ..where((d) => d.date.isBetweenValues(from, to))
+            ..orderBy([(d) => OrderingTerm.asc(d.date)]))
+          .get();
+
   Future<List<RhythmBinRow>> rhythmBins() => select(rhythmProfile).get();
 
   Future<void> saveRhythmBin(RhythmProfileCompanion row) =>

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/domain/quiet_window.dart';
 import '../../../core/notification_service.dart';
+import '../../../core/config/copy/close_day_copy.dart';
+import '../../../core/services/gentle_prompts.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
 import '../settings_controller.dart';
@@ -77,9 +79,13 @@ class SettingsPreferencesSection extends StatelessWidget {
           enabled: ctrl.remindersEnabled,
           quietWindow: ctrl.quietWindow,
         );
+    // Close the Day and check-ins follow their own switches (and the quiet
+    // window), independent of task reminders.
+    void applyGentle() => GentlePrompts.instance?.apply();
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
@@ -114,7 +120,25 @@ class SettingsPreferencesSection extends StatelessWidget {
             setSt(() {});
           }
 
-          return Padding(
+          Future<void> pickCloseDayTime() async {
+            final current = ctrl.closeDayMinute;
+            final picked = await showTimePicker(
+              context: ctx,
+              initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
+              helpText: 'Close your day prompt',
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(alwaysUse24HourFormat: ctrl.use24Hour),
+                child: child!,
+              ),
+            );
+            if (picked == null) return;
+            ctrl.setCloseDayReminder(minuteOfDay: picked.hour * 60 + picked.minute);
+            applyGentle();
+            setSt(() {});
+          }
+
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(DzSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -178,6 +202,44 @@ class SettingsPreferencesSection extends StatelessWidget {
                     onTap: () => pickTime(start: false),
                   ),
                 ],
+                const Divider(height: DzSpacing.xl),
+                SettingsToggleRow(
+                  key: const Key('close-day-toggle'),
+                  label: CloseDayCopy.settingsReminder,
+                  value: ctrl.closeDayEnabled,
+                  onChanged: (v) {
+                    ctrl.setCloseDayReminder(enabled: v);
+                    applyGentle();
+                    setSt(() {});
+                  },
+                ),
+                Text(CloseDayCopy.settingsReminderHint,
+                    style: DzTextStyles.caption.copyWith(color: muted)),
+                if (ctrl.closeDayEnabled)
+                  ListTile(
+                    key: const Key('close-day-time'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('At'),
+                    trailing: Text(_time(ctx, ctrl, ctrl.closeDayMinute),
+                        style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                    onTap: pickCloseDayTime,
+                  ),
+                const SizedBox(height: DzSpacing.md),
+                SettingsToggleRow(
+                  key: const Key('checkins-toggle'),
+                  label: 'Energy check-ins',
+                  value: ctrl.checkinsEnabled,
+                  onChanged: (v) {
+                    ctrl.setCheckinsEnabled(v);
+                    applyGentle();
+                    setSt(() {});
+                  },
+                ),
+                Text(
+                  'At most two one-tap questions a day, outside quiet hours. '
+                  'They pause by themselves if you ignore them for a few days.',
+                  style: DzTextStyles.caption.copyWith(color: muted),
+                ),
                 const SizedBox(height: DzSpacing.lg),
               ],
             ),

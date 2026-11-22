@@ -61,6 +61,19 @@ class SettingsController extends ChangeNotifier {
   QuietWindow? _quietWindow;
   QuietWindow? get quietWindow => _quietWindow;
 
+  // ── Gentle prompts (local only, not synced) ────────────────────────────
+
+  /// Evening "Close your day" prompt (plan M-1.10).
+  static const defaultCloseDayMinute = 20 * 60 + 30;
+  bool _closeDayEnabled = true;
+  bool get closeDayEnabled => _closeDayEnabled;
+  int _closeDayMinute = defaultCloseDayMinute;
+  int get closeDayMinute => _closeDayMinute;
+
+  /// Energy check-ins (plan M-2.5).
+  bool _checkinsEnabled = true;
+  bool get checkinsEnabled => _checkinsEnabled;
+
 
   // ── Units ──────────────────────────────────────────────────────────────
   bool _use24Hour = true;
@@ -133,6 +146,9 @@ class SettingsController extends ChangeNotifier {
     _quietWindow = quietStart != null && quietEnd != null
         ? QuietWindow(startMinutes: quietStart, endMinutes: quietEnd)
         : null;
+    _closeDayEnabled = prefs.getBool('s_closeDayEnabled') ?? true;
+    _closeDayMinute = prefs.getInt('s_closeDayMinute') ?? defaultCloseDayMinute;
+    _checkinsEnabled = prefs.getBool('s_checkinsEnabled') ?? true;
     _use24Hour = prefs.getBool('s_use24Hour') ?? true;
     _metricUnits = prefs.getBool('s_metricUnits') ?? true;
     _biometricEnabled = prefs.getBool('s_biometricEnabled') ?? false;
@@ -177,6 +193,9 @@ class SettingsController extends ChangeNotifier {
     }
     await prefs.remove('s_quietHours'); // legacy
     await prefs.remove('s_focusAlerts'); // legacy
+    await prefs.setBool('s_closeDayEnabled', _closeDayEnabled);
+    await prefs.setInt('s_closeDayMinute', _closeDayMinute);
+    await prefs.setBool('s_checkinsEnabled', _checkinsEnabled);
     await prefs.setBool('s_use24Hour', _use24Hour);
     await prefs.setBool('s_metricUnits', _metricUnits);
     await prefs.setBool('s_biometricEnabled', _biometricEnabled);
@@ -220,6 +239,19 @@ class SettingsController extends ChangeNotifier {
 
   void setQuietWindow(QuietWindow? window) {
     _quietWindow = window;
+    notifyListeners();
+    _save();
+  }
+
+  void setCloseDayReminder({bool? enabled, int? minuteOfDay}) {
+    if (enabled != null) _closeDayEnabled = enabled;
+    if (minuteOfDay != null) _closeDayMinute = minuteOfDay;
+    notifyListeners();
+    _save();
+  }
+
+  void setCheckinsEnabled(bool value) {
+    _checkinsEnabled = value;
     notifyListeners();
     _save();
   }

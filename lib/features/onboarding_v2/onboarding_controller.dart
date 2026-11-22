@@ -196,11 +196,7 @@ class OnboardingController extends ChangeNotifier {
       await effects.setRemindersEnabled(wantsNudge);
       await effects.savePrior(_prior ?? RhythmPrior.notSure);
       final now = _clock();
-      await effects.saveTasks(OnboardingPlan.toTasks(
-        plan,
-        now: now,
-        idPrefix: 'ob${now.millisecondsSinceEpoch}',
-      ));
+      await effects.saveTasks(OnboardingPlan.toTasks(plan, now: now));
       await effects.markDone();
       await effects.countCompleted();
       if (_startedAt != null) {

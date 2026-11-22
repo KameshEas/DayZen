@@ -124,7 +124,14 @@ class AppConfig {
   // How long after a task's scheduled end time to ask whether it happened.
   static const int taskFollowUpDelayMinutes = 8;
   static const String taskFollowUpDoneAction = 'Done';
-  static const String taskFollowUpSkipAction = "Didn't happen";
+  static const String taskFollowUpSkipAction = 'Not yet';
+
+  // Gentle prompts (Close the Day M-1.10, check-ins M-2.5)
+  static const String closeDayReminderTitle = 'Close your day?';
+  static const String closeDayReminderBody =
+      "A minute to sort what's left and note how it felt.";
+  static const String checkinReminderTitle = "How's your energy?";
+  static const String checkinReminderBody = 'One tap. It helps DayZen learn your rhythm.';
   static const String overdueTaskPopupDoneLabel = 'Yes, done';
   // Shorter than the original "No, didn't happen" — that wrapped to two
   // lines in the half-width button next to "Yes, done" and looked broken.

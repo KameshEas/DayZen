@@ -101,7 +101,7 @@ void main() {
       prior: RhythmPrior.morning,
       now: morningAt7,
     );
-    final tasks = OnboardingPlan.toTasks(plan, now: morningAt7, idPrefix: 'ob1');
+    final tasks = OnboardingPlan.toTasks(plan, now: morningAt7);
     expect(tasks.map((t) => t.id).toSet(), hasLength(2));
     final meditate = tasks.firstWhere((t) => t.title == 'Meditate');
     final dentist = tasks.firstWhere((t) => t.title == 'Dentist');
