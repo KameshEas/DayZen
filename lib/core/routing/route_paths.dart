@@ -17,6 +17,7 @@ abstract final class RoutePaths {
   static const String released = '/released';
   static const String achievements = '/achievements';
   static const String checkin = '/checkin';
+  static const String rhythmHistory = '/rhythm-history';
 
   /// Hidden tester screen (M-1.11); reachable in release builds.
   static const String counters = '/debug/counters';

@@ -3084,6 +3084,324 @@ class CountersCompanion extends UpdateCompanion<CounterRow> {
   }
 }
 
+class $RhythmProfileHistoryTable extends RhythmProfileHistory
+    with TableInfo<$RhythmProfileHistoryTable, RhythmHistoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RhythmProfileHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _weekStartMeta = const VerificationMeta(
+    'weekStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> weekStart = GeneratedColumn<DateTime>(
+    'week_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _curveMeta = const VerificationMeta('curve');
+  @override
+  late final GeneratedColumn<String> curve = GeneratedColumn<String>(
+    'curve',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _savedAtMeta = const VerificationMeta(
+    'savedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> savedAt = GeneratedColumn<DateTime>(
+    'saved_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [weekStart, curve, confidence, savedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'rhythm_profile_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RhythmHistoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('week_start')) {
+      context.handle(
+        _weekStartMeta,
+        weekStart.isAcceptableOrUnknown(data['week_start']!, _weekStartMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekStartMeta);
+    }
+    if (data.containsKey('curve')) {
+      context.handle(
+        _curveMeta,
+        curve.isAcceptableOrUnknown(data['curve']!, _curveMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_curveMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('saved_at')) {
+      context.handle(
+        _savedAtMeta,
+        savedAt.isAcceptableOrUnknown(data['saved_at']!, _savedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_savedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {weekStart};
+  @override
+  RhythmHistoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RhythmHistoryRow(
+      weekStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}week_start'],
+      )!,
+      curve: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}curve'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      savedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}saved_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RhythmProfileHistoryTable createAlias(String alias) {
+    return $RhythmProfileHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class RhythmHistoryRow extends DataClass
+    implements Insertable<RhythmHistoryRow> {
+  final DateTime weekStart;
+
+  /// 24 comma-separated values, 0..1, one per hour.
+  final String curve;
+  final double confidence;
+  final DateTime savedAt;
+  const RhythmHistoryRow({
+    required this.weekStart,
+    required this.curve,
+    required this.confidence,
+    required this.savedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['week_start'] = Variable<DateTime>(weekStart);
+    map['curve'] = Variable<String>(curve);
+    map['confidence'] = Variable<double>(confidence);
+    map['saved_at'] = Variable<DateTime>(savedAt);
+    return map;
+  }
+
+  RhythmProfileHistoryCompanion toCompanion(bool nullToAbsent) {
+    return RhythmProfileHistoryCompanion(
+      weekStart: Value(weekStart),
+      curve: Value(curve),
+      confidence: Value(confidence),
+      savedAt: Value(savedAt),
+    );
+  }
+
+  factory RhythmHistoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RhythmHistoryRow(
+      weekStart: serializer.fromJson<DateTime>(json['weekStart']),
+      curve: serializer.fromJson<String>(json['curve']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      savedAt: serializer.fromJson<DateTime>(json['savedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'weekStart': serializer.toJson<DateTime>(weekStart),
+      'curve': serializer.toJson<String>(curve),
+      'confidence': serializer.toJson<double>(confidence),
+      'savedAt': serializer.toJson<DateTime>(savedAt),
+    };
+  }
+
+  RhythmHistoryRow copyWith({
+    DateTime? weekStart,
+    String? curve,
+    double? confidence,
+    DateTime? savedAt,
+  }) => RhythmHistoryRow(
+    weekStart: weekStart ?? this.weekStart,
+    curve: curve ?? this.curve,
+    confidence: confidence ?? this.confidence,
+    savedAt: savedAt ?? this.savedAt,
+  );
+  RhythmHistoryRow copyWithCompanion(RhythmProfileHistoryCompanion data) {
+    return RhythmHistoryRow(
+      weekStart: data.weekStart.present ? data.weekStart.value : this.weekStart,
+      curve: data.curve.present ? data.curve.value : this.curve,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      savedAt: data.savedAt.present ? data.savedAt.value : this.savedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RhythmHistoryRow(')
+          ..write('weekStart: $weekStart, ')
+          ..write('curve: $curve, ')
+          ..write('confidence: $confidence, ')
+          ..write('savedAt: $savedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(weekStart, curve, confidence, savedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RhythmHistoryRow &&
+          other.weekStart == this.weekStart &&
+          other.curve == this.curve &&
+          other.confidence == this.confidence &&
+          other.savedAt == this.savedAt);
+}
+
+class RhythmProfileHistoryCompanion extends UpdateCompanion<RhythmHistoryRow> {
+  final Value<DateTime> weekStart;
+  final Value<String> curve;
+  final Value<double> confidence;
+  final Value<DateTime> savedAt;
+  final Value<int> rowid;
+  const RhythmProfileHistoryCompanion({
+    this.weekStart = const Value.absent(),
+    this.curve = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.savedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RhythmProfileHistoryCompanion.insert({
+    required DateTime weekStart,
+    required String curve,
+    required double confidence,
+    required DateTime savedAt,
+    this.rowid = const Value.absent(),
+  }) : weekStart = Value(weekStart),
+       curve = Value(curve),
+       confidence = Value(confidence),
+       savedAt = Value(savedAt);
+  static Insertable<RhythmHistoryRow> custom({
+    Expression<DateTime>? weekStart,
+    Expression<String>? curve,
+    Expression<double>? confidence,
+    Expression<DateTime>? savedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (weekStart != null) 'week_start': weekStart,
+      if (curve != null) 'curve': curve,
+      if (confidence != null) 'confidence': confidence,
+      if (savedAt != null) 'saved_at': savedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RhythmProfileHistoryCompanion copyWith({
+    Value<DateTime>? weekStart,
+    Value<String>? curve,
+    Value<double>? confidence,
+    Value<DateTime>? savedAt,
+    Value<int>? rowid,
+  }) {
+    return RhythmProfileHistoryCompanion(
+      weekStart: weekStart ?? this.weekStart,
+      curve: curve ?? this.curve,
+      confidence: confidence ?? this.confidence,
+      savedAt: savedAt ?? this.savedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (weekStart.present) {
+      map['week_start'] = Variable<DateTime>(weekStart.value);
+    }
+    if (curve.present) {
+      map['curve'] = Variable<String>(curve.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (savedAt.present) {
+      map['saved_at'] = Variable<DateTime>(savedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RhythmProfileHistoryCompanion(')
+          ..write('weekStart: $weekStart, ')
+          ..write('curve: $curve, ')
+          ..write('confidence: $confidence, ')
+          ..write('savedAt: $savedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3093,6 +3411,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DayClosesTable dayCloses = $DayClosesTable(this);
   late final $RhythmProfileTable rhythmProfile = $RhythmProfileTable(this);
   late final $CountersTable counters = $CountersTable(this);
+  late final $RhythmProfileHistoryTable rhythmProfileHistory =
+      $RhythmProfileHistoryTable(this);
   late final Index idxTasksDate = Index(
     'idx_tasks_date',
     'CREATE INDEX idx_tasks_date ON tasks (date)',
@@ -3123,6 +3443,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dayCloses,
     rhythmProfile,
     counters,
+    rhythmProfileHistory,
     idxTasksDate,
     idxTasksDeletedAt,
     idxJournalTimestamp,
@@ -4729,6 +5050,216 @@ typedef $$CountersTableProcessedTableManager =
       CounterRow,
       PrefetchHooks Function()
     >;
+typedef $$RhythmProfileHistoryTableCreateCompanionBuilder =
+    RhythmProfileHistoryCompanion Function({
+      required DateTime weekStart,
+      required String curve,
+      required double confidence,
+      required DateTime savedAt,
+      Value<int> rowid,
+    });
+typedef $$RhythmProfileHistoryTableUpdateCompanionBuilder =
+    RhythmProfileHistoryCompanion Function({
+      Value<DateTime> weekStart,
+      Value<String> curve,
+      Value<double> confidence,
+      Value<DateTime> savedAt,
+      Value<int> rowid,
+    });
+
+class $$RhythmProfileHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $RhythmProfileHistoryTable> {
+  $$RhythmProfileHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get curve => $composableBuilder(
+    column: $table.curve,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RhythmProfileHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $RhythmProfileHistoryTable> {
+  $$RhythmProfileHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get curve => $composableBuilder(
+    column: $table.curve,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RhythmProfileHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RhythmProfileHistoryTable> {
+  $$RhythmProfileHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get weekStart =>
+      $composableBuilder(column: $table.weekStart, builder: (column) => column);
+
+  GeneratedColumn<String> get curve =>
+      $composableBuilder(column: $table.curve, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get savedAt =>
+      $composableBuilder(column: $table.savedAt, builder: (column) => column);
+}
+
+class $$RhythmProfileHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RhythmProfileHistoryTable,
+          RhythmHistoryRow,
+          $$RhythmProfileHistoryTableFilterComposer,
+          $$RhythmProfileHistoryTableOrderingComposer,
+          $$RhythmProfileHistoryTableAnnotationComposer,
+          $$RhythmProfileHistoryTableCreateCompanionBuilder,
+          $$RhythmProfileHistoryTableUpdateCompanionBuilder,
+          (
+            RhythmHistoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $RhythmProfileHistoryTable,
+              RhythmHistoryRow
+            >,
+          ),
+          RhythmHistoryRow,
+          PrefetchHooks Function()
+        > {
+  $$RhythmProfileHistoryTableTableManager(
+    _$AppDatabase db,
+    $RhythmProfileHistoryTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RhythmProfileHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RhythmProfileHistoryTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RhythmProfileHistoryTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<DateTime> weekStart = const Value.absent(),
+                Value<String> curve = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<DateTime> savedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RhythmProfileHistoryCompanion(
+                weekStart: weekStart,
+                curve: curve,
+                confidence: confidence,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required DateTime weekStart,
+                required String curve,
+                required double confidence,
+                required DateTime savedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RhythmProfileHistoryCompanion.insert(
+                weekStart: weekStart,
+                curve: curve,
+                confidence: confidence,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RhythmProfileHistoryTable, RhythmHistoryRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RhythmProfileHistoryTable,
+                    RhythmHistoryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RhythmProfileHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RhythmProfileHistoryTable,
+      RhythmHistoryRow,
+      $$RhythmProfileHistoryTableFilterComposer,
+      $$RhythmProfileHistoryTableOrderingComposer,
+      $$RhythmProfileHistoryTableAnnotationComposer,
+      $$RhythmProfileHistoryTableCreateCompanionBuilder,
+      $$RhythmProfileHistoryTableUpdateCompanionBuilder,
+      (
+        RhythmHistoryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $RhythmProfileHistoryTable,
+          RhythmHistoryRow
+        >,
+      ),
+      RhythmHistoryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4745,4 +5276,6 @@ class $AppDatabaseManager {
       $$RhythmProfileTableTableManager(_db, _db.rhythmProfile);
   $$CountersTableTableManager get counters =>
       $$CountersTableTableManager(_db, _db.counters);
+  $$RhythmProfileHistoryTableTableManager get rhythmProfileHistory =>
+      $$RhythmProfileHistoryTableTableManager(_db, _db.rhythmProfileHistory);
 }

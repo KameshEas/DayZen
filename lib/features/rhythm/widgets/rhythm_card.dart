@@ -107,6 +107,15 @@ class RhythmDetailsSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: DzSpacing.sm),
                 DzGhostButton(
+                  label: 'Rhythm history',
+                  icon: const Icon(Icons.calendar_view_week_rounded, size: 18),
+                  onPressed: () {
+                    final router = GoRouter.of(context);
+                    Navigator.of(context).pop();
+                    router.push(RoutePaths.rhythmHistory);
+                  },
+                ),
+                DzGhostButton(
                   label: 'Check in now',
                   icon: const Icon(Icons.sentiment_satisfied_rounded, size: 18),
                   onPressed: () {

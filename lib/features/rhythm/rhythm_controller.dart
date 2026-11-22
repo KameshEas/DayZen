@@ -123,8 +123,9 @@ class RhythmController extends ChangeNotifier {
     };
   }
 
-  /// Keeps the latest curve in `rhythm_profile` (read by the home-screen
-  /// widget and the weekly history snapshot).
+  /// Keeps the latest curve in `rhythm_profile`, and this week's row in
+  /// `rhythm_profile_history` (one per week, updated through the week, so
+  /// each past week keeps its last curve; plan M-4.2).
   Future<void> _saveProfile() async {
     try {
       final dao = DatabaseProvider.instance.localOnlyDao;
@@ -137,9 +138,33 @@ class RhythmController extends ChangeNotifier {
           updatedAt: Value(now),
         ));
       }
+      await dao.saveRhythmWeek(RhythmProfileHistoryCompanion(
+        weekStart: Value(weekStartOf(now)),
+        curve: Value(_profile.values.map((v) => v.toStringAsFixed(3)).join(',')),
+        confidence: Value(_profile.confidence),
+        savedAt: Value(now),
+      ));
     } catch (e) {
       AppLogger.warning('Rhythm profile not saved: $e');
     }
+  }
+
+  /// Monday of [d]'s week, local midnight.
+  static DateTime weekStartOf(DateTime d) =>
+      DateTime(d.year, d.month, d.day - (d.weekday - DateTime.monday));
+
+  /// Saved weekly curves, oldest first.
+  static Future<List<RhythmWeek>> history() async {
+    final rows = await DatabaseProvider.instance.localOnlyDao.rhythmHistory();
+    return [
+      for (final r in rows)
+        if (r.curve.split(',').length == 24)
+          RhythmWeek(
+            weekStart: r.weekStart,
+            values: r.curve.split(',').map(double.parse).toList(),
+            confidence: r.confidence,
+          ),
+    ];
   }
 
   /// Task evidence: a heavy (effort 3) task done counts for the hour it was
@@ -181,4 +206,15 @@ class RhythmController extends ChangeNotifier {
     final display = h == 0 ? 12 : (h > 12 ? h - 12 : h);
     return '$display $suffix';
   }
+}
+
+/// One saved week of Rhythm (plan M-4.2).
+class RhythmWeek {
+  const RhythmWeek({required this.weekStart, required this.values, required this.confidence});
+  final DateTime weekStart;
+  final List<double> values;
+  final double confidence;
+
+  EnergyProfile get profile =>
+      EnergyProfile(values: values, evidence: List.filled(24, 0), confidence: confidence);
 }

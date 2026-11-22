@@ -7,7 +7,8 @@ part 'local_only_dao.g.dart';
 
 /// Check-ins, day closes, the Rhythm profile and counters. All local only.
 /// Later phases (Close the Day, Rhythm) add their own queries here.
-@DriftAccessor(tables: [Checkins, DayCloses, RhythmProfile, Counters])
+@DriftAccessor(
+    tables: [Checkins, DayCloses, RhythmProfile, Counters, RhythmProfileHistory])
 class LocalOnlyDao extends DatabaseAccessor<AppDatabase>
     with _$LocalOnlyDaoMixin {
   LocalOnlyDao(super.db);
@@ -36,6 +37,15 @@ class LocalOnlyDao extends DatabaseAccessor<AppDatabase>
   Future<void> saveRhythmBin(RhythmProfileCompanion row) =>
       into(rhythmProfile).insert(row, mode: InsertMode.insertOrReplace);
 
+  /// Saves (or replaces) the snapshot for a week.
+  Future<void> saveRhythmWeek(RhythmProfileHistoryCompanion row) =>
+      into(rhythmProfileHistory).insert(row, mode: InsertMode.insertOrReplace);
+
+  /// Weekly snapshots, oldest first.
+  Future<List<RhythmHistoryRow>> rhythmHistory() => (select(rhythmProfileHistory)
+        ..orderBy([(r) => OrderingTerm.asc(r.weekStart)]))
+      .get();
+
   /// Adds [by] to counter [key], creating it at 0 first if needed.
   Future<void> increment(String key, {int by = 1}) => transaction(() async {
         final current = await counter(key);
@@ -60,5 +70,6 @@ class LocalOnlyDao extends DatabaseAccessor<AppDatabase>
         await delete(dayCloses).go();
         await delete(rhythmProfile).go();
         await delete(counters).go();
+        await delete(rhythmProfileHistory).go();
       });
 }

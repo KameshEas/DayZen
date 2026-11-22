@@ -16,6 +16,7 @@ import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/home/models/task_model.dart';
 import '../../features/insights/insights_page.dart';
+import '../../features/insights/rhythm_history_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/maintenance/maintenance_screen.dart';
 import '../../features/onboarding/widgets/onboarding_page_animated.dart';
@@ -233,6 +234,10 @@ class AppRouter {
           path: RoutePaths.released,
           name: RouteNames.released,
           builder: (context, state) => const ReleasedTasksPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.rhythmHistory,
+          builder: (context, state) => const RhythmHistoryPage(),
         ),
         GoRoute(
           path: RoutePaths.checkin,

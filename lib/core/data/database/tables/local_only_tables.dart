@@ -55,3 +55,18 @@ class Counters extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+/// One Rhythm curve per week (schema v3, plan M-4.2), keyed by the week's
+/// Monday at local midnight. Local only, like the profile itself.
+@DataClassName('RhythmHistoryRow')
+class RhythmProfileHistory extends Table {
+  DateTimeColumn get weekStart => dateTime()();
+
+  /// 24 comma-separated values, 0..1, one per hour.
+  TextColumn get curve => text()();
+  RealColumn get confidence => real()();
+  DateTimeColumn get savedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {weekStart};
+}
