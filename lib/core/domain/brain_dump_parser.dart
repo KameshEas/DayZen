@@ -32,6 +32,26 @@ class TaskDraft {
   /// True for the stand-in task returned when nothing usable was typed.
   final bool isSuggestion;
 
+  /// [clearTime] drops the start time (the planner then picks one).
+  TaskDraft copyWith({
+    String? title,
+    int? startMinute,
+    bool clearTime = false,
+    int? durationMinutes,
+    TaskCategory? category,
+    int? dayOffset,
+  }) =>
+      TaskDraft(
+        title: title ?? this.title,
+        startMinute: clearTime ? null : (startMinute ?? this.startMinute),
+        durationMinutes: durationMinutes ?? this.durationMinutes,
+        category: category ?? this.category,
+        timeIsApproximate:
+            startMinute != null || clearTime ? false : timeIsApproximate,
+        dayOffset: dayOffset ?? this.dayOffset,
+        isSuggestion: false,
+      );
+
   /// "17:30", or null.
   String? get timeLabel => startMinute == null
       ? null
