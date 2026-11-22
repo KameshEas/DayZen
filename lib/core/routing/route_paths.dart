@@ -15,6 +15,7 @@ abstract final class RoutePaths {
   static const String maintenance = '/maintenance';
   static const String closeDay = '/close-day';
   static const String released = '/released';
+  static const String achievements = '/achievements';
 
   static String journalDetailPath(String id) => '/journal/$id';
 }
@@ -35,4 +36,5 @@ abstract final class RouteNames {
   static const String maintenance = 'maintenance';
   static const String closeDay = 'closeDay';
   static const String released = 'released';
+  static const String achievements = 'achievements';
 }

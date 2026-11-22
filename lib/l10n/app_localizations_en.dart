@@ -50,7 +50,8 @@ class AppLocalizationsEn extends AppLocalizations {
       '\"Consistency beats perfection. Every small step counts.\"';
 
   @override
-  String get journalReflectionDefault => 'You\'re on fire!';
+  String get journalReflectionDefault =>
+      'Your journal keeps a quiet record of your days.';
 
   @override
   String get breakRecommendationHigh =>

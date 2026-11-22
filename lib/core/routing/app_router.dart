@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
+import '../../features/achievements/achievements_page.dart';
 import '../../features/ai_assistant/ai_assistant_screen.dart';
 import '../../features/app_update/app_version_controller.dart';
 import '../../features/app_update/update_showcase_page.dart';
@@ -230,6 +231,11 @@ class AppRouter {
           path: RoutePaths.released,
           name: RouteNames.released,
           builder: (context, state) => const ReleasedTasksPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.achievements,
+          name: RouteNames.achievements,
+          builder: (context, state) => const AchievementsPage(),
         ),
         GoRoute(
           path: RoutePaths.aiAssistant,

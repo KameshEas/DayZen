@@ -23,7 +23,7 @@ void main() {
     await _phone(tester);
     await tester.pumpWidget(_page());
 
-    expect(find.text('Start Your Streak'), findsOneWidget);
+    expect(find.text('Keep your days safe'), findsOneWidget);
     expect(find.text('Full name'), findsOneWidget);
     expect(find.text('Email address'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);

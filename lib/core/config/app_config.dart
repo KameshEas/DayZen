@@ -173,12 +173,12 @@ class AppConfig {
 
   // ── Journal Reflection Messages ──────────────────────────────────────
   static const Map<int, String> journalReflectionMessages = {
-    0: 'First entry locks in the habit.',
-    2: 'Building the streak — momentum is real.',
-    4: 'This consistency is the difference-maker.',
+    0: 'A first page. Write whenever it helps.',
+    2: 'A few reflections this week. Nice to look back on.',
+    4: 'Plenty of reflections this week.',
   };
 
-  static const String journalReflectionDefault = 'You\'re unstoppable. Keep stacking entries.';
+  static const String journalReflectionDefault = 'Your journal keeps a quiet record of your days.';
 
   static const Map<int, String> journalSubtitleMessages = {
     0: 'Write your first entry today.',
@@ -199,7 +199,7 @@ class AppConfig {
   static const String onboardingSlide1Subtitle = 'Plan hard. Reflect daily. Build momentum that sticks.';
   static const String onboardingSlide2Title = 'Built For You,\nNot The Cloud';
   static const String onboardingSlide2Badge = 'OFFLINE-FIRST, ALWAYS';
-  static const String onboardingSlide3Title = 'Let\'s Build\nYour Streak';
+  static const String onboardingSlide3Title = "Let's Find\nYour Rhythm";
   static const String onboardingSlide3Badge = 'YOUR DATA. YOUR DEVICE.';
   static const String onboardingPrimaryCta = "Let's begin";
   static const String onboardingSecondaryCta = 'Enable Sync (Optional)';
@@ -231,7 +231,7 @@ class AppConfig {
   // ── Achievements Copy ────────────────────────────────────────────────
   static const String achievementsErrorTitle = 'Couldn\'t load your wins';
   static const String achievementsEmptyTitle = 'Your first badge is waiting';
-  static const String achievementsEmptyBody = 'Finish tasks, build streaks, unlock badges.';
+  static const String achievementsEmptyBody = 'Small milestones appear here as you go. No streaks, nothing to lose.';
   static const String achievementsProgressHeader = 'Your Progress';
 
   // ── Settings Copy ────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ class AppConfig {
   static const String pinUnlockSubtitle = 'Enter your PIN to pick up where you left off.';
 
   // ── Auth Copy ────────────────────────────────────────────────────────
-  static const String signupTitle = 'Start Your Streak';
+  static const String signupTitle = 'Keep your days safe';
 
   // ── Task/Journal Detail Copy ─────────────────────────────────────────
   static const String journalEntryNotFound = 'This entry\'s gone';

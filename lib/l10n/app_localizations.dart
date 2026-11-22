@@ -175,7 +175,7 @@ abstract class AppLocalizations {
   /// No description provided for @journalReflectionDefault.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on fire!'**
+  /// **'Your journal keeps a quiet record of your days.'**
   String get journalReflectionDefault;
 
   /// No description provided for @breakRecommendationHigh.

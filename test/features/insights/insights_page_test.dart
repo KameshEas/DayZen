@@ -68,12 +68,18 @@ Widget _page(List<DzTask> tasks) => MaterialApp(
 
 void main() {
   group('greeting subtitle is drawn from real data', () {
-    test('a streak of two or more days is celebrated with its real length', () {
+    test('a good week is described with a rolling count, never a streak', () {
       final d = _data([_task(_today), _task(_ago(1)), _task(_ago(2))]);
-      expect(d.greetingSubtitle, "You're on a 3-day streak. Keep it going.");
+      expect(d.greetingSubtitle, 'You got something done on 3 of the last 7 days.');
     });
 
-    test('it never claims a streak that does not exist', () {
+    test('a gap does not reset the count', () {
+      final d = _data([_task(_today), _task(_ago(3)), _task(_ago(5))]);
+      expect(d.streakDays, 1);
+      expect(d.greetingSubtitle, 'You got something done on 3 of the last 7 days.');
+    });
+
+    test('it never mentions a streak', () {
       final d = _data([_task(_today, done: false)]);
       expect(d.greetingSubtitle, isNot(contains('streak')));
       expect(d.streakDays, 0);
