@@ -24,6 +24,7 @@ class MomentCard extends StatefulWidget {
 class _MomentCardState extends State<MomentCard> {
   Future<Moment?>? _moment;
   bool _dismissed = false;
+  int _dayOfUse = 0;
 
   @override
   void didChangeDependencies() {
@@ -34,9 +35,11 @@ class _MomentCardState extends State<MomentCard> {
   Future<Moment?> _load(bool signedIn) async {
     final first = await AppPrefs.firstUseDate();
     if (first == null) return null;
+    final now = (widget.clock ?? DateTime.now)();
+    _dayOfUse = MomentsService.dayOfUse(first, now);
     final due = MomentsService.dueOnHome(
       firstUse: first,
-      now: (widget.clock ?? DateTime.now)(),
+      now: now,
       fired: await MomentsService.fired(),
       signedIn: signedIn,
     ).where((m) => m != Moment.firstCloseInvite);
@@ -110,11 +113,13 @@ class _MomentCardState extends State<MomentCard> {
   }
 
   String _rhythmBody(BuildContext context) {
+    // The real count: older installs reach this moment well after day 3.
+    final daysIn = '$_dayOfUse days in.';
     final rhythm = RhythmScope.maybeOf(context);
     if (rhythm == null) {
-      return 'Three days in. A few check-ins help DayZen learn your best hours.';
+      return '$daysIn A few check-ins help DayZen learn your best hours.';
     }
-    return 'Three days in. ${RhythmController.windowSentence(rhythm.profile)}. '
+    return '$daysIn ${RhythmController.windowSentence(rhythm.profile)}. '
         'It sharpens as you go.';
   }
 }
