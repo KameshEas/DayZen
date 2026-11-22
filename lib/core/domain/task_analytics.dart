@@ -19,9 +19,13 @@ import '../../features/home/models/task_model.dart';
 class TaskAnalytics {
   TaskAnalytics._();
 
+  /// Tasks that count toward a day or week: everything but the ones let go
+  /// on purpose, so releasing a task never lowers a score.
+  static bool _counts(DzTask t) => t.status != TaskStatus.released;
+
   static List<DzTask> _forDate(List<DzTask> tasks, DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
-    return tasks.where((t) => t.isSameDay(day)).toList()
+    return tasks.where((t) => _counts(t) && t.isSameDay(day)).toList()
       ..sort((a, b) {
         final am = a.startTime.hour * 60 + a.startTime.minute;
         final bm = b.startTime.hour * 60 + b.startTime.minute;
@@ -32,6 +36,7 @@ class TaskAnalytics {
   static List<DzTask> _forWeek(List<DzTask> tasks, DateTime weekStart) {
     final monday = DateTime(weekStart.year, weekStart.month, weekStart.day);
     return tasks.where((t) {
+      if (!_counts(t)) return false;
       final diff = t.date.difference(monday).inDays;
       return diff >= 0 && diff < 7;
     }).toList();

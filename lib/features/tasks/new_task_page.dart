@@ -64,27 +64,32 @@ class _NewTaskPageState extends State<NewTaskPage> {
   TaskCategory _category = TaskCategory.work;
   NewTaskPriorityLevel _priority = NewTaskPriorityLevel.medium;
 
-  bool get _isEditing => widget.task != null;
+  /// The priority level the page opened with. Zen has no level of its own, so
+  /// an edited zen task keeps zen unless the user picks a different level.
+  late final NewTaskPriorityLevel _initialPriority;
+
+  bool get _editing => widget.task != null;
 
   @override
   void initState() {
     super.initState();
-    final existing = widget.task;
-    if (existing != null) {
-      _titleCtrl.text = existing.title;
-      _scheduledDate = existing.date;
-      _startTime = existing.startTime;
-      _endTime = existing.endTime;
-      _category = existing.category;
-      _priority = _fromDzPriority(existing.priority);
+    final task = widget.task;
+    if (task != null) {
+      _titleCtrl.text = task.title;
+      _scheduledDate = task.date;
+      _startTime = task.startTime;
+      _endTime = task.endTime;
+      _category = task.category;
+      _priority = _fromDzPriority(task.priority);
     } else {
       _scheduledDate = dayOnly(widget.initialDate ?? DateTime.now());
       final times = defaultTaskTimes(_scheduledDate, DateTime.now());
       _startTime = times.$1;
       _endTime = times.$2;
+      // Auto-focus the title field
+      WidgetsBinding.instance.addPostFrameCallback((_) => _titleFocus.requestFocus());
     }
-    // Auto-focus the title field
-    WidgetsBinding.instance.addPostFrameCallback((_) => _titleFocus.requestFocus());
+    _initialPriority = _priority;
   }
 
   @override
@@ -168,9 +173,16 @@ class _NewTaskPageState extends State<NewTaskPage> {
     );
     if (!mounted || pickedStart == null) return;
 
-    final defaultEnd = pickedStart.hour >= 23
+    // Suggest an end that keeps the task's length (an hour for a new one),
+    // ending by 23:59.
+    final length = (_endTime.hour * 60 + _endTime.minute) -
+        (_startTime.hour * 60 + _startTime.minute);
+    final endMinutes = pickedStart.hour * 60 +
+        pickedStart.minute +
+        (length > 0 ? length : 60);
+    final defaultEnd = endMinutes > 23 * 60 + 59
         ? const TimeOfDay(hour: 23, minute: 59)
-        : TimeOfDay(hour: pickedStart.hour + 1, minute: pickedStart.minute);
+        : TimeOfDay(hour: endMinutes ~/ 60, minute: endMinutes % 60);
 
     // Pick end time
     final pickedEnd = await showTimePicker(
@@ -206,26 +218,41 @@ class _NewTaskPageState extends State<NewTaskPage> {
     }
     _saving = true;
 
-    final existing = widget.task;
+    final editing = widget.task;
+    if (editing != null) {
+      final edited = editing.copyWith(
+        title: title,
+        startTime: _startTime,
+        endTime: _endTime,
+        priority: _priority == _initialPriority ? null : _toDzPriority(),
+        category: _category,
+        icon: _category == editing.category ? null : _categoryIcon(_category),
+        date: _scheduledDate,
+      );
+      try {
+        await TaskScope.of(context).updateTask(editing.id, edited);
+      } catch (_) {
+        _saving = false;
+        rethrow;
+      }
+      if (mounted) Navigator.of(context).pop(edited);
+      return;
+    }
+
     final task = DzTask(
-      id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       startTime: _startTime,
       endTime: _endTime,
       priority: _toDzPriority(),
       category: _category,
       icon: _categoryIcon(_category),
-      isCompleted: existing?.isCompleted ?? false,
       date: _scheduledDate,
     );
 
     final tasks = TaskScope.of(context);
     try {
-      if (existing != null) {
-        await tasks.updateTask(existing.id, task);
-      } else {
-        await tasks.addTask(task);
-      }
+      await tasks.addTask(task);
     } catch (_) {
       // Let the user try again instead of leaving the button dead.
       _saving = false;
@@ -259,7 +286,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
           color: Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(
-          _isEditing ? 'Edit Task' : 'New Task',
+          _editing ? 'Edit Task' : 'New Task',
           style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
@@ -366,7 +393,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
       bottomNavigationBar: NewTaskBottomBar(
         primary: primary,
         onSave: _save,
-        label: _isEditing ? 'Save Changes' : 'Add to My Day',
+        label: _editing ? 'Save changes' : 'Add to My Day',
       ),
     );
   }

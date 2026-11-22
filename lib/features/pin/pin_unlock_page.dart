@@ -282,7 +282,7 @@ class _PinUnlockPageState extends State<PinUnlockPage>
                     ],
                     const SizedBox(height: DzSpacing.md),
                     Text(
-                  'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+                  AppConfig.lockScreenFooter,
                   textAlign: TextAlign.center,
                   style: DzTextStyles.caption.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,

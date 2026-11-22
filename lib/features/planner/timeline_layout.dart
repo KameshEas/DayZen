@@ -41,30 +41,41 @@ List<TimelineSlot> layoutTimeline(
   List<PlannerEvent> events, {
   int minEventMinutes = 43,
 }) {
-  // 1. Collapse identical events into one, remembering how many.
-  final merged = <String, ({PlannerEvent event, int count, int done})>{};
+  // 1. Collapse identical events into one, remembering how many and which
+  //    tasks it stands for.
+  final merged = <String, ({PlannerEvent event, List<String> ids, int count, int done, int released})>{};
   final order = <String>[];
   for (final e in events) {
     final key = '${e.title}|${_start(e)}|${e.durationMinutes}';
     final prev = merged[key];
     if (prev == null) {
       order.add(key);
-      merged[key] = (event: e, count: 1, done: e.isCompleted ? 1 : 0);
+      merged[key] = (
+        event: e,
+        ids: [...e.taskIds],
+        count: 1,
+        done: e.isCompleted ? 1 : 0,
+        released: e.isReleased ? 1 : 0,
+      );
     } else {
       merged[key] = (
         event: prev.event,
+        ids: [...prev.ids, ...e.taskIds],
         count: prev.count + 1,
         done: prev.done + (e.isCompleted ? 1 : 0),
+        released: prev.released + (e.isReleased ? 1 : 0),
       );
     }
   }
   final items = <({PlannerEvent event, int count})>[
     for (final key in order)
       (
-        // A card is "done" only when every event it stands for is.
-        event: merged[key]!.done == merged[key]!.count
-            ? merged[key]!.event
-            : _notCompleted(merged[key]!.event),
+        // A card is "done" (or "let go") only when every event it stands for is.
+        event: merged[key]!.event.copyWith(
+          isCompleted: merged[key]!.done == merged[key]!.count,
+          isReleased: merged[key]!.released == merged[key]!.count,
+          taskIds: merged[key]!.ids,
+        ),
         count: merged[key]!.count,
       ),
   ]..sort((a, b) {
@@ -117,14 +128,3 @@ List<TimelineSlot> layoutTimeline(
   }
   return slots;
 }
-
-PlannerEvent _notCompleted(PlannerEvent e) => PlannerEvent(
-      id: e.id,
-      title: e.title,
-      subtitle: e.subtitle,
-      hour: e.hour,
-      minute: e.minute,
-      durationMinutes: e.durationMinutes,
-      accentColor: e.accentColor,
-      icon: e.icon,
-    );

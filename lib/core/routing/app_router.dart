@@ -24,7 +24,6 @@ import '../../features/settings/settings_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/splash/splash_page.dart';
 import '../../features/tasks/new_task_page.dart';
-import '../../features/tasks/task_detail_page.dart';
 import '../../features/journal/journal_detail_page.dart';
 import 'route_paths.dart';
 
@@ -216,8 +215,8 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.newTask,
           name: RouteNames.newTask,
-          // The Planner passes the day being viewed as `extra` (DateTime);
-          // editing an existing task passes the task itself (DzTask).
+          // The Planner passes the day being viewed as `extra`; the task
+          // actions sheet passes a DzTask to edit it.
           builder: (context, state) => NewTaskPage(
             initialDate: state.extra is DateTime ? state.extra as DateTime : null,
             task: state.extra is DzTask ? state.extra as DzTask : null,
@@ -232,16 +231,6 @@ class AppRouter {
           path: RoutePaths.aiAssistant,
           name: RouteNames.aiAssistant,
           builder: (context, state) => const AiAssistantScreen(),
-        ),
-
-        // ── Task detail ────────────────────────────────────────────────
-        GoRoute(
-          path: RoutePaths.taskDetail,
-          name: RouteNames.taskDetail,
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return TaskDetailPage(taskId: id);
-          },
         ),
 
         // ── Journal detail ────────────────────────────────────────────

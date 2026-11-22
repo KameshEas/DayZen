@@ -155,6 +155,10 @@ Future<String> _bootstrap({
 
   _lifecycleListener ??= AppLifecycleListener(
     onResume: () async {
+      // First resume after midnight carries unfinished tasks to today; on
+      // other resumes it finds nothing to move. It pulls before rolling
+      // over, so it also covers the usual resume sync for tasks.
+      unawaited(taskCtrl.syncThenRollOver());
       _syncTriggers?.onResume();
       if (await NotificationService.instance.refreshTimeZone()) {
         await taskCtrl.rescheduleNotifications();

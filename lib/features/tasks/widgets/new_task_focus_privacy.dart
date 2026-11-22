@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ class PrivacyNote extends StatelessWidget {
           const SizedBox(width: DzSpacing.sm),
           Expanded(
             child: Text(
-              'Your data is stored locally and stays private.',
+              AppConfig.newTaskPrivacyNote,
               style: DzTextStyles.caption.copyWith(
                 color: primary,
                 fontWeight: FontWeight.w500,

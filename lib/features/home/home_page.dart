@@ -49,7 +49,8 @@ class _HomeBody extends StatelessWidget {
     final dateLabel = DateFormatter.formatDate(now);
 
     final tasks = taskCtrl.forDate(now);
-    final remaining = tasks.where((t) => !t.isCompleted).length;
+    final remaining = tasks.where((t) => t.status == TaskStatus.active).length;
+    final anyDone = tasks.any((t) => t.isCompleted);
     final score = taskCtrl.todayScore;
     final focusLabel = taskCtrl.todayFocusLabel;
     final zenDone = tasks
@@ -66,7 +67,7 @@ class _HomeBody extends StatelessWidget {
         HomeGreetingHeader(
           dateLabel: dateLabel,
           greeting: greeting,
-          subtitle: remaining == 0 && tasks.isNotEmpty
+          subtitle: remaining == 0 && anyDone
               ? AppConfig.homeAllDoneSubtitle
               : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
         ),

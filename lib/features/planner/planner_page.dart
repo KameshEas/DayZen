@@ -10,6 +10,7 @@ import '../../core/routing/route_paths.dart';
 import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
+import '../tasks/widgets/task_actions_sheet.dart';
 import 'planner_selection.dart';
 import 'schedule_suggestions_widget.dart';
 import 'widgets/planner_date_header.dart';
@@ -84,6 +85,7 @@ class _PlannerPageState extends State<PlannerPage> {
   Map<DateTime, DaySummary> _summaries(List<DzTask> tasks) {
     final out = <DateTime, DaySummary>{};
     for (final t in tasks) {
+      if (t.status == TaskStatus.released) continue;
       final prev = out[t.date] ?? (total: 0, done: 0);
       out[t.date] = (total: prev.total + 1, done: prev.done + (t.isCompleted ? 1 : 0));
     }
@@ -224,7 +226,7 @@ class _PlannerPageState extends State<PlannerPage> {
       return PlannerListView(
         key: ValueKey(selected),
         events: events,
-        onEventTap: (id) => context.push(RoutePaths.taskDetailPath(id)),
+        onEventTap: (id) => showTaskActions(context, [id]),
         onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
       );
     }
@@ -235,7 +237,7 @@ class _PlannerPageState extends State<PlannerPage> {
       currentHour: _now.hour,
       currentMinute: _now.minute,
       showNow: isSameDay(selected, today),
-      onEventTap: (id) => context.push(RoutePaths.taskDetailPath(id)),
+      onTapEvent: (e) => showTaskActions(context, e.taskIds),
       onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
     );
   }
@@ -328,9 +330,14 @@ class _DaySummaryRow extends StatelessWidget {
 
   String get _summary {
     if (tasks.isEmpty) return 'No tasks';
+    final released = tasks.where((t) => t.status == TaskStatus.released).length;
+    final planned = tasks.length - released;
     final done = tasks.where((t) => t.isCompleted).length;
-    final noun = tasks.length == 1 ? 'task' : 'tasks';
-    return '${tasks.length} $noun · $done done';
+    final noun = planned == 1 ? 'task' : 'tasks';
+    return [
+      if (planned > 0) '$planned $noun · $done done',
+      if (released > 0) '$released let go',
+    ].join(' · ');
   }
 
   @override
