@@ -18,17 +18,23 @@ class PlannerTimelineView extends StatefulWidget {
     required this.currentMinute,
     this.showNow = true,
     this.onTapEvent,
+    this.onToggleComplete,
   });
 
   final List<PlannerEvent> events;
-
-  /// Called when a card is tapped (the planner opens its task actions).
-  final ValueChanged<PlannerEvent>? onTapEvent;
   final int currentHour;
   final int currentMinute;
 
   /// False for any day but today: there is no "now" on another date.
   final bool showNow;
+
+  /// Called when a card is tapped (the planner opens its task actions). The
+  /// event carries every task id a merged card stands for.
+  final ValueChanged<PlannerEvent>? onTapEvent;
+
+  /// Tapping the card's checkmark toggles that task's completion in place,
+  /// without leaving the timeline.
+  final ValueChanged<String>? onToggleComplete;
 
   @override
   State<PlannerTimelineView> createState() => _PlannerTimelineViewState();
@@ -155,9 +161,10 @@ class _PlannerTimelineViewState extends State<PlannerTimelineView> {
                       height: height,
                       width: width,
                       count: slot.count,
-                      onTap: widget.onTapEvent == null
+                      onTap: widget.onTapEvent == null ? null : () => widget.onTapEvent!(e),
+                      onToggleComplete: widget.onToggleComplete == null
                           ? null
-                          : () => widget.onTapEvent!(e),
+                          : () => widget.onToggleComplete!(e.id),
                     ),
                   );
                 }),
@@ -214,15 +221,18 @@ class _EventBlock extends StatelessWidget {
     required this.width,
     required this.count,
     this.onTap,
+    this.onToggleComplete,
   });
 
   final PlannerEvent event;
   final double height;
   final double width;
-  final VoidCallback? onTap;
 
   /// More than one when identical events were merged into this card.
   final int count;
+
+  final VoidCallback? onTap;
+  final VoidCallback? onToggleComplete;
 
   // Below these widths (cards sharing the row) the card sheds detail so the
   // title always stays readable.
@@ -242,101 +252,125 @@ class _EventBlock extends StatelessWidget {
             ? ', let go'
             : '';
 
+    final radius = BorderRadius.circular(DzRadius.card);
     final card = Container(
       height: height.clamp(AppConfig.timelineMinEventHeight.toDouble(), AppConfig.timelineMaxEventHeight.toDouble()),
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(DzRadius.card),
+        borderRadius: radius,
         boxShadow: DzShadows.soft,
       ),
-      child: Row(
-        children: [
-          // Accent bar
-          Container(
-            width: 4,
-            decoration: BoxDecoration(
-              color: event.accentColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(DzRadius.card),
-                bottomLeft: Radius.circular(DzRadius.card),
-              ),
-            ),
-          ),
-          const SizedBox(width: DzSpacing.sm),
-          // Icon
-          if (showIcon) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: event.accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(event.icon, size: 16, color: event.accentColor),
-            ),
-            const SizedBox(width: DzSpacing.sm),
-          ],
-          // Text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Semantics(
+            // The card's own label; the title/subtitle text below is
+            // excluded so it isn't read twice. The completion toggle and
+            // count badge keep their own semantics containers.
+            button: onTap != null,
+            label: '${event.title}, ${event.subtitle}$state',
+            child: Row(
               children: [
-                Text(
-                  event.title,
-                  style: DzTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: showSubtitle ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (showSubtitle)
-                  Text(
-                    subtitle,
-                    style: DzTextStyles.small.copyWith(
-                      color: scheme.onSurfaceVariant,
+                // Accent bar
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: event.accentColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(DzRadius.card),
+                      bottomLeft: Radius.circular(DzRadius.card),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                const SizedBox(width: DzSpacing.sm),
+                // Icon
+                if (showIcon) ...[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: event.accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(event.icon, size: 16, color: event.accentColor),
+                  ),
+                  const SizedBox(width: DzSpacing.sm),
+                ],
+                // Text
+                Expanded(
+                  child: ExcludeSemantics(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          event.title,
+                          style: DzTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            decoration: event.isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                          maxLines: showSubtitle ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (showSubtitle)
+                          Text(
+                            subtitle,
+                            style: DzTextStyles.small.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (count > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(left: DzSpacing.xs),
+                    child: _CountBadge(count: count),
+                  ),
+                // Always shown (not just when completed) so there's a visible
+                // affordance to mark a task done from the timeline, not just a
+                // status indicator that appears after the fact.
+                Padding(
+                  padding: const EdgeInsets.only(left: DzSpacing.xs),
+                  child: Semantics(
+                    // Explicit container so this stays an independently
+                    // activatable control, not merged into the card's own
+                    // tap target (see _CountBadge for the same reasoning).
+                    container: true,
+                    label: event.isCompleted ? 'Mark as not done' : 'Mark as done',
+                    button: true,
+                    enabled: onToggleComplete != null,
+                    child: InkWell(
+                      onTap: onToggleComplete,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          event.isCompleted ? Icons.check_circle_rounded : Icons.circle_outlined,
+                          color: event.isCompleted ? DzColors.zenGreen : scheme.onSurfaceVariant,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: DzSpacing.xs),
               ],
             ),
-          ),
-          if (count > 1)
-            Padding(
-              padding: const EdgeInsets.only(left: DzSpacing.xs),
-              child: _CountBadge(count: count),
-            ),
-          if (event.isCompleted)
-            const Padding(
-              padding: EdgeInsets.only(left: DzSpacing.xs),
-              child: Icon(Icons.check_circle_rounded,
-                  color: DzColors.zenGreen, size: 18),
-            ),
-          const SizedBox(width: DzSpacing.sm),
-        ],
-      ),
-    );
-
-    return Semantics(
-      button: onTap != null,
-      label: '${event.title}, ${event.subtitle}$state'
-          '${count > 1 ? ', $count identical tasks' : ''}',
-      excludeSemantics: true,
-      child: Opacity(
-        // Let go on purpose: quieter, not struck through or red.
-        opacity: released ? 0.5 : 1,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(DzRadius.card),
-            child: card,
           ),
         ),
       ),
     );
+
+    // Let go on purpose: quieter, not struck through or red.
+    return released ? Opacity(opacity: 0.5, child: card) : card;
   }
 }
 
@@ -349,6 +383,10 @@ class _CountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
+      // Explicit container: without it, this label gets absorbed into
+      // whatever ancestor semantics boundary is nearest (e.g. the card's
+      // own tap target) instead of being announced on its own.
+      container: true,
       label: '$count identical tasks',
       child: ExcludeSemantics(
         child: Container(

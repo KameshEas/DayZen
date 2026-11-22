@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
 import '../../core/config/app_config.dart';
+import '../../features/ai_assistant/ai_assistant_screen.dart';
+import '../../features/app_update/app_version_controller.dart';
+import '../../features/app_update/update_showcase_page.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
 import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
+import '../../features/home/models/task_model.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
+import '../../features/maintenance/maintenance_screen.dart';
 import '../../features/onboarding/widgets/onboarding_page_animated.dart';
 import '../design_system/design_system.dart';
 import '../../features/pin/pin_setup_page.dart';
@@ -18,20 +23,39 @@ import '../../features/planner/planner_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/splash/splash_page.dart';
-import '../../features/home/models/task_model.dart';
 import '../../features/tasks/new_task_page.dart';
 import '../../features/journal/journal_detail_page.dart';
 import 'route_paths.dart';
 
 /// Global router instance, initialized post-app-setup in main.dart
 GoRouter? _appRouter;
+AppVersionController? _appVersionController;
 
 class AppRouter {
   /// [startRoute] resolves once app bootstrap (storage, controllers, etc.)
   /// finishes; the splash waits for both its animation and this future.
-  static void initialize({required Future<String> startRoute}) {
+  static void initialize({
+    required Future<String> startRoute,
+    required AppVersionController appVersionController,
+  }) {
+    _appVersionController = appVersionController;
     _appRouter = GoRouter(
       initialLocation: RoutePaths.splash,
+      refreshListenable: appVersionController,
+      redirect: (context, state) {
+        // Checked first: if the backend itself is down for maintenance,
+        // that's the more urgent condition — showing "update required" when
+        // the backend can't even serve the update check would be confusing.
+        if (appVersionController.maintenanceActive &&
+            state.matchedLocation != RoutePaths.maintenance) {
+          return RoutePaths.maintenance;
+        }
+        if (appVersionController.forceUpdateRequired &&
+            state.matchedLocation != RoutePaths.forceUpdate) {
+          return RoutePaths.forceUpdate;
+        }
+        return null;
+      },
       errorBuilder: (context, state) => Scaffold(
         body: Center(
           child: Column(
@@ -103,6 +127,26 @@ class AppRouter {
             onContinueOffline: () => _routeAfterAuth(context),
           ),
         ),
+        // ── Forced update showcase ───────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.forceUpdate,
+          name: RouteNames.forceUpdate,
+          builder: (context, state) => UpdateShowcasePage(
+            versionConfig: _appVersionController!.config!,
+            versionService: _appVersionController!.versionService,
+          ),
+        ),
+
+        // ── Maintenance block ────────────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.maintenance,
+          name: RouteNames.maintenance,
+          builder: (context, state) => MaintenanceScreen(
+            info: _appVersionController!.config!.maintenance,
+            onRetry: _appVersionController!.refresh,
+          ),
+        ),
+
         // ── Biometric unlock flow ───────────────────────────────────────
         GoRoute(
           path: '/biometric-unlock',
@@ -121,6 +165,12 @@ class AppRouter {
           path: '/pin-setup',
           builder: (context, state) => PinSetupPage(
             onPinSet: (ctx) {
+              context.go(RoutePaths.home);
+            },
+            // PIN is optional — remember the choice so we don't re-prompt
+            // on every subsequent sign-in.
+            onSkip: (ctx) {
+              AppPrefs.setPinOptedOut(true);
               context.go(RoutePaths.home);
             },
           ),
@@ -177,6 +227,11 @@ class AppRouter {
           name: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
         ),
+        GoRoute(
+          path: RoutePaths.aiAssistant,
+          name: RouteNames.aiAssistant,
+          builder: (context, state) => const AiAssistantScreen(),
+        ),
 
         // ── Journal detail ────────────────────────────────────────────
         GoRoute(
@@ -214,17 +269,28 @@ class AppRouter {
   static Future<void> _routeAfterAuth(BuildContext context) async {
     final hasPin = await AppPrefs.hasPin();
     if (!context.mounted) return;
-    context.go(hasPin ? RoutePaths.home : '/pin-setup');
+    if (hasPin) {
+      context.go(RoutePaths.home);
+      return;
+    }
+    // PIN is optional — don't re-prompt if the user already declined it once.
+    final optedOut = await AppPrefs.isPinOptedOut();
+    if (!context.mounted) return;
+    context.go(optedOut ? RoutePaths.home : '/pin-setup');
   }
 
   static String resolveInitialRoute({
     required bool showOnboarding,
     required bool hasPin,
     required bool biometricEnabled,
+    required bool isSignedIn,
   }) {
     if (showOnboarding) return RoutePaths.onboarding;
     if (biometricEnabled) return '/biometric-unlock';
     if (hasPin) return '/pin-unlock';
+    // No app-lock configured (PIN is optional). A previously-authenticated
+    // user should land straight on home, not be forced back through login.
+    if (isSignedIn) return RoutePaths.home;
     return RoutePaths.login;
   }
 }

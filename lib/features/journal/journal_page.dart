@@ -36,48 +36,44 @@ class _JournalPageState extends State<JournalPage> {
     final journalCtrl = JournalScope.of(context);
     return ListenableBuilder(
       listenable: journalCtrl,
-      builder: (context, _) => Scaffold(
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          onPressed: _openNewEntry,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-        // CustomScrollView + SliverList.separated so the (unbounded-growth)
-        // entry list is lazily built — only visible entries (plus a small
-        // buffer) are constructed, rather than every entry a user has ever
-        // written (test/performance/seeded_data_benchmark_test.dart covers
-        // large journals). The header content above the list
-        // stays as a plain sliver since it's fixed-size regardless of
-        // entry count.
-        body: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                  DzSpacing.lg, DzSpacing.md, DzSpacing.lg, 0),
-              sliver: SliverList.list(
-                children: [
-                  JournalWeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
-                  const SizedBox(height: DzSpacing.xl),
-                  JournalSyncIndicator(
-                    journalController: journalCtrl,
-                    showFullStatus: true,
-                  ),
-                  const SizedBox(height: DzSpacing.md),
-                  const JournalRecentEntriesHeader(),
-                  const SizedBox(height: DzSpacing.md),
-                ],
-              ),
+      // No FAB here — MainShell's shared centre "+" opens a new entry
+      // while this tab is showing, so this page doesn't need its own.
+      //
+      // CustomScrollView + SliverList.separated so the (unbounded-growth)
+      // entry list is lazily built — only visible entries (plus a small
+      // buffer) are constructed, rather than every entry a user has ever
+      // written (test/performance/seeded_data_benchmark_test.dart covers
+      // large journals). The header content above the list
+      // stays as a plain sliver since it's fixed-size regardless of
+      // entry count.
+      builder: (context, _) => CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+                DzSpacing.lg, DzSpacing.md, DzSpacing.lg, 0),
+            sliver: SliverList.list(
+              children: [
+                JournalWeeklyReflectionBanner(count: journalCtrl.thisWeekCount),
+                const SizedBox(height: DzSpacing.xl),
+                JournalSyncIndicator(
+                  journalController: journalCtrl,
+                  showFullStatus: true,
+                ),
+                const SizedBox(height: DzSpacing.md),
+                const JournalRecentEntriesHeader(),
+                const SizedBox(height: DzSpacing.md),
+              ],
             ),
-            SliverPadding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
-              sliver: _buildEntriesSliver(journalCtrl),
-            ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: DzSpacing.xl),
-            ),
-          ],
-        ),
+          ),
+          SliverPadding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: DzSpacing.lg),
+            sliver: _buildEntriesSliver(journalCtrl),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: DzSpacing.xl),
+          ),
+        ],
       ),
     );
   }
@@ -93,12 +89,7 @@ class _JournalPageState extends State<JournalPage> {
             title: AppConfig.journalEmptyTitle,
             subtitle: AppConfig.journalEmptyBody,
             actionLabel: AppConfig.journalEmptyAction,
-            onAction: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => const JournalNewEntrySheet(),
-            ),
+            onAction: _openNewEntry,
           ),
         ),
       );

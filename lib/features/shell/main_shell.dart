@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/routing/route_paths.dart';
+import '../app_data.dart';
+import '../home/widgets/overdue_tasks_popup.dart';
+import '../journal/widgets/journal_new_entry_sheet.dart';
 import '../planner/planner_selection.dart';
 
 /// Persistent shell that hosts Home, Planner, Insights, Journal tabs.
@@ -15,8 +18,38 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Once per app session, regardless of which tab the router lands on
+    // first — mirrors AppVersionController's "check once, after first
+    // frame" pattern.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      PlannerSelection.instance.catchUpToToday();
+      maybeShowOverdueTasksPopup(context, TaskScope.of(context));
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Backgrounding the app doesn't kill the process, so PlannerSelection's
+    // singleton survives across midnight if the app is just left open —
+    // catch it up to the real "today" whenever the app comes back.
+    if (state == AppLifecycleState.resumed) {
+      PlannerSelection.instance.catchUpToToday();
+    }
+  }
 
   static const _pageTitles = ['DayZen', 'Planner', '', 'Insights', 'Journal'];
   static const _routePaths = [
@@ -36,8 +69,21 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onFabPressed() {
+    // The centre "+" means "add" for whatever tab is showing: a task
+    // everywhere except the Journal tab, where it means a journal entry
+    // instead — Journal has no separate FAB of its own for that reason.
+    if (_currentIndex == 4) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const JournalNewEntrySheet(),
+      );
+      return;
+    }
     // On the Planner, the new task belongs to the day being viewed.
     final onPlanner = _currentIndex == 1;
+    if (onPlanner) PlannerSelection.instance.catchUpToToday();
     context.push(
       RoutePaths.newTask,
       extra: onPlanner ? PlannerSelection.instance.value : null,
@@ -60,6 +106,19 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
         actions: [
+          Semantics(
+            label: 'AI Assistant',
+            button: true,
+            enabled: true,
+            onTap: () => context.push(RoutePaths.aiAssistant),
+            child: IconButton(
+              icon: const Icon(Icons.auto_awesome_outlined),
+              tooltip: 'AI Assistant',
+              onPressed: () {
+                context.push(RoutePaths.aiAssistant);
+              },
+            ),
+          ),
           // The notification test page is a developer tool: debug builds only.
           if (kDebugMode)
             Semantics(
