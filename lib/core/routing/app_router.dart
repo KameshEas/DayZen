@@ -1,0 +1,238 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
+import '../../features/auth/login_page.dart';
+import '../../features/auth/sign_up_page.dart';
+import '../../features/biometric/biometric_auth_page.dart';
+import '../../features/debug/test_notification_page.dart';
+import '../../features/home/home_page.dart';
+import '../../features/insights/insights_page.dart';
+import '../../features/journal/journal_page.dart';
+import '../../features/onboarding/widgets/onboarding_page_animated.dart';
+import '../design_system/design_system.dart';
+import '../../features/pin/pin_setup_page.dart';
+import '../../features/pin/pin_unlock_page.dart';
+import '../../features/planner/planner_page.dart';
+import '../../features/settings/settings_page.dart';
+import '../../features/shell/main_shell.dart';
+import '../../features/splash/splash_page.dart';
+import '../../features/tasks/new_task_page.dart';
+import '../../features/tasks/task_detail_page.dart';
+import '../../features/journal/journal_detail_page.dart';
+import 'route_paths.dart';
+
+/// Global router instance, initialized post-app-setup in main.dart
+GoRouter? _appRouter;
+
+class AppRouter {
+  /// [startRoute] resolves once app bootstrap (storage, controllers, etc.)
+  /// finishes; the splash waits for both its animation and this future.
+  static void initialize({required Future<String> startRoute}) {
+    _appRouter = GoRouter(
+      initialLocation: RoutePaths.splash,
+      errorBuilder: (context, state) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Route not found: ${state.matchedLocation}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.go(RoutePaths.home),
+                child: const Text(AppConfig.routerGoHome),
+              ),
+            ],
+          ),
+        ),
+      ),
+      routes: [
+        // ── Animated splash → resolved start route ──────────────────────
+        GoRoute(
+          path: RoutePaths.splash,
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: SplashPage(
+              onFinished: () {
+                final router = GoRouter.of(context);
+                startRoute.then(router.go, onError: (Object e) {
+                  debugPrint('Bootstrap failed: $e');
+                  router.go(RoutePaths.login);
+                });
+              },
+            ),
+          ),
+        ),
+        // ── Auth / Onboarding flow ──────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.onboarding,
+          name: RouteNames.onboarding,
+          // Onboarding art and gradient are light-only, so pin the light brand theme.
+          builder: (context, state) => Theme(
+            data: DzTheme.light(),
+            child: AnimatedOnboardingPage(
+            // "Start Offline" — true offline path, skip the login wall
+            // entirely and go straight to securing the app with a PIN.
+            onDone: () {
+              AppPrefs.markOnboardingSeen();
+              context.go('/pin-setup');
+            },
+            // "Enable Sync (Optional)" — routes through Login/Sign Up,
+            // where an account can be created to enable cloud sync
+            // (Login itself still offers a "Continue Offline" fallback).
+            onEnableSync: () {
+              AppPrefs.markOnboardingSeen();
+              context.go(RoutePaths.login);
+            },
+          ),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.login,
+          name: RouteNames.login,
+          builder: (context, state) => LoginPage(
+            onSignedIn: (email) => _routeAfterAuth(context),
+            onContinueOffline: () => _routeAfterAuth(context),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.signup,
+          name: RouteNames.signup,
+          builder: (context, state) => SignUpPage(
+            onSignedUp: (email) => _routeAfterAuth(context),
+            onContinueOffline: () => _routeAfterAuth(context),
+          ),
+        ),
+        // ── Biometric unlock flow ───────────────────────────────────────
+        GoRoute(
+          path: '/biometric-unlock',
+          builder: (context, state) => BiometricAuthPage(
+            onAuthenticated: () {
+              context.go(RoutePaths.home);
+            },
+            onFallbackToPin: () {
+              context.go('/pin-unlock');
+            },
+          ),
+        ),
+
+        // ── PIN setup / unlock flow ─────────────────────────────────────
+        GoRoute(
+          path: '/pin-setup',
+          builder: (context, state) => PinSetupPage(
+            onPinSet: (ctx) {
+              context.go(RoutePaths.home);
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/pin-unlock',
+          builder: (context, state) => PinUnlockPage(
+            onUnlocked: () {
+              context.go(RoutePaths.home);
+            },
+          ),
+        ),
+
+        // ── Main app shell with tab navigation ──────────────────────────
+        ShellRoute(
+          builder: (context, state, child) => MainShell(child: child),
+          routes: [
+            GoRoute(
+              path: RoutePaths.home,
+              name: RouteNames.home,
+              builder: (context, state) => const HomePage(),
+            ),
+            GoRoute(
+              path: RoutePaths.planner,
+              name: RouteNames.planner,
+              builder: (context, state) => const PlannerPage(),
+            ),
+            GoRoute(
+              path: RoutePaths.insights,
+              name: RouteNames.insights,
+              builder: (context, state) => const InsightsPage(),
+            ),
+            GoRoute(
+              path: RoutePaths.journal,
+              name: RouteNames.journal,
+              builder: (context, state) => const JournalPage(),
+            ),
+          ],
+        ),
+
+        // ── Modal routes (New Task, Settings, etc.) ─────────────────────
+        GoRoute(
+          path: RoutePaths.newTask,
+          name: RouteNames.newTask,
+          // The Planner passes the day being viewed as `extra`.
+          builder: (context, state) => NewTaskPage(
+            initialDate: state.extra is DateTime ? state.extra as DateTime : null,
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.settings,
+          name: RouteNames.settings,
+          builder: (context, state) => const SettingsPage(),
+        ),
+
+        // ── Task detail ────────────────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.taskDetail,
+          name: RouteNames.taskDetail,
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return TaskDetailPage(taskId: id);
+          },
+        ),
+
+        // ── Journal detail ────────────────────────────────────────────
+        GoRoute(
+          path: RoutePaths.journalDetail,
+          name: RouteNames.journalDetail,
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return JournalDetailPage(journalId: id);
+          },
+        ),
+
+        // ── Debug routes (test page): not reachable in release builds ───
+        if (kDebugMode)
+          GoRoute(
+            path: '/debug/test-notification',
+            builder: (context, state) => const TestNotificationPage(),
+          ),
+      ],
+    );
+  }
+
+  static GoRouter get router {
+    if (_appRouter == null) {
+      throw StateError(
+        'AppRouter not initialized. Call AppRouter.initialize(...) in main() before runApp().',
+      );
+    }
+    return _appRouter!;
+  }
+
+  /// Routes to the correct next screen after a successful login/signup/
+  /// continue-offline action: PIN setup if this device has no PIN yet,
+  /// otherwise straight to home (the user just authenticated). The app-lock
+  /// PIN is device-local; after a reinstall the user sets a new one.
+  static Future<void> _routeAfterAuth(BuildContext context) async {
+    final hasPin = await AppPrefs.hasPin();
+    if (!context.mounted) return;
+    context.go(hasPin ? RoutePaths.home : '/pin-setup');
+  }
+
+  static String resolveInitialRoute({
+    required bool showOnboarding,
+    required bool hasPin,
+    required bool biometricEnabled,
+  }) {
+    if (showOnboarding) return RoutePaths.onboarding;
+    if (biometricEnabled) return '/biometric-unlock';
+    if (hasPin) return '/pin-unlock';
+    return RoutePaths.login;
+  }
+}

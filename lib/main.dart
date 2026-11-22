@@ -1,38 +1,93 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'core/app_prefs.dart';
+import 'l10n/app_localizations.dart';
+import 'core/data/legacy_data_migrator.dart';
 import 'core/design_system/design_system.dart';
 import 'core/notification_service.dart';
+import 'core/routing/app_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart' as foundation;
+import 'core/services/jwt_auth_service.dart';
+import 'core/services/sync_triggers.dart';
 import 'features/app_data.dart';
-import 'features/auth/login_page.dart';
-import 'features/biometric/biometric_auth_page.dart';
 import 'features/journal_controller.dart';
-import 'features/onboarding/onboarding_page.dart';
-import 'features/pin/pin_setup_page.dart';
-import 'features/pin/pin_unlock_page.dart';
+import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
-import 'features/shell/main_shell.dart';
 import 'features/task_controller.dart';
 
-void main() async {
+AppLifecycleListener? _lifecycleListener;
+SyncTriggers? _syncTriggers;
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  _runApp();
+}
+
+/// Shows the splash immediately; all slow startup work (auth restore,
+/// Firebase, DB migration/loading, notifications) runs behind it in
+/// [_bootstrap], and the splash navigates once its animation and the
+/// bootstrap have both finished.
+void _runApp() {
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
+  final notifCtrl = NotificationController();
 
-  // Check device biometric hardware availability
-  final auth = LocalAuthentication();
-  bool deviceHasBiometrics;
-  try {
-    final canCheck = await auth.canCheckBiometrics;
-    final isSupported = await auth.isDeviceSupported();
-    deviceHasBiometrics = canCheck && isSupported;
-  } catch (_) {
-    deviceHasBiometrics = false;
+  AppRouter.initialize(
+    startRoute: _bootstrap(
+      taskCtrl: taskCtrl,
+      journalCtrl: journalCtrl,
+      settingsCtrl: settingsCtrl,
+      notifCtrl: notifCtrl,
+    ),
+  );
+
+  runApp(AppScopes(
+    tasks: taskCtrl,
+    journal: journalCtrl,
+    settings: settingsCtrl,
+    notifications: notifCtrl,
+    child: const DayZenApp(),
+  ));
+}
+
+Future<String> _bootstrap({
+  required TaskController taskCtrl,
+  required JournalController journalCtrl,
+  required SettingsController settingsCtrl,
+  required NotificationController notifCtrl,
+}) async {
+  final authService = JwtAuthService.instance;
+
+  Future<bool> deviceHasBiometrics() async {
+    final auth = LocalAuthentication();
+    try {
+      final canCheck = await auth.canCheckBiometrics;
+      final isSupported = await auth.isDeviceSupported();
+      return canCheck && isSupported;
+    } catch (_) {
+      return false;
+    }
   }
-  settingsCtrl.setDeviceHasBiometrics(deviceHasBiometrics);
+
+  // These are independent of each other, so run them in parallel. The legacy
+  // migration must finish before the controllers load (see below).
+  final hasBiometrics = deviceHasBiometrics();
+  await Future.wait([
+    authService.initialize(),
+    // Crash reporting is optional: a missing/invalid Firebase config (e.g. no
+    // GoogleService-Info.plist on iOS yet) must not abort startup, which is
+    // what happened when this threw inside Future.wait.
+    Firebase.initializeApp()
+        .then((_) => _initCrashReporting())
+        .catchError((Object e) => debugPrint('Crash reporting disabled: $e')),
+    LegacyDataMigrator.migrateIfNeeded(),
+  ]);
+  settingsCtrl.setDeviceHasBiometrics(await hasBiometrics);
 
   final results = await Future.wait([
     AppPrefs.hasSeenOnboarding(),
@@ -41,175 +96,82 @@ void main() async {
     taskCtrl.load(),
     journalCtrl.load(),
     settingsCtrl.load(),
+    notifCtrl.load(),
   ]);
+  // Only ever written once; the Planner lets you browse back to this day.
+  await AppPrefs.recordFirstUse();
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
-  // Only use biometric unlock if both the preference is on AND device supports it
-  final biometricEnabled = (results[2] as bool) && deviceHasBiometrics;
+  final biometricEnabled = (results[2] as bool) && await hasBiometrics;
 
-  // ── Initialise notifications ────────────────────────────────────────
   await NotificationService.instance.init();
-  await NotificationService.instance.requestPermission();
+  // The permission prompt waits on the user, so never block startup on it.
+  unawaited(NotificationService.instance.requestPermission());
 
-  // Wire notifications enabled/disabled based on notification settings
-  final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
-  taskCtrl.setNotificationsEnabled(notificationsOn);
+  taskCtrl.applyReminderSettings(
+    enabled: settingsCtrl.remindersEnabled,
+    quietWindow: settingsCtrl.quietWindow,
+  );
 
-  runApp(AppData(
-    tasks: taskCtrl,
-    journal: journalCtrl,
-    settings: settingsCtrl,
-    child: DayZenApp(
-      showOnboarding: !seenOnboarding,
-      hasPin: hasPin,
-      biometricEnabled: biometricEnabled,
-    ),
-  ));
+  // Travel or a zone change while backgrounded moves every reminder's real
+  // time; re-check the zone whenever the app comes back to the foreground.
+  // Pull the account's data right after sign-in and whenever the app comes
+  // back to the foreground (see SyncTriggers).
+  _syncTriggers ??= SyncTriggers(
+    auth: authService,
+    isSignedIn: () => authService.isAuthenticated,
+    syncAll: () => Future.wait([
+      taskCtrl.syncWithServer(),
+      journalCtrl.syncWithServer(),
+      notifCtrl.load(),
+    ]),
+  )..attach();
+
+  _lifecycleListener ??= AppLifecycleListener(
+    onResume: () async {
+      _syncTriggers?.onResume();
+      if (await NotificationService.instance.refreshTimeZone()) {
+        await taskCtrl.rescheduleNotifications();
+      }
+    },
+  );
+
+  return AppRouter.resolveInitialRoute(
+    showOnboarding: !seenOnboarding,
+    hasPin: hasPin,
+    biometricEnabled: biometricEnabled,
+  );
+}
+
+void _initCrashReporting() {
+  // Pass all uncaught errors from the Flutter framework to Crashlytics.
+  FlutterError.onError = (error) => FirebaseCrashlytics.instance.recordFlutterError(error);
+
+  // Pass all uncaught asynchronous errors that aren't handled by Flutter to Crashlytics
+  foundation.PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 }
 
 class DayZenApp extends StatelessWidget {
-  final bool showOnboarding;
-  final bool hasPin;
-  final bool biometricEnabled;
-  const DayZenApp({
-    super.key,
-    required this.showOnboarding,
-    required this.hasPin,
-    required this.biometricEnabled,
-  });
+  const DayZenApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final settings = AppData.of(context).settings;
+    final settings = SettingsScope.of(context);
     return ListenableBuilder(
       listenable: settings,
-      builder: (context, _) => MaterialApp(
+      builder: (context, _) => MaterialApp.router(
         title: 'DayZen',
         debugShowCheckedModeBanner: false,
         theme: DzTheme.light(accent: settings.accentColor),
         darkTheme: DzTheme.dark(accent: settings.accentColor),
         themeMode: settings.themeMode,
-        home: _resolveHome(),
+        routerConfig: AppRouter.router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
       ),
     );
   }
-
-  Widget _resolveHome() {
-    if (showOnboarding) return const _OnboardingRoot();
-    // Biometric takes priority over PIN
-    if (biometricEnabled) return const _BiometricUnlockRoot();
-    if (hasPin) return const _PinUnlockRoot();
-    return const _AuthRoot();
-  }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Onboarding → Auth flow (first-time users)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _OnboardingRoot extends StatelessWidget {
-  const _OnboardingRoot();
-
-  void _finishOnboarding(BuildContext context) {
-    AppPrefs.markOnboardingSeen();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const _AuthRoot()),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return OnboardingPage(
-      onDone: () => _finishOnboarding(context),
-      onEnableSync: () => _finishOnboarding(context),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Auth root — shown when no PIN exists yet
-// After sign-in, push PIN setup; skip goes straight to home.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _AuthRoot extends StatelessWidget {
-  const _AuthRoot();
-
-  void _goToPinSetup(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => PinSetupPage(
-          onPinSet: (ctx) => _goToHome(ctx),
-        ),
-      ),
-    );
-  }
-
-  void _goToHome(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LoginPage(
-      onSignedIn: (email) {
-        AppData.of(context).settings.setSignedIn(true, email);
-        _goToPinSetup(context);
-      },
-      onContinueOffline: () {
-        // Offline users also prompted to set a PIN
-        _goToPinSetup(context);
-      },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Biometric unlock root — shown when biometric is enabled
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _BiometricUnlockRoot extends StatelessWidget {
-  const _BiometricUnlockRoot();
-
-  @override
-  Widget build(BuildContext context) {
-    return BiometricAuthPage(
-      onAuthenticated: () {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-        );
-      },
-      onFallbackToPin: () {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const _PinUnlockRoot(),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PIN unlock root — shown on every subsequent cold start
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PinUnlockRoot extends StatelessWidget {
-  const _PinUnlockRoot();
-
-  @override
-  Widget build(BuildContext context) {
-    return PinUnlockPage(
-      onUnlocked: () {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-        );
-      },
-    );
-  }
-}
-
-
-
-
