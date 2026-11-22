@@ -39,6 +39,9 @@ abstract final class CloseDayCopy {
   static const homeCardBody = 'A minute to sort what\'s left and note how it felt.';
   static const homeCardAction = 'Start';
   static const homeCardClosed = 'Day closed';
+  static const firstEveningTitle = 'Your first evening with DayZen';
+  static const firstEveningBody =
+      'Close the day: sort what’s left and note how it felt. A minute, no more.';
 
   // "What's new" card for existing installs (M-1.8)
   static const whatsNewTitle = 'New: Close your day';

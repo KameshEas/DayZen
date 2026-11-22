@@ -10,6 +10,7 @@ import 'models/task_model.dart';
 import '../planner/widgets/day_load_pill.dart';
 import '../rhythm/widgets/rhythm_card.dart';
 import 'widgets/close_day_home_card.dart';
+import 'widgets/moment_card.dart';
 import 'widgets/day_optimizer_home_card.dart';
 import 'widgets/home_daily_reflection_card.dart';
 import 'widgets/home_focus_score_card.dart';
@@ -75,6 +76,7 @@ class _HomeBody extends StatelessWidget {
               : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
         ),
         const SizedBox(height: DzSpacing.lg),
+        const MomentCard(),
         const CloseDayHomeCard(),
         if (tasks.isEmpty)
           DzEmptyState(
