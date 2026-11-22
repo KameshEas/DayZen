@@ -1,7 +1,7 @@
 import '../../features/home/models/task_model.dart';
 
 /// Gentle Rollover: unfinished tasks from past days move to today instead of
-/// piling up as "overdue".
+/// piling up behind you.
 ///
 /// Rules:
 /// - Only `active` tasks dated before [today] move. Done and released tasks

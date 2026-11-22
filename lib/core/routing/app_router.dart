@@ -26,6 +26,7 @@ import '../../features/settings/settings_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/splash/splash_page.dart';
 import '../../features/tasks/new_task_page.dart';
+import '../../features/tasks/released_tasks_page.dart';
 import '../../features/journal/journal_detail_page.dart';
 import 'route_paths.dart';
 
@@ -224,6 +225,11 @@ class AppRouter {
           path: RoutePaths.closeDay,
           name: RouteNames.closeDay,
           builder: (context, state) => const CloseDayPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.released,
+          name: RouteNames.released,
+          builder: (context, state) => const ReleasedTasksPage(),
         ),
         GoRoute(
           path: RoutePaths.aiAssistant,

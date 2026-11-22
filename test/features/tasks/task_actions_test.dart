@@ -10,6 +10,7 @@ import 'package:dayzen/features/planner/planner_selection.dart';
 import 'package:dayzen/features/settings/settings_controller.dart';
 import 'package:dayzen/features/task_controller.dart';
 import 'package:dayzen/features/tasks/new_task_page.dart';
+import 'package:dayzen/features/tasks/released_tasks_page.dart';
 import 'package:dayzen/features/tasks/widgets/new_task_form_fields.dart';
 import 'package:dayzen/features/tasks/widgets/task_actions_sheet.dart';
 import 'package:flutter/material.dart';
@@ -104,6 +105,10 @@ Widget _app(_Tasks tasks) {
       path: RoutePaths.newTask,
       builder: (_, state) => scoped(NewTaskPage(task: state.extra as DzTask?)),
     ),
+    GoRoute(
+      path: RoutePaths.released,
+      builder: (_, _) => scoped(const ReleasedTasksPage()),
+    ),
   ]);
   return MaterialApp.router(theme: DzTheme.light(), routerConfig: router);
 }
@@ -182,8 +187,8 @@ void main() {
       expect(tasks.calls, ['status 1 done', 'status 1 active']);
     });
 
-    testWidgets('let go: stays on the day, faded, and is not counted',
-        (tester) async {
+    testWidgets('let go: leaves the day, is not counted, and lives in the '
+        '"Let go" list where it can be brought back', (tester) async {
       final tasks = _Tasks([_task('1'), _task('2', title: 'Gym')]);
       await _open(tester, tasks);
 
@@ -191,21 +196,24 @@ void main() {
       await _pick(tester, TaskAction.letGo);
 
       expect(tasks.taskById('2')!.status, TaskStatus.released);
-      expect(find.text('Gym'), findsOneWidget);
-      expect(find.text('1 task · 0 done · 1 let go'), findsOneWidget);
-      final fade = tester.widget<Opacity>(
-          find.ancestor(of: find.text('Gym'), matching: find.byType(Opacity)).first);
-      expect(fade.opacity, lessThan(1));
+      expect(find.text('Gym'), findsNothing, reason: 'off the timeline (M-1.12)');
+      expect(find.text('1 task · 0 done'), findsOneWidget);
+      expect(find.text('1 let go'), findsOneWidget);
 
       // Let the other one go too: nothing planned is left to count.
       await _tapCard(tester, 'Write report');
       await _pick(tester, TaskAction.letGo);
       expect(find.text('2 let go'), findsOneWidget);
+      expect(find.textContaining('done'), findsNothing);
 
-      // And it can be brought back from the same card.
-      await _tapCard(tester, 'Gym');
-      await _pick(tester, TaskAction.bringBack);
+      // The link opens the list; bring Gym back from there.
+      await tester.tap(find.text('2 let go'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gym'), findsOneWidget);
+      await tester.tap(find.byTooltip('Bring back: Gym'));
+      await tester.pumpAndSettle();
       expect(tasks.taskById('2')!.status, TaskStatus.active);
+      expect(find.text('Gym'), findsNothing, reason: 'gone from the list');
     });
 
     testWidgets('delete asks first; cancel keeps the task', (tester) async {

@@ -5,8 +5,6 @@ import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/notification_service.dart';
 import '../../core/routing/route_paths.dart';
 import '../../core/services/counters_service.dart';
-import '../app_data.dart';
-import '../home/widgets/overdue_tasks_popup.dart';
 import '../journal/widgets/journal_new_entry_sheet.dart';
 import '../planner/planner_selection.dart';
 
@@ -34,7 +32,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       PlannerSelection.instance.catchUpToToday();
-      maybeShowOverdueTasksPopup(context, TaskScope.of(context));
       // A notification tapped while the app was closed or locked.
       _openPendingRoute();
     });

@@ -278,6 +278,7 @@ class PlannerEvent {
     this.isCompleted = false,
     this.isReleased = false,
     this.taskIds = const [],
+    this.rolloverCount = 0,
   });
 
   /// The [DzTask.id] this event was built from — lets the timeline card
@@ -300,6 +301,9 @@ class PlannerEvent {
   /// merged into one card by the timeline layout).
   final List<String> taskIds;
 
+  /// Days the task has been carried forward (for the "Carried 2×" hint).
+  final int rolloverCount;
+
   PlannerEvent copyWith({
     bool? isCompleted,
     bool? isReleased,
@@ -317,6 +321,7 @@ class PlannerEvent {
         isCompleted: isCompleted ?? this.isCompleted,
         isReleased: isReleased ?? this.isReleased,
         taskIds: taskIds ?? this.taskIds,
+        rolloverCount: rolloverCount,
       );
 
   factory PlannerEvent.fromTask(DzTask task) {
@@ -337,6 +342,7 @@ class PlannerEvent {
       isCompleted: task.isCompleted,
       isReleased: task.status == TaskStatus.released,
       taskIds: [task.id],
+      rolloverCount: task.rolloverCount,
     );
   }
 }

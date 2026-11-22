@@ -1,6 +1,6 @@
 /// User-facing text for Close the Day (plan M-1.10) and the Released list
-/// (M-1.12). Calm wording only: nothing here says "overdue", "missed" or
-/// "failed".
+/// (M-1.12). Calm wording only: nothing here frames an unfinished task as
+/// late, missed or failed.
 abstract final class CloseDayCopy {
   static const pageTitle = 'Close your day';
 
@@ -43,7 +43,7 @@ abstract final class CloseDayCopy {
   static const whatsNewTitle = 'New: Close your day';
   static const whatsNewBody =
       'Each evening, sort what\'s left in a few swipes. Unfinished tasks carry '
-      'over gently, never as overdue.';
+      'over gently, so nothing piles up.';
   static const whatsNewTry = 'Try it';
   static const whatsNewDismiss = 'Got it';
 
