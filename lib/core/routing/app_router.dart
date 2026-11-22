@@ -22,6 +22,7 @@ import '../../features/onboarding/widgets/onboarding_page_animated.dart';
 import '../../features/onboarding_v2/onboarding_v2_page.dart';
 import '../design_system/design_system.dart';
 import '../../features/pin/pin_setup_page.dart';
+import '../../features/rhythm/checkin_page.dart';
 import '../../features/pin/pin_unlock_page.dart';
 import '../../features/planner/planner_page.dart';
 import '../../features/settings/settings_page.dart';
@@ -232,6 +233,10 @@ class AppRouter {
           path: RoutePaths.released,
           name: RouteNames.released,
           builder: (context, state) => const ReleasedTasksPage(),
+        ),
+        GoRoute(
+          path: RoutePaths.checkin,
+          builder: (context, state) => const CheckinPage(),
         ),
         GoRoute(
           path: RoutePaths.achievements,

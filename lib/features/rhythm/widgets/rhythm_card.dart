@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/design_system/design_system.dart';
 import '../../../core/domain/rhythm/energy_profile.dart';
+import '../../../core/routing/route_paths.dart';
 import '../../app_data.dart';
 import '../rhythm_controller.dart';
 
@@ -102,6 +104,16 @@ class RhythmDetailsSheet extends StatelessWidget {
                     }
                   },
                   width: double.infinity,
+                ),
+                const SizedBox(height: DzSpacing.sm),
+                DzGhostButton(
+                  label: 'Check in now',
+                  icon: const Icon(Icons.sentiment_satisfied_rounded, size: 18),
+                  onPressed: () {
+                    final router = GoRouter.of(context);
+                    Navigator.of(context).pop();
+                    router.push(RoutePaths.checkin);
+                  },
                 ),
                 const SizedBox(height: DzSpacing.md),
                 Text(
