@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dayzen/core/ai/day_optimizer.dart';
 import 'package:dayzen/core/config/app_config.dart';
+import 'package:dayzen/core/domain/rhythm/energy_profile.dart';
 import 'package:dayzen/features/home/models/task_model.dart';
 
 DzTask _task({
@@ -177,6 +178,78 @@ void main() {
       expect(light.breakRecommendation, AppConfig.breakRecommendationLight);
       expect(medium.breakRecommendation, AppConfig.breakRecommendationMedium);
       expect(high.breakRecommendation, AppConfig.breakRecommendationHigh);
+    });
+  });
+  group('DayOptimizer.optimise with a Rhythm profile', () {
+    final morning = EnergyProfile.prior(RhythmPrior.morning);
+    final earlyMorning = DateTime(2027, 1, 4, 6, 0);
+
+    int startOf(AiSuggestion s) {
+      final m = RegExp(r'^(\d+):(\d+) (AM|PM)').firstMatch(s.suggestedSlot)!;
+      var h = int.parse(m[1]!) % 12;
+      if (m[3] == 'PM') h += 12;
+      return h * 60 + int.parse(m[2]!);
+    }
+
+    test('high-priority work lands in the morning peak', () {
+      final result = DayOptimizer.optimise(
+        [
+          _task(id: '1', title: 'Deep work', priority: TaskPriority.high),
+          _task(id: '2', title: 'Laundry', priority: TaskPriority.low),
+        ],
+        profile: morning,
+        now: earlyMorning,
+      );
+      final deep = result.suggestions.firstWhere((s) => s.task.id == '1');
+      final laundry = result.suggestions.firstWhere((s) => s.task.id == '2');
+      expect(startOf(deep), inInclusiveRange(8 * 60, 9 * 60));
+      expect(deep.reason, contains('sharpest window'));
+      expect(morning.at(startOf(laundry) ~/ 60),
+          lessThan(morning.at(startOf(deep) ~/ 60)));
+    });
+
+    test('never suggests a slot that has already passed', () {
+      final result = DayOptimizer.optimise(
+        [_task(id: '1', title: 'Deep work', priority: TaskPriority.high)],
+        profile: morning,
+        now: DateTime(2027, 1, 4, 15, 10),
+      );
+      expect(startOf(result.suggestions.single), greaterThanOrEqualTo(15 * 60 + 15));
+    });
+
+    test('the summary names the sharpest window and says when it is forming', () {
+      final result = DayOptimizer.optimise(
+        [_task(id: '1', title: 'Deep work', priority: TaskPriority.high)],
+        profile: morning,
+        now: earlyMorning,
+      );
+      expect(result.summary, startsWith('Your sharpest window: ~8 am–10 am · forming.'));
+    });
+
+    test('done and let-go tasks are listed but not moved', () {
+      final done = _task(
+        id: 'd',
+        title: 'Done',
+        priority: TaskPriority.high,
+        isCompleted: true,
+        start: const TimeOfDay(hour: 13, minute: 0),
+        end: const TimeOfDay(hour: 14, minute: 0),
+      );
+      final result = DayOptimizer.optimise(
+        [done, _task(id: 'a', title: 'Active', priority: TaskPriority.high)],
+        profile: morning,
+        now: earlyMorning,
+      );
+      final d = result.suggestions.firstWhere((s) => s.task.id == 'd');
+      expect(d.suggestedSlot, '1:00 PM – 2:00 PM');
+      expect(d.reason, contains('Already done'));
+      expect(result.suggestions.last.task.id, 'd');
+    });
+
+    test('without a profile the classic packing is unchanged', () {
+      final tasks = [_task(id: '1', title: 'A', priority: TaskPriority.high)];
+      expect(DayOptimizer.optimise(tasks).suggestions.single.suggestedSlot,
+          DayOptimizer.optimise(tasks, profile: null).suggestions.single.suggestedSlot);
     });
   });
 }
