@@ -1,9 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
 import '../../core/data/database/db_encryption.dart';
+import 'package:home_widget/home_widget.dart';
+
 import '../../core/notification_service.dart';
+import '../../core/services/widget_service.dart';
+import '../app_data.dart';
+import '../tasks/widgets/task_actions_sheet.dart';
 import '../../core/routing/route_paths.dart';
 import '../../core/services/counters_service.dart';
 import '../journal/widgets/journal_new_entry_sheet.dart';
@@ -27,6 +34,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     NotificationService.instance.pendingRoute.addListener(_openPendingRoute);
+    _widgetTaps = HomeWidget.widgetClicked.listen(_openFromWidget, onError: (_) {});
     // Once per app session, regardless of which tab the router lands on
     // first — mirrors AppVersionController's "check once, after first
     // frame" pattern.
@@ -36,6 +44,28 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       // A notification tapped while the app was closed or locked.
       _openPendingRoute();
       _maybeShowRecoveryNotice();
+      HomeWidget.initiallyLaunchedFromHomeWidget()
+          .then(_openFromWidget)
+          .catchError((_) {});
+    });
+  }
+
+  StreamSubscription<Uri?>? _widgetTaps;
+
+  /// A tap on the home-screen widget: open the planner on today and, for a
+  /// task, its actions sheet (M-3.2).
+  void _openFromWidget(Uri? uri) {
+    if (uri == null || !mounted) return;
+    PlannerSelection.instance.reset();
+    setState(() => _currentIndex = 1);
+    context.go(RoutePaths.planner);
+    final id = WidgetService.taskIdFromUri(uri);
+    if (id == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (TaskScope.of(context).taskById(id) != null) {
+        showTaskActions(context, [id]);
+      }
     });
   }
 
@@ -78,6 +108,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     NotificationService.instance.pendingRoute.removeListener(_openPendingRoute);
+    _widgetTaps?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -17,6 +17,7 @@ import 'core/api/api_client.dart';
 import 'core/services/app_version_service.dart';
 import 'core/services/gentle_prompts.dart';
 import 'core/services/sync_triggers.dart';
+import 'core/services/widget_service.dart';
 import 'features/app_data.dart';
 import 'features/app_update/app_version_controller.dart';
 import 'features/journal_controller.dart';
@@ -136,6 +137,11 @@ Future<String> _bootstrap({
   // Rhythm learns from tasks as they change (done, carried, let go).
   await rhythmCtrl.load(taskCtrl.all);
   taskCtrl.addListener(() => rhythmCtrl.updateTasks(taskCtrl.all));
+  // Home-screen widget (M-3.2): today's/tomorrow's tasks and the tide.
+  WidgetService.instance.update(tasks: taskCtrl.all, profile: rhythmCtrl.profile);
+  taskCtrl.addListener(() => WidgetService.instance.update(tasks: taskCtrl.all));
+  rhythmCtrl.addListener(
+      () => WidgetService.instance.update(profile: rhythmCtrl.profile));
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it

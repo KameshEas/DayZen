@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_now">Now</string>
+    <string name="widget_next">Next</string>
+    <string name="widget_nothing_now">A free moment</string>
+    <string name="widget_nothing_next">Nothing else planned</string>
+    <string name="widget_description">What you\'re on now, what\'s next, and your energy through the day.</string>
+    <string name="widget_tide_description">Your energy through the day</string>
+</resources>
