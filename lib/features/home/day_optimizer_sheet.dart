@@ -13,8 +13,7 @@ import 'widgets/day_optimizer_suggestion_tile.dart';
 
 /// Shows the Optimize My Day bottom sheet for [taskCtrl]'s today tasks.
 ///
-/// Card widgets split into features/home/widgets/ in Phase 5.1 of
-/// docs/DEVELOPMENT_PLAN.md.
+/// Card widgets live in features/home/widgets/.
 void showDayOptimizerSheet(BuildContext context, TaskController taskCtrl) {
   final tasks = taskCtrl.forDate(DateTime.now());
   final result = DayOptimizer.optimise(tasks);
@@ -100,7 +99,7 @@ class _OptimizerSheet extends StatelessWidget {
                             style: DzTextStyles.heading3
                                 .copyWith(fontWeight: FontWeight.w700)),
                         Text(
-                          'Offline AI — on-device only',
+                          'Runs on your phone, no internet needed',
                           style: DzTextStyles.caption
                               .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),

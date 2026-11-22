@@ -10,7 +10,7 @@ import 'package:dayzen/core/api/api_client.dart';
 import 'package:dayzen/core/services/account_deletion_service.dart';
 import 'package:dayzen/core/services/jwt_auth_service.dart';
 
-/// DEVELOPMENT_PLAN.md M-0.2: "Delete account" calls DELETE /users/me, and
+/// "Delete account" calls DELETE /users/me, and
 /// only after the server confirms does the app sign out and wipe the device.
 /// On any failure nothing local is touched.
 

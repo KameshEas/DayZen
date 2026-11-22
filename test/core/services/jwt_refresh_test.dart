@@ -10,7 +10,7 @@ import 'package:http/testing.dart';
 import 'package:dayzen/core/api/api_client.dart';
 import 'package:dayzen/core/services/jwt_auth_service.dart';
 
-/// Regression tests for docs/MOBILE_PROJECT_PLAN.md P0-3: a failed token
+/// Regression tests for audit item P0-3: a failed token
 /// refresh used to clear the session on *any* error, so opening the app
 /// offline near token expiry signed the user out.
 

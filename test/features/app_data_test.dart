@@ -20,8 +20,8 @@ class _FireableSettingsController extends SettingsController {
 }
 
 void main() {
-  // Phase 3.3 of docs/DEVELOPMENT_PLAN.md called for verifying, via the
-  // DevTools widget-rebuild profiler, that a settings change no longer
+  // Splitting the app-wide scope into per-controller scopes should mean,
+  // as the DevTools widget-rebuild profiler would show, that a settings change no longer
   // triggers task-list widget rebuilds. A live DevTools session isn't
   // available in this environment, so this widget test is the automated
   // substitute — and arguably a stronger, repeatable proof than a one-off

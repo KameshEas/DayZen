@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// DEVELOPMENT_PLAN.md M-0.1: the app must not call API paths the DayZen
+/// The app must not call API paths the DayZen
 /// service doesn't serve. It used to call about ten (/ai/*, /insights/*,
 /// /achievements, GET /journal/{id}) that all failed silently.
 ///

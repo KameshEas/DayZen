@@ -1,8 +1,9 @@
-﻿/// Helper to sync user settings between backend API and local SettingsController.
+/// Helper to sync user settings between backend API and local SettingsController.
 library;
 
 import 'package:flutter/material.dart';
 import 'user_service.dart';
+import '../domain/quiet_window.dart';
 import '../../features/settings/settings_controller.dart';
 import '../../core/logging/app_logger.dart';
 
@@ -21,8 +22,15 @@ Future<void> syncSettingsFromBackend(SettingsController controller) async {
     controller.setFontSize(settings.fontSize);
 
     // Update notification settings
-    controller.setQuietHours(settings.quietHoursEnabled);
-    controller.setFocusAlerts(settings.focusAlertsEnabled);
+    // Older servers only have the two legacy flags (reminders were on if
+    // either was on).
+    controller.setRemindersEnabled(settings.remindersEnabled ??
+        (settings.quietHoursEnabled || settings.focusAlertsEnabled));
+    final start = QuietWindow.parse(settings.quietStart);
+    final end = QuietWindow.parse(settings.quietEnd);
+    controller.setQuietWindow(start != null && end != null
+        ? QuietWindow(startMinutes: start, endMinutes: end)
+        : null);
 
     // Update units
     controller.setUse24Hour(settings.use24Hour);
@@ -49,8 +57,15 @@ Future<void> syncSettingsToBackend(SettingsController controller) async {
       themeMode: _themeModeToString(controller.themeMode),
       accentColor: controller.accent,
       fontSize: controller.fontSize,
-      quietHoursEnabled: controller.quietHours,
-      focusAlertsEnabled: controller.focusAlerts,
+      remindersEnabled: controller.remindersEnabled,
+      quietHoursEnabled: controller.quietWindow != null,
+      sendQuietWindow: true,
+      quietStart: controller.quietWindow == null
+          ? null
+          : QuietWindow.format(controller.quietWindow!.startMinutes),
+      quietEnd: controller.quietWindow == null
+          ? null
+          : QuietWindow.format(controller.quietWindow!.endMinutes),
       use24Hour: controller.use24Hour,
       metricUnits: controller.metricUnits,
       biometricEnabled: controller.biometricEnabled,

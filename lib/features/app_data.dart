@@ -5,7 +5,7 @@ import 'settings/settings_controller.dart';
 import 'notification_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Per-controller scopes (Phase 3.3 of docs/DEVELOPMENT_PLAN.md)
+// Per-controller scopes
 //
 // Replaces the single `AppData` InheritedWidget that used to wrap all six
 // controllers together. With one shared InheritedWidget, a widget calling
@@ -20,8 +20,7 @@ import 'notification_controller.dart';
 // Each `InheritedNotifier` below wraps exactly one controller. A widget
 // depending on `TaskScope` only rebuilds when `TaskController` itself calls
 // `notifyListeners()` — a `SettingsController` change is invisible to it.
-// See docs/ARCHITECTURE.md for the full rationale and a DevTools-based
-// verification note.
+// test/features/app_data_test.dart verifies this automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class TaskScope extends InheritedNotifier<TaskController> {

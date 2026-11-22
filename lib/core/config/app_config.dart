@@ -47,7 +47,7 @@ class AppConfig {
   static const int excellentScoreThreshold = 80;
   static const int goodScoreThreshold = 50;
 
-  static const String messageExcellent = 'Crushing it — keep the momentum going!';
+  static const String messageExcellent = 'Steady progress. Keep going at your pace.';
   static const String messageGood = 'Strong progress — you\'re building something.';
   static const String messageNeedImprovement = 'Push for better focus today.';
 
@@ -163,7 +163,7 @@ class AppConfig {
   static const String onboardingSlide2Badge = 'OFFLINE-FIRST, ALWAYS';
   static const String onboardingSlide3Title = 'Let\'s Build\nYour Streak';
   static const String onboardingSlide3Badge = 'YOUR DATA. YOUR DEVICE.';
-  static const String onboardingPrimaryCta = 'Start Crushing It';
+  static const String onboardingPrimaryCta = "Let's begin";
   static const String onboardingSecondaryCta = 'Enable Sync (Optional)';
 
   // ── Home Copy ────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ class AppConfig {
   static const String achievementsProgressHeader = 'Your Progress';
 
   // ── Settings Copy ────────────────────────────────────────────────────
-  static const String settingsFooter = 'DayZen Offline AI • Built around your privacy, always.';
+  static const String settingsFooter = 'DayZen • Private by default. Sync only if you choose.';
 
   // ── PIN Copy ─────────────────────────────────────────────────────────
   static const String pinSetupTitle = 'Lock In Your Privacy';

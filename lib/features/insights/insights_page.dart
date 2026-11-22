@@ -15,8 +15,7 @@ import 'widgets/insights_top_category_card.dart';
 import 'widgets/insights_weekly_completion_card.dart';
 
 /// InsightsPage — composes the individual card widgets under
-/// features/insights/widgets/. Split from a single 688-line file in
-/// Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
+/// features/insights/widgets/.
 class InsightsPage extends StatelessWidget {
   const InsightsPage({super.key});
 

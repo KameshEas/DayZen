@@ -108,8 +108,10 @@ Future<String> _bootstrap({
   // The permission prompt waits on the user, so never block startup on it.
   unawaited(NotificationService.instance.requestPermission());
 
-  final notificationsOn = settingsCtrl.quietHours || settingsCtrl.focusAlerts;
-  taskCtrl.setNotificationsEnabled(notificationsOn);
+  taskCtrl.applyReminderSettings(
+    enabled: settingsCtrl.remindersEnabled,
+    quietWindow: settingsCtrl.quietWindow,
+  );
 
   // Travel or a zone change while backgrounded moves every reminder's real
   // time; re-check the zone whenever the app comes back to the foreground.

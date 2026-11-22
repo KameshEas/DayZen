@@ -11,15 +11,15 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// All active (non soft-deleted) tasks, unordered — callers sort/filter
   /// as needed. Used by `TaskRepository.loadAll` to populate the in-memory
-  /// cache; see docs/DEVELOPMENT_PLAN.md Phase 2.5 for why a full in-memory
-  /// cache is still maintained on top of this DB-backed source of truth.
+  /// cache, kept on top of this DB-backed source of truth so the UI can read
+  /// synchronously.
   Future<List<TaskRow>> getAllActive() {
     return (select(tasks)..where((t) => t.deletedAt.isNull())).get();
   }
 
   /// Single-row insert. Replaces the old "rewrite entire list to
-  /// SharedPreferences" pattern — this is the actual fix for
-  /// docs/BASELINE_METRICS.md's headline scalability finding.
+  /// SharedPreferences" pattern, which rewrote every task on each change
+  /// and slowed down as the list grew.
   Future<void> insertTask(TasksCompanion task) {
     return into(tasks).insert(task, mode: InsertMode.insertOrReplace);
   }
@@ -99,8 +99,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   /// Indexed query on the `date` column (see `idx_tasks_date` on [Tasks]).
   /// Not yet wired into the UI — Phase 2.5 deliberately kept
   /// `TaskController.forDate` doing in-memory filtering over the already-
-  /// loaded cache for now (see docs/DEVELOPMENT_PLAN.md for the scoping
-  /// rationale). Available for Phase 4 to adopt via StreamBuilder.
+  /// loaded cache for now. Available to adopt via StreamBuilder later.
   Stream<List<TaskRow>> watchForDate(DateTime day) {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
