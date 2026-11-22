@@ -1,346 +1,236 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/domain/planner_dates.dart';
+import '../../core/routing/route_paths.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../home/models/task_model.dart';
+import 'planner_selection.dart';
+import 'widgets/planner_date_header.dart';
+import 'widgets/planner_timeline_view.dart';
+import 'widgets/planner_week_strip.dart';
 
+/// PlannerPage — composes PlannerTimelineView under features/planner/widgets/.
+///
+/// Browse any week from when you started using the app to two years ahead, and
+/// plan tasks on any of those days. The day being viewed lives in
+/// [PlannerSelection] so it survives tab switches and the centre "+" can use it.
 class PlannerPage extends StatefulWidget {
-  const PlannerPage({super.key});
+  const PlannerPage({super.key, this.selection});
+
+  /// Only for tests; the app always uses [PlannerSelection.instance].
+  final PlannerSelection? selection;
 
   @override
   State<PlannerPage> createState() => _PlannerPageState();
 }
 
 class _PlannerPageState extends State<PlannerPage> {
-  late DateTime _selectedDate;
-  late List<DateTime> _weekDays;
+
+  /// The day the app was first opened (null until read), the far end of the
+  /// calendar you can browse back to.
+  DateTime? _firstUse;
+
+  PlannerSelection get _selection => widget.selection ?? PlannerSelection.instance;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime.now();
-    _weekDays = _buildWeek(_selectedDate);
+    AppPrefs.firstUseDate().then((d) {
+      if (mounted && d != null) setState(() => _firstUse = d);
+    });
   }
 
-  List<DateTime> _buildWeek(DateTime anchor) {
-    // Show Mon–Sun (full week) so weekend tasks are also visible
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return List.generate(7, (i) => monday.add(Duration(days: i)));
+  /// The earliest day worth showing: the older of the first-use day and the
+  /// oldest task, so nothing you have ever planned falls outside the calendar.
+  DateTime? _earliest(List<DzTask> tasks) {
+    DateTime? oldest = _firstUse;
+    for (final t in tasks) {
+      if (oldest == null || t.date.isBefore(oldest)) oldest = t.date;
+    }
+    return oldest;
   }
+
+  Map<DateTime, DaySummary> _summaries(List<DzTask> tasks) {
+    final out = <DateTime, DaySummary>{};
+    for (final t in tasks) {
+      final prev = out[t.date] ?? (total: 0, done: 0);
+      out[t.date] = (total: prev.total + 1, done: prev.done + (t.isCompleted ? 1 : 0));
+    }
+    return out;
+  }
+
+  Future<void> _pickDate(PlannerRange range, DateTime selected) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selected,
+      firstDate: range.firstDay,
+      lastDate: range.lastDay,
+      helpText: 'Jump to a date',
+    );
+    if (picked != null) _selection.value = dayOnly(picked);
+  }
+
+  void _addTask(DateTime day) => context.push(RoutePaths.newTask, extra: day);
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: AppData.of(context).tasks,
+      listenable: Listenable.merge([TaskScope.of(context), _selection]),
       builder: (context, _) => _buildContent(context),
     );
   }
 
   Widget _buildContent(BuildContext context) {
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final taskCtrl = TaskScope.of(context);
+    final all = taskCtrl.all;
+    final today = dayOnly(DateTime.now());
+    final range = PlannerRange.from(today: today, earliest: _earliest(all));
+    final selected = range.clamp(_selection.value);
+    final dayTasks = taskCtrl.forDate(selected);
 
     return Column(
       children: [
-        // ── Date header ──────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              DzSpacing.md, DzSpacing.md, DzSpacing.md, DzSpacing.sm),
-          child: Row(
-            children: [
-              Text(
-                'Today,',
-                style: DzTextStyles.heading1,
-              ),
-              const SizedBox(width: DzSpacing.sm),
-              Text(
-                '${months[_selectedDate.month - 1]} ${_selectedDate.day}',
-                style: DzTextStyles.heading1.copyWith(color: DzColors.zenGreen),
-              ),
-            ],
-          ),
+        // ── Title + month controls ───────────────────────────────
+        PlannerDateHeader(
+          selected: selected,
+          today: today,
+          range: range,
+          onPickDate: () => _pickDate(range, selected),
+          onToday: () => _selection.reset(),
+          onShiftWeek: (dir) =>
+              _selection.value = range.clamp(addDays(selected, dir * 7)),
         ),
 
         // ── Week strip ───────────────────────────────────────────
-        SizedBox(
-          height: 80,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
-            itemCount: _weekDays.length,
-            separatorBuilder: (context, i) =>
-                const SizedBox(width: DzSpacing.sm),
-            itemBuilder: (context, i) {
-              final day = _weekDays[i];
-              final isSelected = day.day == _selectedDate.day &&
-                  day.month == _selectedDate.month;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedDate = day),
-                child: AnimatedContainer(
-                  duration: DzDuration.fast,
-                  width: 64,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : DzColors.cardBackground,
-                    borderRadius: BorderRadius.circular(DzRadius.card),
-                    boxShadow: isSelected ? DzShadows.soft : [],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        dayNames[day.weekday - 1],
-                        style: DzTextStyles.small.copyWith(
-                          color: isSelected
-                              ? DzColors.white.withValues(alpha: 0.8)
-                              : DzColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${day.day}',
-                        style: DzTextStyles.heading3.copyWith(
-                          color: isSelected
-                              ? DzColors.white
-                              : DzColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+        PlannerWeekStrip(
+          // A new first week (older tasks appeared) renumbers the pages: start afresh.
+          key: ValueKey(range.weekStart(0)),
+          range: range,
+          selected: selected,
+          today: today,
+          summaries: _summaries(all),
+          onSelect: (d) => _selection.value = dayOnly(d),
         ),
-        const SizedBox(height: DzSpacing.md),
+        const SizedBox(height: DzSpacing.sm),
+
+        // ── This day: how it stands, and add to it ────────────────
+        _DaySummaryRow(
+          tasks: dayTasks,
+          day: selected,
+          onAdd: () => _addTask(selected),
+        ),
 
         // ── Timeline ─────────────────────────────────────────────
         Expanded(
-          child: _TimelineView(
-            events: AppData.of(context)
-                .tasks
-                .forDate(_selectedDate)
-                .map(PlannerEvent.fromTask)
-                .toList(),
-            currentHour: DateTime.now().hour,
-            currentMinute: DateTime.now().minute,
-          ),
+          child: _buildTimeline(context, selected, today, dayTasks),
         ),
       ],
     );
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Timeline view
-// ─────────────────────────────────────────────────────────────────────────────
+  Widget _buildTimeline(
+    BuildContext context,
+    DateTime selected,
+    DateTime today,
+    List<DzTask> tasks,
+  ) {
+    final events = tasks.map(PlannerEvent.fromTask).toList();
 
-class _TimelineView extends StatelessWidget {
-  const _TimelineView({
-    required this.events,
-    required this.currentHour,
-    required this.currentMinute,
-  });
-
-  final List<PlannerEvent> events;
-  final int currentHour;
-  final int currentMinute;
-
-  static const double _hourHeight = 72.0;
-  static const int _startHour = 6;
-  static const int _endHour = 23;
-  static const double _timeColWidth = 52.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final totalHours = _endHour - _startHour;
-    final totalHeight = totalHours * _hourHeight;
-
-    // Current time position
-    final currentOffsetHours =
-        (currentHour - _startHour) + currentMinute / 60.0;
-    final currentY = currentOffsetHours * _hourHeight;
-    final showCurrentTime =
-        currentHour >= _startHour && currentHour < _endHour;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
-      child: SizedBox(
-        height: totalHeight + DzSpacing.xl,
-        child: Stack(
-          children: [
-            // ── Hour lines + labels ────────────────────────────
-            ...List.generate(totalHours + 1, (i) {
-              final hour = _startHour + i;
-              final y = i * _hourHeight;
-              return Positioned(
-                top: y,
-                left: 0,
-                right: 0,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: _timeColWidth,
-                      child: Text(
-                        '${hour.toString().padLeft(2, '0')}:00',
-                        style: DzTextStyles.small.copyWith(
-                          color: DzColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        margin: const EdgeInsets.only(top: 6),
-                        color: DzColors.borderLight,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-            // ── Events ────────────────────────────────────────
-            ...events.map((e) {
-              // Clamp events that start before the visible window
-              final clampedHour = e.hour.clamp(_startHour, _endHour - 1);
-              final clampedMinute = e.hour < _startHour ? 0 : e.minute;
-              final top =
-                  (clampedHour - _startHour + clampedMinute / 60.0) * _hourHeight;
-              final height =
-                  (e.durationMinutes / 60.0) * _hourHeight;
-
-              return Positioned(
-                top: top,
-                left: _timeColWidth,
-                right: 0,
-                child: _EventBlock(event: e, height: height),
-              );
-            }),
-
-            // ── Current time indicator ─────────────────────────
-            if (showCurrentTime)
-              Positioned(
-                top: currentY - 10,
-                left: 0,
-                right: 0,
-                child: Row(
-                  children: [
-                    Container(
-                      width: _timeColWidth - 4,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$currentHour:${currentMinute.toString().padLeft(2, '0')}',
-                        style: DzTextStyles.small.copyWith(
-                          color: DzColors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Container(
-                        height: 2,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+    if (events.isEmpty) {
+      final copy = _emptyCopy(selected, today);
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: DzSpacing.xl),
+          child: DzEmptyState(
+            icon: Icons.schedule_outlined,
+            illustration: copy.illustration,
+            title: copy.title,
+            subtitle: copy.body,
+            actionLabel: AppConfig.plannerEmptyAction,
+            onAction: () => _addTask(selected),
+          ),
         ),
-      ),
+      );
+    }
+
+    final now = DateTime.now();
+    return PlannerTimelineView(
+      key: ValueKey(selected),
+      events: events,
+      currentHour: now.hour,
+      currentMinute: now.minute,
+      showNow: isSameDay(selected, today),
     );
+  }
+
+  /// What an empty day says, depending on whether it is today, ahead, or behind.
+  static ({String title, String body, DzIllustration illustration}) _emptyCopy(
+    DateTime selected,
+    DateTime today,
+  ) {
+    if (isSameDay(selected, today)) {
+      return (
+        title: AppConfig.plannerEmptyTitle,
+        body: AppConfig.plannerEmptyBody,
+        illustration: DzIllustration.emptyDayToday,
+      );
+    }
+    final label = DateFormatter.formatDate(selected);
+    return selected.isAfter(today)
+        ? (
+            title: 'Nothing planned yet',
+            body: 'Plan ahead: add a task for $label.',
+            illustration: DzIllustration.emptyDayFuture,
+          )
+        : (
+            title: 'Nothing was planned',
+            body: 'You can still add a task to log $label.',
+            illustration: DzIllustration.emptyDayPast,
+          );
   }
 }
 
-class _EventBlock extends StatelessWidget {
-  const _EventBlock({required this.event, required this.height});
-  final PlannerEvent event;
-  final double height;
+/// "3 tasks · 1 done" for the selected day, with an add button. Shows the day it
+/// adds to, so it is clear a future date is being planned.
+class _DaySummaryRow extends StatelessWidget {
+  const _DaySummaryRow({required this.tasks, required this.day, required this.onAdd});
+  final List<DzTask> tasks;
+  final DateTime day;
+  final VoidCallback onAdd;
+
+  String get _summary {
+    if (tasks.isEmpty) return 'No tasks';
+    final done = tasks.where((t) => t.isCompleted).length;
+    final noun = tasks.length == 1 ? 'task' : 'tasks';
+    return '${tasks.length} $noun · $done done';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height.clamp(52.0, 200.0),
-      margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(
-        color: DzColors.cardBackground,
-        borderRadius: BorderRadius.circular(DzRadius.card),
-        boxShadow: DzShadows.soft,
-      ),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
       child: Row(
         children: [
-          // Accent bar
-          Container(
-            width: 4,
-            decoration: BoxDecoration(
-              color: event.accentColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(DzRadius.card),
-                bottomLeft: Radius.circular(DzRadius.card),
-              ),
-            ),
-          ),
-          const SizedBox(width: DzSpacing.sm),
-          // Icon
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: event.accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(event.icon, size: 16, color: event.accentColor),
-          ),
-          const SizedBox(width: DzSpacing.sm),
-          // Text
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  event.title,
-                  style: DzTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (event.subtitle.isNotEmpty)
-                  Text(
-                    event.subtitle,
-                    style: DzTextStyles.small.copyWith(
-                      color: DzColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+            child: Text(
+              _summary,
+              style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
-          if (event.isCompleted)
-            Padding(
-              padding: const EdgeInsets.only(right: DzSpacing.sm),
-              child: Icon(Icons.check_circle_rounded,
-                  color: DzColors.zenGreen, size: 18),
+          TextButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: Text('Add task', style: DzTextStyles.caption.copyWith(fontWeight: FontWeight.w600)),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, DzSizing.minTouchTarget),
+              foregroundColor: scheme.primary,
             ),
-          const SizedBox(width: DzSpacing.sm),
+          ),
         ],
       ),
     );

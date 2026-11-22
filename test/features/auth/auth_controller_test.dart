@@ -1,0 +1,374 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dayzen/features/auth/auth_controller.dart';
+import 'package:dayzen/core/services/jwt_auth_service.dart';
+
+/// A fake [JwtAuthService] whose sign-in/sign-up/reset results (or thrown
+/// error) are configured per test, so [AuthController]'s handling of each
+/// path can be exercised without a real backend.
+class _FakeJwtAuthService extends JwtAuthService {
+  bool signInResult = true;
+  bool signUpResult = true;
+  Object? throwOnNextCall;
+  String? reason;
+
+  @override
+  String? get lastError => reason;
+
+  @override
+  Future<bool> signIn({
+    required String email,
+    required String password,
+    required String apiBaseUrl,
+  }) async {
+    if (throwOnNextCall != null) throw throwOnNextCall!;
+    return signInResult;
+  }
+
+  @override
+  Future<bool> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required String apiBaseUrl,
+  }) async {
+    if (throwOnNextCall != null) throw throwOnNextCall!;
+    return signUpResult;
+  }
+
+  @override
+  Future<void> signOut() async {}
+}
+
+void main() {
+  group('JwtAuthService.messageForStatus', () {
+    String signUp(int status) =>
+        JwtAuthService.messageForStatus(status, signingUp: true);
+
+    test('says when the email is already registered', () {
+      expect(signUp(409), contains('already registered'));
+    });
+
+    test('says when the server is having trouble', () {
+      expect(signUp(500), contains('having trouble'));
+      expect(signUp(503), contains('having trouble'));
+    });
+
+    test('says when there have been too many attempts', () {
+      expect(signUp(429), contains('Too many attempts'));
+    });
+
+    test('says when the details were rejected', () {
+      expect(signUp(422), contains('check your name, email and password'));
+    });
+
+    test('says when accounts are unavailable', () {
+      expect(signUp(400), contains("aren't available"));
+      expect(signUp(404), contains("aren't available"));
+    });
+
+    test('words an unknown status for sign-up and sign-in separately', () {
+      expect(JwtAuthService.messageForStatus(418, signingUp: true),
+          contains('create your account'));
+      expect(JwtAuthService.messageForStatus(418, signingUp: false),
+          contains('sign you in'));
+    });
+
+    test('never blames the user for a connection problem', () {
+      expect(JwtAuthService.unreachableMessage, contains('Check your internet'));
+    });
+  });
+
+  late _FakeJwtAuthService fakeAuthService;
+  late AuthController controller;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    fakeAuthService = _FakeJwtAuthService();
+    controller = AuthController(authService: fakeAuthService);
+  });
+
+  tearDown(() {
+    controller.dispose();
+  });
+
+  group('AuthController - shows why sign-up and sign-in failed', () {
+    test('sign-up shows the reason the service gives', () async {
+      fakeAuthService
+        ..signUpResult = false
+        ..reason = 'That email is already registered. Try signing in instead.';
+
+      final ok = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(ok, false);
+      expect(controller.error, contains('already registered'));
+    });
+
+    test('sign-up falls back to the generic message with no reason', () async {
+      fakeAuthService.signUpResult = false;
+
+      await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, 'Failed to create account. Please try again.');
+    });
+
+    test('sign-in shows a connection problem instead of "incorrect password"',
+        () async {
+      fakeAuthService
+        ..signInResult = false
+        ..reason = JwtAuthService.unreachableMessage;
+
+      await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, JwtAuthService.unreachableMessage);
+    });
+
+    test('a wrong password still says so', () async {
+      fakeAuthService.signInResult = false;
+
+      await controller.signIn(
+        email: 'test@example.com',
+        password: 'wrong-password',
+        onSuccess: () {},
+      );
+
+      expect(controller.error, 'Incorrect email or password.');
+    });
+  });
+
+  group('AuthController - validation', () {
+    test('initial state has no error and is not loading', () {
+      expect(controller.isLoading, false);
+      expect(controller.error, null);
+    });
+
+    test('clearError clears the error state', () {
+      controller.signIn(
+        email: '',
+        password: '',
+        onSuccess: () {},
+      );
+      expect(controller.error, isNotNull);
+
+      controller.clearError();
+      expect(controller.error, null);
+    });
+
+    test('signIn with empty email returns error', () async {
+      final result = await controller.signIn(
+        email: '',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+
+    test('signIn with empty password returns error', () async {
+      final result = await controller.signIn(
+        email: 'test@example.com',
+        password: '',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+
+    test('signIn with both empty returns error', () async {
+      final result = await controller.signIn(
+        email: '',
+        password: '',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+
+    test('signUp with empty name returns error', () async {
+      final result = await controller.signUp(
+        fullName: '',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+
+    test('signUp with empty email returns error', () async {
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: '',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+
+    test('signUp with short password returns error', () async {
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: '1234567', // 7: one short of the minimum
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Password must be at least 8 characters.');
+    });
+
+    test('signUp accepts a password of exactly 8 characters', () async {
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: '12345678',
+        onSuccess: () {},
+      );
+
+      expect(result, true);
+      expect(controller.error, isNull);
+    });
+
+    test('signUp with empty password returns error', () async {
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: '',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Please fill in all fields.');
+    });
+  });
+
+  // AuthController talks to a REST backend now (not Firebase), so it no
+  // longer maps per-error-code messages -- every backend failure collapses
+  // to one of two generic messages depending on whether the auth service
+  // returned false (a handled failure) or threw (an unexpected one).
+  group('AuthController - backend failure handling', () {
+    test('signIn returning false shows the incorrect-credentials message', () async {
+      fakeAuthService.signInResult = false;
+      final result = await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Incorrect email or password.');
+    });
+
+    test('signIn throwing shows the generic unexpected-error message', () async {
+      fakeAuthService.throwOnNextCall = Exception('network down');
+      final result = await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'An unexpected error occurred. Please try again.');
+    });
+
+    test('signUp returning false shows the account-creation-failed message', () async {
+      fakeAuthService.signUpResult = false;
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'Failed to create account. Please try again.');
+    });
+
+    test('signUp throwing shows the generic unexpected-error message', () async {
+      fakeAuthService.throwOnNextCall = Exception('network down');
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(result, false);
+      expect(controller.error, 'An unexpected error occurred. Please try again.');
+    });
+  });
+
+  group('AuthController - success path', () {
+    test('signIn success clears loading and calls onSuccess', () async {
+      var successCalled = false;
+      final result = await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () => successCalled = true,
+      );
+
+      expect(result, true);
+      expect(successCalled, true);
+      expect(controller.isLoading, false);
+      expect(controller.error, null);
+    });
+
+    test('signUp success clears loading and calls onSuccess', () async {
+      var successCalled = false;
+      final result = await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () => successCalled = true,
+      );
+
+      expect(result, true);
+      expect(successCalled, true);
+      expect(controller.isLoading, false);
+      expect(controller.error, null);
+    });
+  });
+
+  group('AuthController - loading state', () {
+    test('signIn resets loading to false after completion', () async {
+      await controller.signIn(
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.isLoading, false);
+    });
+
+    test('signUp resets loading to false after completion', () async {
+      await controller.signUp(
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        onSuccess: () {},
+      );
+
+      expect(controller.isLoading, false);
+    });
+  });
+}

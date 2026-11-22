@@ -80,9 +80,9 @@ class _PadKey extends StatelessWidget {
     if (keyValue == '_back') {
       return _ActionCell(
         onTap: onBackspace,
-        child: const Icon(
+        child: Icon(
           Icons.backspace_rounded,
-          color: DzColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
           size: 22,
         ),
       );
@@ -94,7 +94,7 @@ class _PadKey extends StatelessWidget {
           onTap: onBiometrics!,
           child: Icon(
             Icons.fingerprint_rounded,
-            color: DzColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             size: 28,
           ),
         );
@@ -105,7 +105,7 @@ class _PadKey extends StatelessWidget {
           child: Text(
             leftLabel!,
             style: DzTextStyles.caption.copyWith(
-              color: DzColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
             ),
@@ -120,39 +120,76 @@ class _PadKey extends StatelessWidget {
       onTap: () => onDigit(keyValue),
       child: Text(
         keyValue,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'InterDisplay',
           fontSize: 26,
           fontWeight: FontWeight.w400,
-          color: DzColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
   }
 }
 
-class _ActionCell extends StatelessWidget {
+class _ActionCell extends StatefulWidget {
   const _ActionCell({required this.onTap, required this.child});
   final VoidCallback onTap;
   final Widget child;
 
   @override
+  State<_ActionCell> createState() => _ActionCellState();
+}
+
+class _ActionCellState extends State<_ActionCell>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pressController;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.90).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTapDown: (_) => _pressController.forward(),
+      onTapUp: (_) => _pressController.reverse(),
+      onTapCancel: () => _pressController.reverse(),
       onTap: () {
         HapticFeedback.lightImpact();
-        onTap();
+        widget.onTap();
       },
-      child: Container(
-        height: 76,
-        margin: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: DzColors.cardBackground,
-          borderRadius: BorderRadius.circular(DzRadius.card),
-          boxShadow: DzShadows.soft,
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (context, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
         ),
-        alignment: Alignment.center,
-        child: child,
+        child: Container(
+          height: 76,
+          margin: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(DzRadius.card),
+            boxShadow: DzShadows.soft,
+          ),
+          alignment: Alignment.center,
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -180,10 +217,13 @@ class DzPinDots extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? Theme.of(context).colorScheme.primary : const Color(0xFFD1DCF0),
+            color: isFilled ? Theme.of(context).colorScheme.primary : DzColors.pinDotUnfilled,
           ),
         );
       }),
     );
   }
 }
+
+
+

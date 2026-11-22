@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ backup / device-transfer rules.
+
+  flutter_secure_storage's data (JWT session, app-lock PIN hash) is protected
+  by a Keystore key that is never backed up, so a restored copy can't be
+  decrypted and the plugin wipes it (resetOnError). Excluding it keeps a
+  restore clean: the user signs in again and sets a new PIN.
+
+  Tasks and journal (SQLite in app_flutter/) are kept so a phone migration
+  doesn't lose them. Cloud backups are end-to-end encrypted with the device
+  screen lock on Android 9+.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+    </device-transfer>
+</data-extraction-rules>

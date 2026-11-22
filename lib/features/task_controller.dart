@@ -1,6 +1,11 @@
+import 'dart:async';
+import '../core/domain/quiet_window.dart';
+
 import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
+import '../core/domain/task_analytics.dart';
 import '../core/notification_service.dart';
+import '../core/services/sync_manager.dart';
 import 'home/models/task_model.dart';
 
 class TaskController extends ChangeNotifier {
@@ -16,6 +21,21 @@ class TaskController extends ChangeNotifier {
       NotificationService.instance.cancelAll();
     } else {
       NotificationService.instance.rescheduleAll(_tasks);
+    }
+  }
+
+  /// Applies the Settings reminder choices: on/off and quiet hours.
+  /// Re-schedules every reminder so the new window applies to existing ones.
+  void applyReminderSettings({required bool enabled, QuietWindow? quietWindow}) {
+    NotificationService.instance.quietWindow = quietWindow;
+    setNotificationsEnabled(enabled);
+  }
+
+  /// Re-creates all reminders (e.g. after the device time zone changed).
+  /// No-op when reminders are off.
+  Future<void> rescheduleNotifications() async {
+    if (_notificationsEnabled) {
+      await NotificationService.instance.rescheduleAll(_tasks);
     }
   }
 
@@ -43,120 +63,165 @@ class TaskController extends ChangeNotifier {
   }
 
   // ── Derived stats ─────────────────────────────────────────────────
+  // Thin delegates to TaskAnalytics (lib/core/domain/task_analytics.dart)
+  // — no business logic lives here as of Phase 3.1. Same names/signatures
+  // as before the extraction, so no UI call site changes.
 
   /// Completion fraction for [date] (0.0–1.0).
-  double completionFraction(DateTime date) {
-    final tasks = forDate(date);
-    if (tasks.isEmpty) return 0;
-    return tasks.where((t) => t.isCompleted).length / tasks.length;
-  }
+  double completionFraction(DateTime date) =>
+      TaskAnalytics.completionFraction(_tasks, date);
 
   /// Productivity score (0–100) for today.
-  int get todayScore =>
-      (completionFraction(DateTime.now()) * 100).round();
+  int get todayScore => TaskAnalytics.score(_tasks, DateTime.now());
 
   /// Sum of completed-task durations for today in minutes.
-  int get todayFocusMinutes {
-    int total = 0;
-    for (final t in forDate(DateTime.now()).where((t) => t.isCompleted)) {
-      final start = t.startTime.hour * 60 + t.startTime.minute;
-      final end = t.endTime.hour * 60 + t.endTime.minute;
-      if (end > start) total += end - start;
-    }
-    return total;
-  }
+  int get todayFocusMinutes =>
+      TaskAnalytics.focusMinutes(_tasks, DateTime.now());
 
-  String get todayFocusLabel {
-    final m = todayFocusMinutes;
-    if (m == 0) return '0m';
-    final h = m ~/ 60;
-    final mn = m % 60;
-    return h > 0 ? '${h}h ${mn}m' : '${mn}m';
-  }
+  String get todayFocusLabel =>
+      TaskAnalytics.focusLabel(_tasks, DateTime.now());
 
   /// Completion fractions for each day Mon–Sun of the week containing [anchor].
-  List<double> weekBarFractions(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return List.generate(
-        7, (i) => completionFraction(monday.add(Duration(days: i))));
-  }
+  List<double> weekBarFractions(DateTime anchor) =>
+      TaskAnalytics.weekBarFractions(_tasks, anchor);
 
   /// Count of completed tasks in the week containing [anchor].
-  int weekCompletedCount(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return forWeek(monday).where((t) => t.isCompleted).length;
-  }
+  int weekCompletedCount(DateTime anchor) =>
+      TaskAnalytics.weekCompletedCount(_tasks, anchor);
 
   /// Most-used priority this week (or null if no tasks).
-  TaskPriority? topPriority(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    final tasks = forWeek(monday);
-    if (tasks.isEmpty) return null;
-    final counts = <TaskPriority, int>{};
-    for (final t in tasks) {
-      counts[t.priority] = (counts[t.priority] ?? 0) + 1;
-    }
-    return counts.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
-        .key;
-  }
+  TaskPriority? topPriority(DateTime anchor) =>
+      TaskAnalytics.topPriority(_tasks, anchor);
 
   /// Zen tasks (mindfulness) this week.
-  List<DzTask> zenTasksThisWeek(DateTime anchor) {
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return forWeek(monday)
-        .where((t) => t.priority == TaskPriority.zen)
-        .toList();
-  }
+  List<DzTask> zenTasksThisWeek(DateTime anchor) =>
+      TaskAnalytics.zenTasksThisWeek(_tasks, anchor);
 
   // ── CRUD ──────────────────────────────────────────────────────────
 
   Future<void> load() async {
-    _tasks = await TaskRepository.load();
+    _tasks = await TaskRepository.loadAll();
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
     }
+    // Push anything left unsynced from the last session, pull server changes.
+    unawaited(syncWithServer());
   }
+
+  /// Sync tasks with server (background operation). Never throws; failed
+  /// changes stay dirty in SQLite and go out on the next sync.
+  Future<void> syncWithServer() => SyncManager.instance.requestSync(this);
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
-    await TaskRepository.save(_tasks);
+    // Single-row insert. Replaces the old "re-serialize and rewrite the
+    // entire task list" pattern.
+    await TaskRepository.insertTask(task);
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.scheduleForTask(task);
     }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> toggleTask(String id) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
     if (idx == -1) return;
-    _tasks[idx] = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
-    await TaskRepository.save(_tasks);
+    final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
+    _tasks[idx] = updatedTask;
+    await TaskRepository.updateTask(updatedTask);
     notifyListeners();
     // Cancel notification if completed; re-schedule if unchecked
     if (_notificationsEnabled) {
-      if (_tasks[idx].isCompleted) {
+      if (updatedTask.isCompleted) {
         await NotificationService.instance.cancelForTask(id);
       } else {
-        await NotificationService.instance.scheduleForTask(_tasks[idx]);
+        await NotificationService.instance.scheduleForTask(updatedTask);
       }
     }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
+  }
+
+  Future<void> updateTask(String id, DzTask updatedTask) async {
+    final idx = _tasks.indexWhere((t) => t.id == id);
+    if (idx == -1) return;
+    _tasks[idx] = updatedTask;
+    await TaskRepository.updateTask(updatedTask);
+    notifyListeners();
+    if (_notificationsEnabled) {
+      if (updatedTask.isCompleted) {
+        await NotificationService.instance.cancelForTask(id);
+      } else {
+        await NotificationService.instance.scheduleForTask(updatedTask);
+      }
+    }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
   }
 
   Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
-    await TaskRepository.save(_tasks);
+    // Soft delete (deleted_at set, row retained so sync can push the delete).
+    await TaskRepository.deleteTask(id);
     notifyListeners();
     if (_notificationsEnabled) {
       await NotificationService.instance.cancelForTask(id);
     }
+    // Queue for sync (fire-and-forget)
+    unawaited(SyncManager.instance.requestSync(this));
+  }
+
+  /// Applies changes pulled from the server. Unlike the CRUD methods above,
+  /// this writes rows clean and never requests another sync. A task with a
+  /// local edit still waiting to be pushed is left alone; that edit goes out
+  /// on the next sync and the server resolves it.
+  Future<void> applyServerChanges({
+    required List<DzTask> upserts,
+    required List<String> deletedIds,
+  }) async {
+    if (upserts.isEmpty && deletedIds.isEmpty) return;
+
+    for (final id in deletedIds) {
+      if (await TaskRepository.hasPendingChanges(id)) continue;
+      await TaskRepository.deleteFromServer(id);
+      _tasks.removeWhere((t) => t.id == id);
+      if (_notificationsEnabled) {
+        await NotificationService.instance.cancelForTask(id);
+      }
+    }
+
+    for (final task in upserts) {
+      if (await TaskRepository.hasPendingChanges(task.id)) continue;
+      await TaskRepository.upsertFromServer(task);
+      final idx = _tasks.indexWhere((t) => t.id == task.id);
+      if (idx == -1) {
+        _tasks.add(task);
+      } else {
+        _tasks[idx] = task;
+      }
+      if (_notificationsEnabled) {
+        if (task.isCompleted) {
+          await NotificationService.instance.cancelForTask(task.id);
+        } else {
+          await NotificationService.instance.scheduleForTask(task);
+        }
+      }
+    }
+
+    notifyListeners();
   }
 
   Future<void> clearAll() async {
     _tasks.clear();
-    await TaskRepository.save(_tasks);
+    // Hard delete every row — this is the one place that's actually
+    // destructive; everyday deletes go through deleteTask's soft delete.
+    await TaskRepository.clearAll();
     notifyListeners();
     await NotificationService.instance.cancelAll();
   }
 }
+
+

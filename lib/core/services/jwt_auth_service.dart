@@ -1,0 +1,532 @@
+/// JWT-based authentication service for managing tokens and auth state.
+library;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:async';
+import 'dart:convert';
+import '../logging/app_logger.dart';
+import '../config/app_config.dart';
+import '../security/secure_storage.dart';
+import 'package:http/http.dart' as http;
+
+/// JWT token model
+class JwtToken {
+  final String accessToken;
+  final String? refreshToken;
+  final DateTime? expiresAt;
+
+  JwtToken({
+    required this.accessToken,
+    this.refreshToken,
+    this.expiresAt,
+  });
+
+  bool get isExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
+  bool get isExpiringSoon => expiresAt != null && DateTime.now().add(const Duration(minutes: 5)).isAfter(expiresAt!);
+
+  Map<String, dynamic> toJson() => {
+    'accessToken': accessToken,
+    'refreshToken': refreshToken,
+    'expiresAt': expiresAt?.toIso8601String(),
+  };
+
+  factory JwtToken.fromJson(Map<String, dynamic> json) => JwtToken(
+    accessToken: json['accessToken'] as String,
+    refreshToken: json['refreshToken'] as String?,
+    expiresAt: json['expiresAt'] != null ? DateTime.parse(json['expiresAt'] as String) : null,
+  );
+}
+
+/// User model
+class AuthUser {
+  final String id;
+  final String email;
+  final String? name;
+
+  AuthUser({
+    required this.id,
+    required this.email,
+    this.name,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'email': email,
+    'name': name,
+  };
+
+  factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
+    id: json['id'] as String,
+    email: json['email'] as String,
+    name: json['name'] as String?,
+  );
+}
+
+/// Service for managing JWT authentication tokens and auth state.
+/// Tokens are stored securely in platform keychain/keystore.
+class JwtAuthService extends ChangeNotifier {
+  static const String _tokenKey = 'jwt_token';
+  static const String _userKey = 'auth_user';
+  static const String _refreshTokenKey = 'jwt_refresh_token';
+
+  /// The one auth service the whole app shares. Sign-in, the API client, the
+  /// settings screen and the greeting all read the same session; a separate
+  /// instance has no tokens and never sees a sign-in made elsewhere.
+  static final JwtAuthService instance = JwtAuthService();
+
+  /// [httpClient] and [storage] are injectable for tests.
+  JwtAuthService({http.Client? httpClient, FlutterSecureStorage? storage})
+      : _http = httpClient ?? http.Client(),
+        _storageOverride = storage;
+
+  final http.Client _http;
+  final FlutterSecureStorage? _storageOverride;
+
+  // Created on first use, so an instance that was never `initialize()`d can still
+  // save or clear a session instead of failing (and the failure being swallowed).
+  // The app-wide config (see secure_storage.dart): a second config here is
+  // what left the encrypted session on disk after sign-out.
+  late final FlutterSecureStorage _secureStorage =
+      _storageOverride ?? appSecureStorage;
+  JwtToken? _currentToken;
+  AuthUser? _currentUser;
+  bool _initialized = false;
+  Future<bool>? _refreshInFlight;
+
+  /// Get the currently authenticated user
+  AuthUser? get currentUser => _currentUser;
+
+  /// True while a session exists. The access token itself may have expired;
+  /// it is refreshed on demand. Requiring an unexpired token here made the
+  /// app report "signed out" whenever it was opened offline after expiry.
+  bool get isAuthenticated => _currentUser != null && _currentToken != null;
+
+  /// Get user ID
+  String? get userId => _currentUser?.id;
+
+  /// Get user email
+  String? get userEmail => _currentUser?.email;
+
+  /// Check if service is initialized
+  bool get isInitialized => _initialized;
+
+  String? _lastError;
+
+  /// Why the last [signIn] / [signUp] returned false, in words a person can act
+  /// on ("email already registered", "can't reach DayZen"...). Null after a
+  /// success and for a plain wrong password, which the caller words itself.
+  String? get lastError => _lastError;
+
+  /// Maps a failed auth response to a message for the user.
+  static String messageForStatus(int status, {required bool signingUp}) {
+    switch (status) {
+      case 409:
+        return 'That email is already registered. Try signing in instead.';
+      case 422:
+        return 'Please check your name, email and password and try again.';
+      case 429:
+        return 'Too many attempts. Please wait a few minutes and try again.';
+      case 400:
+      case 404:
+        return "DayZen accounts aren't available right now. Please try again later.";
+      default:
+        return status >= 500
+            ? 'DayZen is having trouble right now. Please try again in a moment.'
+            : (signingUp
+                ? "We couldn't create your account. Please try again."
+                : "We couldn't sign you in. Please try again.");
+    }
+  }
+
+  /// The message for a request that never got an answer (offline, DNS, timeout).
+  static const String unreachableMessage =
+      "Couldn't reach DayZen. Check your internet connection and try again.";
+
+  /// Initialize the auth service and restore previous session if available
+  Future<void> initialize() async {
+    try {
+      // Try to restore previous session from secure storage
+      final tokenJson = await _secureStorage.read(key: _tokenKey);
+      final userJson = await _secureStorage.read(key: _userKey);
+
+      if (tokenJson != null && userJson != null) {
+        try {
+          _currentToken = JwtToken.fromJson(jsonDecode(tokenJson));
+          _currentUser = AuthUser.fromJson(jsonDecode(userJson));
+
+          // Check if token needs refresh
+          if (_currentToken != null && _currentToken!.isExpiringSoon) {
+            await _refreshToken();
+          }
+        } catch (e) {
+          AppLogger.debug('Error restoring session: $e');
+          await _clearSession();
+        }
+      }
+
+      _initialized = true;
+      notifyListeners();
+    } catch (e) {
+      AppLogger.debug('Error initializing JwtAuthService: $e');
+      _initialized = true;
+      notifyListeners();
+    }
+  }
+
+  /// Sign in with email and password
+  /// Returns true on success, false on failure
+  Future<bool> signIn({
+    required String email,
+    required String password,
+    required String apiBaseUrl,
+  }) async {
+    _lastError = null;
+    try {
+      final url = Uri.parse('$apiBaseUrl/auth/login');
+
+      final response = await _http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.trim(),
+          'password': password,
+          'app_id': AppConfig.appId,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Parse token response (adjust field names based on your API)
+        final tokenData = data['data'] ?? data;
+
+        // Safely extract access token
+        final accessToken = (tokenData['access_token'] as String?) ??
+                           (tokenData['accessToken'] as String?) ??
+                           '';
+
+        // Safely extract refresh token (optional)
+        final refreshToken = (tokenData['refresh_token'] as String?) ??
+                            (tokenData['refreshToken'] as String?);
+
+        if (accessToken.isEmpty) {
+          AppLogger.debug('Sign in failed: No access token in response');
+          return false;
+        }
+
+        _currentToken = JwtToken(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          expiresAt: _parseTokenExpiry(accessToken),
+        );
+
+        // Parse user data
+        final userId = (tokenData['user_id'] as String?) ??
+                      (tokenData['userId'] as String?) ??
+                      '';
+
+        _currentUser = AuthUser(
+          id: userId,
+          email: (tokenData['email'] as String?) ?? email.trim(),
+          name: (tokenData['name'] as String?) ?? (tokenData['full_name'] as String?),
+        );
+
+        await _saveSession();
+        notifyListeners();
+        return true;
+      } else if (response.statusCode == 401) {
+        AppLogger.debug('Invalid credentials');
+        return false;
+      } else {
+        AppLogger.debug('Sign in failed: ${response.statusCode} - ${response.body}');
+        _lastError = messageForStatus(response.statusCode, signingUp: false);
+        return false;
+      }
+    } on TimeoutException catch (e) {
+      AppLogger.debug('Sign in timed out: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } on http.ClientException catch (e) {
+      AppLogger.debug('Sign in could not connect: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } catch (e) {
+      AppLogger.debug('Sign in error: $e');
+      return false;
+    }
+  }
+
+  /// Sign up with email and password
+  /// Returns true on success, false on failure
+  Future<bool> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required String apiBaseUrl,
+  }) async {
+    _lastError = null;
+    try {
+      final url = Uri.parse('$apiBaseUrl/auth/register');
+
+      final response = await _http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name.trim(),
+          'email': email.trim(),
+          'password': password,
+          'app_id': AppConfig.appId,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Parse token response
+        final tokenData = (data['data'] ?? data) as Map<String, dynamic>;
+        final accessToken = (tokenData['access_token'] as String?) ??
+            (tokenData['accessToken'] as String?) ??
+            '';
+        final userId = (tokenData['user_id'] as String?) ??
+            (tokenData['userId'] as String?) ??
+            '';
+        if (accessToken.isEmpty || userId.isEmpty) {
+          AppLogger.debug('Sign up: response had no token or user id');
+          _lastError = "We couldn't finish setting up your account. Please try signing in.";
+          return false;
+        }
+        _currentToken = JwtToken(
+          accessToken: accessToken,
+          refreshToken: (tokenData['refresh_token'] as String?) ??
+              (tokenData['refreshToken'] as String?),
+          expiresAt: _parseTokenExpiry(accessToken),
+        );
+
+        // Parse user data
+        _currentUser = AuthUser(
+          id: userId,
+          email: email.trim(),
+          name: name.trim(),
+        );
+
+        await _saveSession();
+        notifyListeners();
+        return true;
+      } else {
+        AppLogger.debug('Sign up failed: ${response.statusCode} - ${response.body}');
+        _lastError = messageForStatus(response.statusCode, signingUp: true);
+        return false;
+      }
+    } on TimeoutException catch (e) {
+      AppLogger.debug('Sign up timed out: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } on http.ClientException catch (e) {
+      AppLogger.debug('Sign up could not connect: $e');
+      _lastError = unreachableMessage;
+      return false;
+    } catch (e) {
+      AppLogger.debug('Sign up error: $e');
+      return false;
+    }
+  }
+
+  /// Refreshes the access token. Concurrent callers share one request
+  /// (single flight), so one refresh token is never spent twice.
+  Future<bool> _refreshToken() =>
+      _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+
+  /// Called by the API client after a 401: forces one refresh. Returns true
+  /// when a new access token is available and the request is worth retrying.
+  Future<bool> refreshAfterUnauthorized() async {
+    if (_currentToken == null) return false;
+    return _refreshToken();
+  }
+
+  /// The session is cleared only when the server definitively rejects the
+  /// refresh token (400/401/403). Network failures, timeouts and 5xx keep the
+  /// session: an offline-first app must not sign the user out because the
+  /// phone had no signal when it started (audit item P0-3).
+  Future<bool> _doRefresh() async {
+    final refreshToken = _currentToken?.refreshToken;
+    if (refreshToken == null) {
+      await _clearSession();
+      notifyListeners();
+      return false;
+    }
+
+    final http.Response response;
+    try {
+      response = await _http
+          .post(
+            Uri.parse('${AppConfig.apiBaseUrl}/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      AppLogger.debug('Token refresh could not reach the server; keeping session: $e');
+      return false;
+    }
+
+    if (response.statusCode == 200) {
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final tokenData = (data['data'] ?? data) as Map<String, dynamic>;
+        final access = (tokenData['access_token'] ?? tokenData['accessToken']) as String?;
+        if (access == null || access.isEmpty) {
+          AppLogger.debug('Token refresh: no access token in response; keeping session');
+          return false;
+        }
+        _currentToken = JwtToken(
+          accessToken: access,
+          refreshToken: (tokenData['refresh_token'] ?? tokenData['refreshToken']) as String? ??
+              refreshToken,
+          expiresAt: _parseTokenExpiry(access),
+        );
+        await _saveSession();
+        return true;
+      } catch (e) {
+        AppLogger.debug('Token refresh: unreadable response; keeping session: $e');
+        return false;
+      }
+    }
+
+    if (response.statusCode == 400 ||
+        response.statusCode == 401 ||
+        response.statusCode == 403) {
+      AppLogger.debug('Refresh token rejected (${response.statusCode}); signing out');
+      await _clearSession();
+      notifyListeners();
+      return false;
+    }
+
+    AppLogger.debug('Token refresh failed with ${response.statusCode}; keeping session');
+    return false;
+  }
+
+  /// Get valid access token, refreshing if necessary
+  Future<String?> getAccessToken() async {
+    if (_currentToken == null) {
+      return null;
+    }
+
+    if (_currentToken!.isExpiringSoon) {
+      await _refreshToken();
+    }
+
+    return _currentToken?.accessToken;
+  }
+
+  /// Get authentication headers for API requests
+  Future<Map<String, String>> getAuthHeaders() async {
+    final token = await getAccessToken();
+
+    if (token == null) {
+      return {};
+    }
+
+    return {
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  /// Sign out and clear session
+  ///
+  /// The local session is cleared first, so signing out always works, even
+  /// offline. Then the refresh token is revoked on the server (best effort):
+  /// otherwise it stays valid there until it expires.
+  Future<void> signOut() async {
+    final refreshToken = _currentToken?.refreshToken;
+    try {
+      await _clearSession();
+      notifyListeners();
+    } catch (e) {
+      AppLogger.debug('Sign out error: $e');
+    }
+    if (refreshToken != null) await _revokeOnServer(refreshToken);
+  }
+
+  Future<void> _revokeOnServer(String refreshToken) async {
+    try {
+      final response = await _http
+          .post(
+            Uri.parse('${AppConfig.apiBaseUrl}/auth/logout'),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-App-ID': AppConfig.appId,
+            },
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        AppLogger.debug('Server logout returned ${response.statusCode}');
+      }
+    } catch (e) {
+      AppLogger.debug('Server logout failed (token expires on its own): $e');
+    }
+  }
+
+  /// Save session to secure storage
+  Future<void> _saveSession() async {
+    try {
+      if (_currentToken != null) {
+        await _secureStorage.write(
+          key: _tokenKey,
+          value: jsonEncode(_currentToken!.toJson()),
+        );
+      }
+      if (_currentUser != null) {
+        await _secureStorage.write(
+          key: _userKey,
+          value: jsonEncode(_currentUser!.toJson()),
+        );
+      }
+    } catch (e) {
+      AppLogger.debug('Error saving session: $e');
+    }
+  }
+
+  /// Clear session from secure storage
+  Future<void> _clearSession() async {
+    try {
+      _currentToken = null;
+      _currentUser = null;
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _userKey);
+      await _secureStorage.delete(key: _refreshTokenKey);
+    } catch (e) {
+      AppLogger.debug('Error clearing session: $e');
+    }
+  }
+
+  /// Parse expiry time from JWT token
+  /// JWT tokens have exp claim in payload (2nd part)
+  DateTime? _parseTokenExpiry(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      // Decode payload (add padding if necessary)
+      var payload = parts[1];
+      final padding = (4 - payload.length % 4) % 4;
+      payload += '=' * padding;
+
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final json = jsonDecode(decoded) as Map<String, dynamic>;
+
+      if (json.containsKey('exp')) {
+        final expiration = DateTime.fromMillisecondsSinceEpoch(
+          (json['exp'] as int) * 1000,
+        );
+        return expiration;
+      }
+    } catch (e) {
+      AppLogger.debug('Error parsing token expiry: $e');
+    }
+    return null;
+  }
+}

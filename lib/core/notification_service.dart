@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../features/home/models/task_model.dart';
+import 'domain/quiet_window.dart';
+import './logging/app_logger.dart';
 
 /// Handles scheduling and cancelling local notifications for planned tasks.
 class NotificationService {
@@ -11,15 +15,26 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
+  /// Reminders that would fire inside this window aren't scheduled (null =
+  /// no quiet hours). Set from Settings; call [rescheduleAll] after changing
+  /// it so already-scheduled reminders follow the new window.
+  QuietWindow? quietWindow;
+
+  /// Whether a reminder at [when] should actually be delivered.
+  @visibleForTesting
+  static bool allowedAt(DateTime when, QuietWindow? window) =>
+      window == null || !window.contains(when.hour, when.minute);
+
   // ── Initialise ────────────────────────────────────────────────────────
 
   Future<void> init() async {
     if (_initialized) return;
 
     tz.initializeTimeZones();
-    final localTz = tz.local;
-    // Use device-local timezone (falls back to UTC if unknown)
-    tz.setLocalLocation(localTz);
+    // `tz.local` is UTC until set explicitly. Without this every reminder
+    // fired at the task's wall-clock time *in UTC* (e.g. 14:30 instead of
+    // 09:00 in IST). Audit item P0-2.
+    await refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwinSettings = DarwinInitializationSettings(
@@ -39,6 +54,52 @@ class NotificationService {
     );
     _initialized = true;
   }
+
+  // ── Time zone ─────────────────────────────────────────────────────────
+
+  /// Points `tz.local` at the device's current zone. Returns true when it
+  /// changed (travel, DST-region switch), so callers know to reschedule.
+  Future<bool> refreshTimeZone() async {
+    String? name;
+    try {
+      name = (await FlutterTimezone.getLocalTimezone()).identifier;
+    } catch (e) {
+      AppLogger.warning('Could not read device time zone: $e');
+    }
+    final location = resolveLocation(name);
+    if (location.name == tz.local.name) return false;
+    tz.setLocalLocation(location);
+    AppLogger.debug('NotificationService: time zone set to ${location.name}');
+    return true;
+  }
+
+  /// The tz location for an IANA [name]. When the name is missing or not in
+  /// the bundled database, falls back to a zone whose current offset matches
+  /// the device clock, so reminders still fire at the right local time.
+  @visibleForTesting
+  static tz.Location resolveLocation(String? name, {Duration? deviceOffset}) {
+    if (name != null) {
+      try {
+        return tz.getLocation(name);
+      } catch (_) {}
+    }
+    final offset = deviceOffset ?? DateTime.now().timeZoneOffset;
+    for (final location in tz.timeZoneDatabase.locations.values) {
+      if (location.currentTimeZone.offset == offset) return location;
+    }
+    return tz.UTC;
+  }
+
+  /// When [task] starts, in the device's local zone.
+  @visibleForTesting
+  static tz.TZDateTime taskStart(DzTask task) => tz.TZDateTime(
+        tz.local,
+        task.date.year,
+        task.date.month,
+        task.date.day,
+        task.startTime.hour,
+        task.startTime.minute,
+      );
 
   // ── Request permission (Android 13+) ──────────────────────────────────
 
@@ -61,19 +122,26 @@ class NotificationService {
     if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    final taskDateTime = tz.TZDateTime(
-      tz.local,
-      task.date.year,
-      task.date.month,
-      task.date.day,
-      task.startTime.hour,
-      task.startTime.minute,
-    );
+    final taskDateTime = taskStart(task);
+    // Build timezone-aware datetimes
+    const preReminderMinutes = 5;
+    final preDateTime = taskDateTime.subtract(const Duration(minutes: preReminderMinutes));
 
-    // Don't schedule if the time has already passed
-    if (taskDateTime.isBefore(now)) return;
+    // Don't schedule notifications in the past, or inside quiet hours.
+    final shouldScheduleOnTime =
+        taskDateTime.isAfter(now) && allowedAt(taskDateTime, quietWindow);
+    final shouldSchedulePre =
+        preDateTime.isAfter(now) && allowedAt(preDateTime, quietWindow);
 
-    final notifId = task.id.hashCode.abs() % 0x7FFFFFFF; // keep within 32-bit int
+    AppLogger.debug('NotificationService: scheduling task ${task.id}');
+    AppLogger.debug(' - now: $now');
+    AppLogger.debug(' - preDateTime: $preDateTime (will schedule: $shouldSchedulePre)');
+    AppLogger.debug(' - taskDateTime: $taskDateTime (will schedule: $shouldScheduleOnTime)');
+
+    // Deterministic, non-colliding IDs: use a compact base and map to two ids
+    final base = task.id.hashCode.abs() % 0x3FFFFFFF; // keep base small
+    final onTimeId = (base * 2) % 0x7FFFFFFF;
+    final preId = (base * 2 + 1) % 0x7FFFFFFF;
 
     final priorityEmoji = switch (task.priority) {
       TaskPriority.high => '🔴',
@@ -82,38 +150,107 @@ class NotificationService {
       TaskPriority.low => '🔵',
     };
 
-    await _plugin.zonedSchedule(
-      id: notifId,
-      title: '$priorityEmoji ${task.title}',
-      body: 'Scheduled for ${task.timeRange}',
-      scheduledDate: taskDateTime,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'dayzen_tasks',
-          'Task Reminders',
-          channelDescription: 'Notifications for your planned activities',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'dayzen_tasks',
+        'Task Reminders',
+        channelDescription: 'Notifications for your planned activities',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
       ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      matchDateTimeComponents: null,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
     );
+
+    // A skipped reminder may still be scheduled from before (the task was
+    // moved into quiet hours, or the window changed): cancel it.
+    if (!shouldSchedulePre) await _plugin.cancel(id: preId);
+    if (!shouldScheduleOnTime) await _plugin.cancel(id: onTimeId);
+
+    // Schedule pre-reminder 5 minutes before (if in future)
+    if (shouldSchedulePre) {
+      await _plugin.zonedSchedule(
+        id: preId,
+        title: '$priorityEmoji ${task.title} — Upcoming',
+        body: 'Starting in $preReminderMinutes minutes',
+        scheduledDate: preDateTime,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+      );
+      AppLogger.debug('NotificationService: scheduled pre-reminder id=$preId at $preDateTime');
+    }
+
+    // Schedule on-time reminder
+    if (shouldScheduleOnTime) {
+      await _plugin.zonedSchedule(
+        id: onTimeId,
+        title: '$priorityEmoji ${task.title}',
+        body: 'Scheduled for ${task.timeRange}',
+        scheduledDate: taskDateTime,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+      );
+      AppLogger.debug('NotificationService: scheduled on-time id=$onTimeId at $taskDateTime');
+    }
   }
 
   // ── Cancel a single task's notification ───────────────────────────────
 
   Future<void> cancelForTask(String taskId) async {
     if (!_initialized) return;
-    final notifId = taskId.hashCode.abs() % 0x7FFFFFFF;
-    await _plugin.cancel(id: notifId);
+    final base = taskId.hashCode.abs() % 0x3FFFFFFF;
+    final onTimeId = (base * 2) % 0x7FFFFFFF;
+    final preId = (base * 2 + 1) % 0x7FFFFFFF;
+    await _plugin.cancel(id: onTimeId);
+    AppLogger.debug('NotificationService: cancelled on-time id=$onTimeId for task $taskId');
+    await _plugin.cancel(id: preId);
+    AppLogger.debug('NotificationService: cancelled pre-reminder id=$preId for task $taskId');
+  }
+
+  /// Send an immediate notification (useful for debugging).
+  Future<void> showImmediateNotification({
+    int id = 0,
+    required String title,
+    required String body,
+  }) async {
+    if (!_initialized) return;
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'dayzen_tasks',
+        'Task Reminders',
+        channelDescription: 'Notifications for your planned activities',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+    );
+  }
+
+  /// Return pending notification requests (debugging helper).
+  Future<List<PendingNotificationRequest>> pendingRequests() async {
+    if (!_initialized) return <PendingNotificationRequest>[];
+    return await _plugin.pendingNotificationRequests();
   }
 
   // ── Cancel all notifications ──────────────────────────────────────────
@@ -145,3 +282,4 @@ class NotificationService {
     }
   }
 }
+

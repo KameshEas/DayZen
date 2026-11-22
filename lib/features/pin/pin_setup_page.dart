@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
+import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/pin_pad.dart';
 
@@ -38,9 +42,13 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
   Future<void> _confirm() async {
     if (_pin.length < _pinLength) {
-      setState(() => _errorMessage = 'Please enter all 4 digits.');
+      setState(() => _errorMessage = AppConfig.pinSetupError);
       return;
     }
+    // The PIN never leaves the device. Its hash used to be synced to the
+    // backend, but a 4-digit PIN has only 10,000 values, so anyone with
+    // server access could recover it instantly from hash + salt
+    // (audit item P0-4).
     await AppPrefs.savePin(_pin);
     if (mounted) widget.onPinSet(context);
   }
@@ -48,7 +56,6 @@ class _PinSetupPageState extends State<PinSetupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DzColors.appBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
@@ -71,16 +78,23 @@ class _PinSetupPageState extends State<PinSetupPage> {
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    color: Theme.of(context).colorScheme.primary,
-                    onPressed: () => Navigator.of(context).maybePop(),
+                  Semantics(
+                    label: 'Go back',
+                    button: true,
+                    enabled: true,
+                    onTap: () => context.pop(),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: Theme.of(context).colorScheme.primary,
+                      tooltip: 'Back',
+                      onPressed: () => context.pop(),
+                    ),
                   ),
                   Text(
-                    'Secure Your Space',
+                    AppConfig.pinSetupTitle,
                     style: DzTextStyles.heading3.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: DzColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -94,7 +108,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
               width: 72,
               height: 72,
               decoration: const BoxDecoration(
-                color: Color(0xFFDDE8F8),
+                color: DzColors.primaryTint,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -107,13 +121,13 @@ class _PinSetupPageState extends State<PinSetupPage> {
             const SizedBox(height: DzSpacing.lg),
 
             // ── Heading ────────────────────────────────────────────
-            Text('Create your PIN', style: DzTextStyles.heading1),
+            const Text('Create your PIN', style: DzTextStyles.heading1),
             const SizedBox(height: DzSpacing.sm),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: DzSpacing.xl),
               child: Text(
-                'Choose a 4-digit code to keep your personal data and daily journal private.',
-                style: DzTextStyles.body.copyWith(color: DzColors.textSecondary),
+                AppConfig.pinSetupBody,
+                style: DzTextStyles.body.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -162,13 +176,13 @@ class _PinSetupPageState extends State<PinSetupPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.shield_rounded,
-                    size: 14, color: DzColors.textSecondary),
+                Icon(Icons.shield_rounded,
+                    size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: DzSpacing.xs),
                 Text(
-                  'Your data stays encrypted on device',
+                  AppConfig.pinSetupFooter,
                   style: DzTextStyles.caption.copyWith(
-                    color: DzColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -184,3 +198,5 @@ class _PinSetupPageState extends State<PinSetupPage> {
     );
   }
 }
+
+
