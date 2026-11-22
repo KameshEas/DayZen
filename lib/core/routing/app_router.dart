@@ -20,7 +20,6 @@ import '../../features/shell/main_shell.dart';
 import '../../features/splash/splash_page.dart';
 import '../../features/home/models/task_model.dart';
 import '../../features/tasks/new_task_page.dart';
-import '../../features/tasks/task_detail_page.dart';
 import '../../features/journal/journal_detail_page.dart';
 import 'route_paths.dart';
 
@@ -177,16 +176,6 @@ class AppRouter {
           path: RoutePaths.settings,
           name: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
-        ),
-
-        // ── Task detail ────────────────────────────────────────────────
-        GoRoute(
-          path: RoutePaths.taskDetail,
-          name: RouteNames.taskDetail,
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return TaskDetailPage(taskId: id);
-          },
         ),
 
         // ── Journal detail ────────────────────────────────────────────
