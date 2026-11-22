@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/data/day_close_repository.dart';
+import '../../core/domain/reflection_draft.dart';
 import '../../core/utils/ids.dart';
 import '../home/models/task_model.dart';
 import '../journal/models/journal_entry.dart';
@@ -62,6 +63,10 @@ class DayCloseController extends ChangeNotifier {
   bool get canUndo => _undo.isNotEmpty;
 
   int _carriedThisSession = 0;
+  final List<String> _carriedTitles = [];
+
+  /// True when [note] holds the auto-draft (M-3.1), not the user's words.
+  bool noteIsDraft = false;
 
   JournalMood? mood;
   String note = '';
@@ -137,7 +142,10 @@ class DayCloseController extends ChangeNotifier {
     final current = tasks.taskById(task.id) ?? task;
     await apply();
     _undo.add(_UndoEntry(current, action));
-    if (action == CloseAction.carried) _carriedThisSession++;
+    if (action == CloseAction.carried) {
+      _carriedThisSession++;
+      _carriedTitles.add(current.title);
+    }
     _queue.removeWhere((t) => t.id == task.id);
     notifyListeners();
   }
@@ -147,7 +155,10 @@ class DayCloseController extends ChangeNotifier {
     if (_undo.isEmpty) return;
     final last = _undo.removeLast();
     await tasks.updateTask(last.before.id, last.before);
-    if (last.action == CloseAction.carried) _carriedThisSession--;
+    if (last.action == CloseAction.carried) {
+      _carriedThisSession--;
+      _carriedTitles.remove(last.before.title);
+    }
     _queue = _openTasks();
     if (_step != CloseStep.review) _step = CloseStep.review;
     notifyListeners();
@@ -162,7 +173,45 @@ class DayCloseController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void continueFromMood() => _go(CloseStep.note);
+  /// Moves to the note step, pre-filling a draft from the day's facts when
+  /// nothing has been written yet (M-3.1). The user edits or clears it.
+  void continueFromMood() {
+    if (note.trim().isEmpty) {
+      note = draftNote();
+      noteIsDraft = note.isNotEmpty;
+    }
+    _go(CloseStep.note);
+  }
+
+  /// The evening auto-draft for this day.
+  String draftNote() {
+    const rank = {
+      TaskPriority.high: 0,
+      TaskPriority.zen: 1,
+      TaskPriority.routine: 2,
+      TaskPriority.low: 3,
+    };
+    final today = tasks.forDate(_day);
+    final done = today.where((t) => t.status == TaskStatus.done).toList()
+      ..sort((a, b) => rank[a.priority]!.compareTo(rank[b.priority]!));
+    return ReflectionDraft.draft(
+      DayFacts(
+        done: [for (final t in done) t.title],
+        carried: List.of(_carriedTitles),
+        letGo: [
+          for (final t in today)
+            if (t.status == TaskStatus.released) t.title,
+        ],
+      ),
+      seed: _day.year * 400 + _day.month * 31 + _day.day,
+    );
+  }
+
+  /// Called when the user types in the note.
+  void editNote(String value) {
+    note = value;
+    noteIsDraft = false;
+  }
 
   void back() {
     switch (_step) {
