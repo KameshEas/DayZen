@@ -8,6 +8,7 @@ import '../../../core/data/day_close_repository.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../core/services/counters_service.dart';
+import '../../../core/services/moments_service.dart';
 import '../../close_day/day_close_controller.dart';
 
 /// Home entry points for Close the Day (plan M-1.10 / M-1.8):
@@ -30,15 +31,29 @@ class CloseDayHomeCard extends StatefulWidget {
 class _CloseDayHomeCardState extends State<CloseDayHomeCard> {
   static const _promptCountedKey = 'close_prompt_counted_day';
 
-  late Future<({DayCloseRecord? closed, bool whatsNew})> _state = _load();
+  late Future<({DayCloseRecord? closed, bool whatsNew, bool firstEvening})> _state =
+      _load();
 
   DayCloseStore get _store => widget.store ?? const DayCloseRepository();
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
-  Future<({DayCloseRecord? closed, bool whatsNew})> _load() async => (
-        closed: await _store.forDay(_now()),
-        whatsNew: await AppPrefs.shouldShowWhatsNewCloseDay(),
-      );
+  Future<({DayCloseRecord? closed, bool whatsNew, bool firstEvening})> _load() async {
+    final first = await AppPrefs.firstUseDate();
+    final firstEvening = first != null &&
+        MomentsService.dueOnHome(
+          firstUse: first,
+          now: _now(),
+          fired: await MomentsService.fired(),
+          signedIn: true,
+        ).contains(Moment.firstCloseInvite);
+    // Day 0 evening invite (M-3.4): fires once.
+    if (firstEvening) await MomentsService.markFired(Moment.firstCloseInvite);
+    return (
+      closed: await _store.forDay(_now()),
+      whatsNew: await AppPrefs.shouldShowWhatsNewCloseDay(),
+      firstEvening: firstEvening,
+    );
+  }
 
   Future<void> _open({bool fromWhatsNew = false}) async {
     if (fromWhatsNew) await AppPrefs.markWhatsNewCloseDaySeen();
@@ -74,7 +89,7 @@ class _CloseDayHomeCardState extends State<CloseDayHomeCard> {
           if (data.closed != null)
             _closed(context, data.closed!)
           else if (evening)
-            _prompt(context),
+            _prompt(context, firstEvening: data.firstEvening),
         ];
         if (children.isEmpty) return const SizedBox.shrink();
         if (data.closed == null && evening) _countPrompt();
@@ -93,7 +108,7 @@ class _CloseDayHomeCardState extends State<CloseDayHomeCard> {
     );
   }
 
-  Widget _prompt(BuildContext context) {
+  Widget _prompt(BuildContext context, {bool firstEvening = false}) {
     final scheme = Theme.of(context).colorScheme;
     return DzCard(
       onTap: _open,
@@ -115,9 +130,12 @@ class _CloseDayHomeCardState extends State<CloseDayHomeCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(CloseDayCopy.homeCardTitle,
+                Text(
+                    firstEvening
+                        ? CloseDayCopy.firstEveningTitle
+                        : CloseDayCopy.homeCardTitle,
                     style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w700)),
-                Text(CloseDayCopy.homeCardBody,
+                Text(firstEvening ? CloseDayCopy.firstEveningBody : CloseDayCopy.homeCardBody,
                     style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant)),
               ],
             ),

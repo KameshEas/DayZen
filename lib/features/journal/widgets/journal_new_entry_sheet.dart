@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+import '../../../core/utils/ids.dart';
+import 'pin_offer.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
 import '../models/journal_entry.dart';
@@ -118,15 +120,20 @@ class _JournalNewEntrySheetState extends State<JournalNewEntrySheet> {
                   return;
                 }
                 final entry = JournalEntry(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  // Unique across users: the server keys entries by id alone.
+                  id: newId('journal'),
                   title: title,
                   body: body.isEmpty ? '' : body,
                   mood: _selectedMood,
                   timestamp: DateTime.now(),
                   accentColor: _selectedMood.iconColor,
                 );
-                JournalScope.of(context).addEntry(entry);
-                Navigator.of(context).pop();
+                final journal = JournalScope.of(context);
+                final nav = Navigator.of(context);
+                journal.addEntry(entry);
+                nav.pop();
+                // First entry: offer a PIN once (M-3.4).
+                maybeOfferPin(nav.context, journalEntries: journal.all.length);
               },
             ),
           ],

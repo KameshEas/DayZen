@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/app_prefs.dart';
+import '../../core/services/moments_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
@@ -18,8 +20,17 @@ import 'widgets/insights_weekly_completion_card.dart';
 
 /// InsightsPage — composes the individual card widgets under
 /// features/insights/widgets/.
-class InsightsPage extends StatelessWidget {
+class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
+
+  @override
+  State<InsightsPage> createState() => _InsightsPageState();
+}
+
+class _InsightsPageState extends State<InsightsPage> {
+  /// Read once per visit: whether Insights is still locked (before day 7).
+  late final Future<int> _unlocksIn = AppPrefs.firstUseDate().then(
+      (first) => MomentsService.insightsUnlocksIn(firstUse: first, now: DateTime.now()));
 
   // The centre button floats over the bottom of the list; without this the last
   // card would sit underneath it.
@@ -27,6 +38,13 @@ class InsightsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<int>(
+      future: _unlocksIn,
+      builder: (context, snap) => _content(context, snap.data ?? 0),
+    );
+  }
+
+  Widget _content(BuildContext context, int unlocksIn) {
     return ListenableBuilder(
       listenable:
           Listenable.merge([TaskScope.of(context), JournalScope.of(context)]),
@@ -54,6 +72,8 @@ class InsightsPage extends StatelessWidget {
                 actionLabel: AppConfig.insightsEmptyAction,
                 onAction: () => context.push(RoutePaths.newTask),
               )
+            else if (unlocksIn > 0)
+              _UnlockCard(daysLeft: unlocksIn)
             else ...[
               const WeekStoryCard(),
               InsightsProductivityScoreCard(data: d),
@@ -89,6 +109,55 @@ class InsightsPage extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Before day 7 (plan M-3.4): what Insights will show, instead of thin
+/// charts, plus the Milestones that are already there.
+class _UnlockCard extends StatelessWidget {
+  const _UnlockCard({required this.daysLeft});
+  final int daysLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        DzCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.hourglass_bottom_rounded, color: scheme.primary),
+              const SizedBox(height: DzSpacing.sm),
+              Semantics(
+                header: true,
+                child: Text(
+                  daysLeft == 1 ? 'Insights unlock tomorrow' : 'Insights unlock in $daysLeft days',
+                  style: DzTextStyles.heading3,
+                ),
+              ),
+              const SizedBox(height: DzSpacing.xs),
+              Text(
+                'A week of use gives DayZen enough to show you real patterns: '
+                'your week in one card, your sharpest hours, and what lifts you.',
+                style: DzTextStyles.body.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: DzSpacing.md),
+        DzCard(
+          onTap: () => context.push(RoutePaths.achievements),
+          child: const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Text('🌿', style: TextStyle(fontSize: 24)),
+            title: Text('Milestones'),
+            subtitle: Text('Small markers that only ever go up.'),
+            trailing: Icon(Icons.chevron_right_rounded),
+          ),
+        ),
+      ],
     );
   }
 }
