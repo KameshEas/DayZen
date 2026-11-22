@@ -35,7 +35,7 @@ class PreviewStep extends StatelessWidget {
     final today = c.todayPlan;
     final tomorrow = c.tomorrowPlan;
     final prior = c.prior ?? RhythmPrior.notSure;
-    final now = DateTime.now();
+    final now = c.now;
     final load = DayLoad.compute(today: now, tasks: [
       for (final t in existingTasks) loadTaskOf(t),
       for (final p in today)
@@ -101,12 +101,17 @@ class _TomorrowRow extends StatelessWidget {
                 style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant)),
           ),
           Expanded(
-            child: Text(planned.draft.title,
-                style: DzTextStyles.body, overflow: TextOverflow.ellipsis),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(planned.draft.title,
+                    style: DzTextStyles.body, overflow: TextOverflow.ellipsis),
+                if (planned.movedToTomorrow)
+                  Text(OnboardingV2Copy.previewMovedNote,
+                      style: DzTextStyles.small.copyWith(color: scheme.onSurfaceVariant)),
+              ],
+            ),
           ),
-          if (planned.movedToTomorrow)
-            Text(OnboardingV2Copy.previewMovedNote,
-                style: DzTextStyles.small.copyWith(color: scheme.onSurfaceVariant)),
         ],
       ),
     );

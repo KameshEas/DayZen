@@ -47,6 +47,9 @@ class OnboardingController extends ChangeNotifier {
   final OnboardingEffects effects;
   final DateTime Function() _clock;
 
+  /// The controller's notion of now (injectable for tests and goldens).
+  DateTime get now => _clock();
+
   OnboardingStep _step = OnboardingStep.welcome;
   OnboardingStep get step => _step;
 
