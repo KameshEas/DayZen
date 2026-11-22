@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/routing/route_paths.dart';
+import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
+import '../home/models/task_model.dart';
+import '../task_controller.dart';
 
 class TaskDetailPage extends StatelessWidget {
   const TaskDetailPage({
@@ -14,15 +19,37 @@ class TaskDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final taskCtrl = TaskScope.of(context);
-    final tasks = taskCtrl.all;
-    final task = tasks.isEmpty ? null : tasks.cast<dynamic>().fold(
-      null,
-      (prev, t) => (t.id as String) == taskId ? t : prev,
+    // Rebuild on every task change (toggling complete below, or the task
+    // being edited/removed elsewhere) — a plain read here would leave the
+    // checkbox showing stale state after tapping it.
+    return ListenableBuilder(
+      listenable: taskCtrl,
+      builder: (context, _) => _buildBody(context, taskCtrl),
     );
+  }
+
+  Widget _buildBody(BuildContext context, TaskController taskCtrl) {
+    DzTask? task;
+    for (final t in taskCtrl.all) {
+      if (t.id == taskId) {
+        task = t;
+        break;
+      }
+    }
 
     return DzAuthScaffold(
-      appBar: const DzAppBar(
+      appBar: DzAppBar(
         title: 'Task Details',
+        actions: task == null
+            ? null
+            : [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit task',
+                  onPressed: () =>
+                      context.push(RoutePaths.newTask, extra: task),
+                ),
+              ],
       ),
       body: task == null
           ? DzEmptyState(
@@ -40,7 +67,7 @@ class TaskDetailPage extends StatelessWidget {
                   children: [
                     // Title
                     Text(
-                      task.title as String,
+                      task.title,
                       style: DzTextStyles.heading2,
                     ),
                     const SizedBox(height: DzSpacing.md),
@@ -61,7 +88,7 @@ class TaskDetailPage extends StatelessWidget {
                             ),
                             const SizedBox(width: DzSpacing.sm),
                             Text(
-                              (task.priority as dynamic).label as String,
+                              task.priority.label,
                               style: DzTextStyles.label,
                             ),
                           ],
@@ -79,22 +106,22 @@ class TaskDetailPage extends StatelessWidget {
                           children: [
                             _DetailRow(
                               label: 'Category',
-                              value: (task.category as dynamic).label as String,
+                              value: task.category.label,
                             ),
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Date',
-                              value: task.date.toString(),
+                              value: DateFormatter.formatDateFull(task.date),
                             ),
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
-                              label: 'Start Time',
-                              value: task.startTime.toString(),
+                              label: 'Time',
+                              value: task.timeRange,
                             ),
                             const Divider(height: DzSpacing.md),
                             _DetailRow(
                               label: 'Duration',
-                              value: '${task.estimatedDurationMinutes} minutes',
+                              value: '${_durationMinutes(task)} minutes',
                             ),
                           ],
                         ),
@@ -106,8 +133,8 @@ class TaskDetailPage extends StatelessWidget {
                     DzCard(
                       child: CheckboxListTile(
                         title: const Text('Mark as Completed'),
-                        value: task.isCompleted as bool,
-                        onChanged: null,
+                        value: task.isCompleted,
+                        onChanged: (_) => taskCtrl.toggleTask(taskId),
                         dense: true,
                       ),
                     ),
@@ -116,6 +143,13 @@ class TaskDetailPage extends StatelessWidget {
               ),
             ),
     );
+  }
+
+  int _durationMinutes(DzTask task) {
+    final start = task.startTime.hour * 60 + task.startTime.minute;
+    final end = task.endTime.hour * 60 + task.endTime.minute;
+    // end <= start spans into the next day (e.g. an overnight Sleep task).
+    return end > start ? end - start : (1440 - start) + end;
   }
 }
 

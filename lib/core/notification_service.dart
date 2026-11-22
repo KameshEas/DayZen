@@ -1,11 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'app_prefs.dart';
+import 'config/app_config.dart';
+import 'data/task_repository.dart';
 import '../features/home/models/task_model.dart';
 import 'domain/quiet_window.dart';
 import './logging/app_logger.dart';
+
+const _followUpCategoryId = 'task_followup';
+const _followUpDoneActionId = 'task_done';
+const _followUpSkipActionId = 'task_skip';
 
 /// Handles scheduling and cancelling local notifications for planned tasks.
 class NotificationService {
@@ -37,13 +46,28 @@ class NotificationService {
     await refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const darwinSettings = DarwinInitializationSettings(
+    final darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      notificationCategories: [
+        DarwinNotificationCategory(
+          _followUpCategoryId,
+          actions: [
+            DarwinNotificationAction.plain(
+              _followUpDoneActionId,
+              AppConfig.taskFollowUpDoneAction,
+            ),
+            DarwinNotificationAction.plain(
+              _followUpSkipActionId,
+              AppConfig.taskFollowUpSkipAction,
+            ),
+          ],
+        ),
+      ],
     );
 
-    const initSettings = InitializationSettings(
+    final initSettings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
       macOS: darwinSettings,
@@ -51,6 +75,10 @@ class NotificationService {
 
     await _plugin.initialize(
       settings: initSettings,
+      onDidReceiveNotificationResponse: (response) {
+        unawaited(_handleFollowUpResponse(response.actionId, response.payload));
+      },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
     _initialized = true;
   }
@@ -116,32 +144,55 @@ class NotificationService {
 
   // ── Schedule a notification for a task ────────────────────────────────
 
-  /// Schedules a notification at the task's [startTime] on its [date].
-  /// Uses the task [id] hashCode as the notification ID for determinism.
+  /// Schedules a pre-reminder, an on-time reminder, and a completion
+  /// follow-up (a few minutes after [DzTask.endTime]) asking whether the
+  /// task actually happened, with "Done"/"Didn't happen" actions.
+  /// Uses the task [id] hashCode as the notification ID base for determinism.
   Future<void> scheduleForTask(DzTask task) async {
     if (!_initialized) return;
 
     final now = tz.TZDateTime.now(tz.local);
     final taskDateTime = taskStart(task);
+    // An end time at or before the start is a genuine overnight span (e.g.
+    // Sleep 10:30 PM → 5:00 AM) — the end falls on the following day.
+    final endsNextDay = (task.endTime.hour * 60 + task.endTime.minute) <=
+        (task.startTime.hour * 60 + task.startTime.minute);
+    final taskEndDate = endsNextDay
+        ? task.date.add(const Duration(days: 1))
+        : task.date;
+    final taskEndDateTime = tz.TZDateTime(
+      tz.local,
+      taskEndDate.year,
+      taskEndDate.month,
+      taskEndDate.day,
+      task.endTime.hour,
+      task.endTime.minute,
+    );
     // Build timezone-aware datetimes
     const preReminderMinutes = 5;
     final preDateTime = taskDateTime.subtract(const Duration(minutes: preReminderMinutes));
+    final followUpDateTime =
+        taskEndDateTime.add(const Duration(minutes: AppConfig.taskFollowUpDelayMinutes));
 
     // Don't schedule notifications in the past, or inside quiet hours.
     final shouldScheduleOnTime =
         taskDateTime.isAfter(now) && allowedAt(taskDateTime, quietWindow);
     final shouldSchedulePre =
         preDateTime.isAfter(now) && allowedAt(preDateTime, quietWindow);
+    final shouldScheduleFollowUp = followUpDateTime.isAfter(now) &&
+        allowedAt(followUpDateTime, quietWindow);
 
     AppLogger.debug('NotificationService: scheduling task ${task.id}');
     AppLogger.debug(' - now: $now');
     AppLogger.debug(' - preDateTime: $preDateTime (will schedule: $shouldSchedulePre)');
     AppLogger.debug(' - taskDateTime: $taskDateTime (will schedule: $shouldScheduleOnTime)');
+    AppLogger.debug(' - followUpDateTime: $followUpDateTime (will schedule: $shouldScheduleFollowUp)');
 
-    // Deterministic, non-colliding IDs: use a compact base and map to two ids
-    final base = task.id.hashCode.abs() % 0x3FFFFFFF; // keep base small
-    final onTimeId = (base * 2) % 0x7FFFFFFF;
-    final preId = (base * 2 + 1) % 0x7FFFFFFF;
+    // Deterministic, non-colliding IDs: one base per task, mapped to three ids.
+    final base = task.id.hashCode.abs() % 0x2AAAAAAA; // keep base small
+    final onTimeId = (base * 3) % 0x7FFFFFFF;
+    final preId = (base * 3 + 1) % 0x7FFFFFFF;
+    final followUpId = (base * 3 + 2) % 0x7FFFFFFF;
 
     final priorityEmoji = switch (task.priority) {
       TaskPriority.high => '🔴',
@@ -167,10 +218,39 @@ class NotificationService {
       ),
     );
 
+    const followUpDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'dayzen_tasks',
+        'Task Reminders',
+        channelDescription: 'Notifications for your planned activities',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        actions: [
+          AndroidNotificationAction(
+            _followUpDoneActionId,
+            AppConfig.taskFollowUpDoneAction,
+          ),
+          AndroidNotificationAction(
+            _followUpSkipActionId,
+            AppConfig.taskFollowUpSkipAction,
+          ),
+        ],
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        categoryIdentifier: _followUpCategoryId,
+      ),
+    );
+
     // A skipped reminder may still be scheduled from before (the task was
     // moved into quiet hours, or the window changed): cancel it.
     if (!shouldSchedulePre) await _plugin.cancel(id: preId);
     if (!shouldScheduleOnTime) await _plugin.cancel(id: onTimeId);
+    if (!shouldScheduleFollowUp) await _plugin.cancel(id: followUpId);
 
     // Schedule pre-reminder 5 minutes before (if in future)
     if (shouldSchedulePre) {
@@ -199,19 +279,39 @@ class NotificationService {
       );
       AppLogger.debug('NotificationService: scheduled on-time id=$onTimeId at $taskDateTime');
     }
+
+    // Schedule the completion follow-up, a few minutes after the task's
+    // session ends, asking whether it actually happened.
+    if (shouldScheduleFollowUp) {
+      await _plugin.zonedSchedule(
+        id: followUpId,
+        title: '${task.title} — did you get to it?',
+        body: 'Let us know so your day stays accurate.',
+        scheduledDate: followUpDateTime,
+        notificationDetails: followUpDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+        payload: task.id,
+      );
+      AppLogger.debug(
+          'NotificationService: scheduled completion follow-up id=$followUpId at $followUpDateTime');
+    }
   }
 
   // ── Cancel a single task's notification ───────────────────────────────
 
   Future<void> cancelForTask(String taskId) async {
     if (!_initialized) return;
-    final base = taskId.hashCode.abs() % 0x3FFFFFFF;
-    final onTimeId = (base * 2) % 0x7FFFFFFF;
-    final preId = (base * 2 + 1) % 0x7FFFFFFF;
+    final base = taskId.hashCode.abs() % 0x2AAAAAAA;
+    final onTimeId = (base * 3) % 0x7FFFFFFF;
+    final preId = (base * 3 + 1) % 0x7FFFFFFF;
+    final followUpId = (base * 3 + 2) % 0x7FFFFFFF;
     await _plugin.cancel(id: onTimeId);
     AppLogger.debug('NotificationService: cancelled on-time id=$onTimeId for task $taskId');
     await _plugin.cancel(id: preId);
     AppLogger.debug('NotificationService: cancelled pre-reminder id=$preId for task $taskId');
+    await _plugin.cancel(id: followUpId);
+    AppLogger.debug('NotificationService: cancelled completion follow-up id=$followUpId for task $taskId');
   }
 
   /// Send an immediate notification (useful for debugging).
@@ -283,3 +383,43 @@ class NotificationService {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Notification action handling
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Entry point for a tapped notification action when the app process is
+/// not running (Android). Runs in its own isolate — no access to any live
+/// controller, so it goes straight to [TaskRepository]/[AppPrefs] instead.
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) {
+  unawaited(_handleFollowUpResponse(response.actionId, response.payload));
+}
+
+/// Shared by the foreground and background callbacks. [payload] is the
+/// task id set in [NotificationService.scheduleForTask]'s follow-up
+/// notification.
+Future<void> _handleFollowUpResponse(String? actionId, String? payload) async {
+  if (payload == null) return;
+  final taskId = payload;
+
+  if (actionId == _followUpSkipActionId) {
+    // Just an acknowledgement — the task stays whatever it already was,
+    // it's simply not asked about again.
+    await AppPrefs.markOverdueTaskPrompted(taskId);
+    return;
+  }
+
+  if (actionId == _followUpDoneActionId) {
+    final tasks = await TaskRepository.loadAll();
+    DzTask? task;
+    for (final t in tasks) {
+      if (t.id == taskId) {
+        task = t;
+        break;
+      }
+    }
+    if (task == null || task.isCompleted) return;
+    await TaskRepository.updateTask(task.copyWith(isCompleted: true));
+    await NotificationService.instance.cancelForTask(taskId);
+  }
+}
