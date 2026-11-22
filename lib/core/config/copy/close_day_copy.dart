@@ -24,6 +24,7 @@ abstract final class CloseDayCopy {
   static const noteTitle = 'Anything to remember?';
   static const noteBody = 'Optional. One line is plenty. It goes in your journal.';
   static const noteHint = 'e.g. Good focus after lunch';
+  static const noteDraftHelper = 'Drafted from your day. Edit it, or clear it.';
   static const closeButton = 'Close the day';
   static const skipNote = 'Close without a note';
 

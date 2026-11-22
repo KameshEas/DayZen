@@ -49,7 +49,12 @@ class _CloseDayPageState extends State<CloseDayPage> {
   }
 
   void _onChange() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // Show the auto-draft when the note step opens with it.
+    if (c.step == CloseStep.note && _note.text != c.note && c.noteIsDraft) {
+      _note.text = c.note;
+    }
+    setState(() {});
   }
 
   @override
@@ -270,14 +275,15 @@ class _CloseDayPageState extends State<CloseDayPage> {
       ),
       child: TextField(
         controller: _note,
-        onChanged: (v) => c.note = v,
+        onChanged: c.editNote,
         maxLength: 280,
         minLines: 2,
         maxLines: 4,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: CloseDayCopy.noteHint,
-          border: OutlineInputBorder(),
+          helperText: c.noteIsDraft ? CloseDayCopy.noteDraftHelper : null,
+          border: const OutlineInputBorder(),
         ),
       ),
     );

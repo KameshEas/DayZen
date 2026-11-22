@@ -193,6 +193,28 @@ void main() {
       expect(await JournalRepository.loadAll(), isEmpty);
     });
 
+    test('the note step opens with a draft built from the day (M-3.1)', () async {
+      final c = controller();
+      await c.load();
+      await c.markDone(stored('a'));
+      await c.carry(stored('b'));
+      await c.letGo(stored('c'));
+      c
+        ..continueFromReview()
+        ..continueFromMood();
+      expect(c.noteIsDraft, isTrue);
+      expect(c.note, contains('Task a'));
+      expect(c.note, contains('Task b'));
+      expect(c.note, contains('Task c'));
+      expect(c.note, isNot(contains('Task d')), reason: 'still open, not mentioned');
+
+      c.editNote('My own words');
+      expect(c.noteIsDraft, isFalse);
+      await c.finish();
+      final entry = journal.entryById((await store.forDay(_day))!.journalEntryId!)!;
+      expect(entry.body, 'My own words');
+    });
+
     test('a day with nothing open starts at the mood step', () async {
       for (final id in ['a', 'b', 'c', 'd']) {
         await tasks.setStatus(id, TaskStatus.done);
