@@ -4,6 +4,7 @@ import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/routing/route_paths.dart';
 import '../app_data.dart';
+import 'week_story_card.dart';
 import 'widgets/lifts_you_card.dart';
 import 'widgets/insights_ai_suggestion_card.dart';
 import 'widgets/insights_data.dart';
@@ -54,6 +55,7 @@ class InsightsPage extends StatelessWidget {
                 onAction: () => context.push(RoutePaths.newTask),
               )
             else ...[
+              const WeekStoryCard(),
               InsightsProductivityScoreCard(data: d),
               const SizedBox(height: DzSpacing.md),
               InsightsFocusTrendCard(data: d),
