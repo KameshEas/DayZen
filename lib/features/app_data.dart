@@ -3,6 +3,7 @@ import 'task_controller.dart';
 import 'journal_controller.dart';
 import 'settings/settings_controller.dart';
 import 'notification_controller.dart';
+import 'rhythm/rhythm_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-controller scopes
@@ -71,6 +72,19 @@ class NotificationScope extends InheritedNotifier<NotificationController> {
       .notifier!;
 }
 
+class RhythmScope extends InheritedNotifier<RhythmController> {
+  const RhythmScope({
+    super.key,
+    required RhythmController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  /// Null when no Rhythm is provided (tests, or before bootstrap); callers
+  /// then fall back to the classic optimizer and no tide.
+  static RhythmController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<RhythmScope>()?.notifier;
+}
+
 /// Composes the per-controller scopes into one widget so `main.dart`'s
 /// app-root wiring reads the same as it did with the single `AppData`
 /// widget, despite nesting separate `InheritedNotifier`s under the hood.
@@ -81,6 +95,7 @@ class AppScopes extends StatelessWidget {
     required this.journal,
     required this.settings,
     required this.notifications,
+    this.rhythm,
     required this.child,
   });
 
@@ -88,6 +103,9 @@ class AppScopes extends StatelessWidget {
   final JournalController journal;
   final SettingsController settings;
   final NotificationController notifications;
+
+  /// Optional, so existing call sites (and tests) keep working without one.
+  final RhythmController? rhythm;
   final Widget child;
 
   @override
@@ -100,7 +118,9 @@ class AppScopes extends StatelessWidget {
           controller: settings,
           child: NotificationScope(
             controller: notifications,
-            child: child,
+            child: rhythm == null
+                ? child
+                : RhythmScope(controller: rhythm!, child: child),
           ),
         ),
       ),

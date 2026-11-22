@@ -242,6 +242,7 @@ class _PlannerPageState extends State<PlannerPage> {
       currentMinute: _now.minute,
       showNow: isSameDay(selected, today),
       onTapEvent: (e) => showTaskActions(context, e.taskIds),
+      profile: RhythmScope.maybeOf(context)?.profile,
       onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
     );
   }

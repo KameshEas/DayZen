@@ -37,7 +37,10 @@ class ScheduleSuggestionsWidget extends StatelessWidget {
       );
     }
 
-    final result = DayOptimizer.optimise(tasks);
+    final result = DayOptimizer.optimise(
+      tasks,
+      profile: RhythmScope.maybeOf(context)?.profile,
+    );
     final taskCtrl = TaskScope.of(context);
 
     return Column(
@@ -54,7 +57,9 @@ class ScheduleSuggestionsWidget extends StatelessWidget {
                   children: [
                     Text(
                       'Suggested Schedule',
-                      style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
+                      style: DzTextStyles.heading3.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -73,10 +78,12 @@ class ScheduleSuggestionsWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
           child: Column(
             children: [
-              ...result.suggestions.map((s) => DayOptimizerSuggestionTile(
-                    suggestion: s,
-                    onCompleteChanged: (_) => taskCtrl.toggleTask(s.task.id),
-                  )),
+              ...result.suggestions.map(
+                (s) => DayOptimizerSuggestionTile(
+                  suggestion: s,
+                  onCompleteChanged: (_) => taskCtrl.toggleTask(s.task.id),
+                ),
+              ),
               const SizedBox(height: DzSpacing.xs),
               DayOptimizerBreakCard(recommendation: result.breakRecommendation),
             ],

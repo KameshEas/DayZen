@@ -52,6 +52,7 @@ class _OnboardingV2PageState extends State<OnboardingV2Page> {
   OnboardingEffects _realEffects() {
     final tasks = TaskScope.of(context);
     final settings = SettingsScope.of(context);
+    final rhythm = RhythmScope.maybeOf(context);
     final counters = CountersService.instance;
     return OnboardingEffects(
       saveTasks: (list) async {
@@ -67,7 +68,10 @@ class _OnboardingV2PageState extends State<OnboardingV2Page> {
           quietWindow: settings.quietWindow,
         );
       },
-      savePrior: (prior) => AppPrefs.setRhythmPriorName(prior.name),
+      savePrior: (prior) async {
+        await AppPrefs.setRhythmPriorName(prior.name);
+        await rhythm?.load(tasks.all);
+      },
       markDone: AppPrefs.markOnboardingV2Done,
       countStarted: () => counters.increment(CountersService.onboardingStarted),
       countCompleted: () => counters.increment(CountersService.onboardingCompleted),
