@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import '../core/domain/quiet_window.dart';
+import '../core/domain/rollover.dart';
 
 import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
@@ -97,6 +99,14 @@ class TaskController extends ChangeNotifier {
   List<DzTask> zenTasksThisWeek(DateTime anchor) =>
       TaskAnalytics.zenTasksThisWeek(_tasks, anchor);
 
+  /// The in-memory copy of task [id] (soft-deleted tasks aren't loaded).
+  DzTask? taskById(String id) {
+    for (final t in _tasks) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
   // ── CRUD ──────────────────────────────────────────────────────────
 
   Future<void> load() async {
@@ -105,8 +115,36 @@ class TaskController extends ChangeNotifier {
     if (_notificationsEnabled) {
       await NotificationService.instance.rescheduleAll(_tasks);
     }
-    // Push anything left unsynced from the last session, pull server changes.
-    unawaited(syncWithServer());
+    // Push anything left unsynced from the last session, pull server
+    // changes, then carry yesterday's unfinished tasks to today.
+    unawaited(syncThenRollOver());
+  }
+
+  /// Pulls first, so a task completed on another device overnight arrives
+  /// as done before rollover looks at it (otherwise this phone would move it
+  /// to today as active and push that over the completion). Offline or
+  /// signed out, the sync is a no-op or fails quietly and rollover still runs.
+  Future<void> syncThenRollOver({DateTime? now}) async {
+    await syncWithServer();
+    await rollOver(now: now);
+  }
+
+  /// Gentle Rollover (see [Rollover]): moves unfinished tasks from past days
+  /// to today. Safe to call repeatedly. Returns how many tasks moved.
+  Future<int> rollOver({DateTime? now}) async {
+    final moved = Rollover.apply(_tasks, now ?? DateTime.now());
+    if (moved.isEmpty) return 0;
+    for (final task in moved) {
+      final idx = _tasks.indexWhere((t) => t.id == task.id);
+      if (idx != -1) _tasks[idx] = task;
+      await TaskRepository.updateTask(task);
+    }
+    notifyListeners();
+    for (final task in moved) {
+      await _syncReminders(task);
+    }
+    unawaited(SyncManager.instance.requestSync(this));
+    return moved.length;
   }
 
   /// Sync tasks with server (background operation). Never throws; failed
@@ -126,23 +164,36 @@ class TaskController extends ChangeNotifier {
     unawaited(SyncManager.instance.requestSync(this));
   }
 
+  /// Done ⇄ active. A released task becomes done.
   Future<void> toggleTask(String id) async {
+    final task = taskById(id);
+    if (task == null) return;
+    await setStatus(
+        id, task.isCompleted ? TaskStatus.active : TaskStatus.done);
+  }
+
+  /// Marks task [id] done, released (let go) or active again. Entering done
+  /// stamps completedAt; leaving it clears it. Reminders only stay scheduled
+  /// for active tasks.
+  Future<void> setStatus(String id, TaskStatus status) async {
     final idx = _tasks.indexWhere((t) => t.id == id);
-    if (idx == -1) return;
-    final updatedTask = _tasks[idx].copyWith(isCompleted: !_tasks[idx].isCompleted);
+    if (idx == -1 || _tasks[idx].status == status) return;
+    final updatedTask = _tasks[idx].copyWith(status: status);
     _tasks[idx] = updatedTask;
     await TaskRepository.updateTask(updatedTask);
     notifyListeners();
-    // Cancel notification if completed; re-schedule if unchecked
-    if (_notificationsEnabled) {
-      if (updatedTask.isCompleted) {
-        await NotificationService.instance.cancelForTask(id);
-      } else {
-        await NotificationService.instance.scheduleForTask(updatedTask);
-      }
-    }
-    // Queue for sync (fire-and-forget)
+    await _syncReminders(updatedTask);
     unawaited(SyncManager.instance.requestSync(this));
+  }
+
+  /// Schedules reminders for an active task, cancels them otherwise.
+  Future<void> _syncReminders(DzTask task) async {
+    if (!_notificationsEnabled) return;
+    if (task.status == TaskStatus.active) {
+      await NotificationService.instance.scheduleForTask(task);
+    } else {
+      await NotificationService.instance.cancelForTask(task.id);
+    }
   }
 
   Future<void> updateTask(String id, DzTask updatedTask) async {
@@ -151,13 +202,7 @@ class TaskController extends ChangeNotifier {
     _tasks[idx] = updatedTask;
     await TaskRepository.updateTask(updatedTask);
     notifyListeners();
-    if (_notificationsEnabled) {
-      if (updatedTask.isCompleted) {
-        await NotificationService.instance.cancelForTask(id);
-      } else {
-        await NotificationService.instance.scheduleForTask(updatedTask);
-      }
-    }
+    await _syncReminders(updatedTask);
     // Queue for sync (fire-and-forget)
     unawaited(SyncManager.instance.requestSync(this));
   }
@@ -202,13 +247,7 @@ class TaskController extends ChangeNotifier {
       } else {
         _tasks[idx] = task;
       }
-      if (_notificationsEnabled) {
-        if (task.isCompleted) {
-          await NotificationService.instance.cancelForTask(task.id);
-        } else {
-          await NotificationService.instance.scheduleForTask(task);
-        }
-      }
+      await _syncReminders(task);
     }
 
     notifyListeners();

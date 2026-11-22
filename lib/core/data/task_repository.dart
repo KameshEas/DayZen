@@ -70,7 +70,12 @@ class TaskRepository {
             ? IconData(row.iconCodePoint!, fontFamily: 'MaterialIcons')
             : null,
         subtitle: row.subtitle,
+        status: TaskStatus.values.asNameMap()[row.status],
         isCompleted: row.isCompleted,
+        completedAt: row.completedAt,
+        rolloverCount: row.rolloverCount,
+        effort: row.effort,
+        originalDate: row.originalDate,
         date: row.date,
       );
 
@@ -85,7 +90,13 @@ class TaskRepository {
         category: Value(task.category.name),
         iconCodePoint: Value(task.icon?.codePoint),
         subtitle: Value(task.subtitle),
+        // Mirror of status == done, kept for one release (schema v2).
         isCompleted: Value(task.isCompleted),
+        status: Value(task.status.name),
+        completedAt: Value(task.completedAt),
+        rolloverCount: Value(task.rolloverCount),
+        effort: Value(task.effort),
+        originalDate: Value(task.originalDate),
         date: Value(task.date),
         updatedAt: Value(DateTime.now()),
         dirty: const Value(true),

@@ -150,6 +150,11 @@ class NotificationService {
   /// Uses the task [id] hashCode as the notification ID base for determinism.
   Future<void> scheduleForTask(DzTask task) async {
     if (!_initialized) return;
+    // Done and let-go tasks never ring.
+    if (task.status != TaskStatus.active) {
+      await cancelForTask(task.id);
+      return;
+    }
 
     final now = tz.TZDateTime.now(tz.local);
     final taskDateTime = taskStart(task);
@@ -368,7 +373,7 @@ class NotificationService {
     await _plugin.cancelAll();
     final now = DateTime.now();
     for (final task in tasks) {
-      if (task.isCompleted) continue;
+      if (task.status != TaskStatus.active) continue;
       final taskDt = DateTime(
         task.date.year,
         task.date.month,
