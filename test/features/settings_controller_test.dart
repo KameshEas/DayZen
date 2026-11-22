@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:dayzen/core/domain/quiet_window.dart';
 
 import 'package:dayzen/features/settings/settings_controller.dart';
 import 'package:dayzen/core/design_system/tokens/dz_colors.dart';
@@ -10,6 +13,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
     controller = SettingsController();
   });
 
@@ -22,8 +26,8 @@ void main() {
       expect(controller.themeMode, equals(ThemeMode.system));
       expect(controller.accent, equals('Brand Navy'));
       expect(controller.fontSize, equals('Standard (16px)'));
-      expect(controller.quietHours, true);
-      expect(controller.focusAlerts, true);
+      expect(controller.remindersEnabled, true);
+      expect(controller.quietWindow, isNull);
     });
 
     test('provides correct accent color for each option', () {
@@ -42,20 +46,60 @@ void main() {
       expect(controller.accentColor, equals(DzColors.navy));
     });
 
-    test('toggles quiet hours', () {
-      expect(controller.quietHours, true);
-      controller.setQuietHours(false);
-      expect(controller.quietHours, false);
-      controller.setQuietHours(true);
-      expect(controller.quietHours, true);
+    test('toggles task reminders', () {
+      controller.setRemindersEnabled(false);
+      expect(controller.remindersEnabled, false);
+      controller.setRemindersEnabled(true);
+      expect(controller.remindersEnabled, true);
     });
 
-    test('toggles focus alerts', () {
-      expect(controller.focusAlerts, true);
-      controller.setFocusAlerts(false);
-      expect(controller.focusAlerts, false);
-      controller.setFocusAlerts(true);
-      expect(controller.focusAlerts, true);
+    test('sets and clears quiet hours', () {
+      controller.setQuietWindow(QuietWindow.defaultWindow);
+      expect(controller.quietWindow, QuietWindow.defaultWindow);
+      controller.setQuietWindow(null);
+      expect(controller.quietWindow, isNull);
+    });
+
+    test('reminders and quiet hours survive a restart', () async {
+      controller
+        ..setRemindersEnabled(false)
+        ..setQuietWindow(const QuietWindow(startMinutes: 23 * 60, endMinutes: 6 * 60 + 30));
+      await Future<void>.delayed(Duration.zero); // let _save finish
+
+      final reloaded = SettingsController();
+      await reloaded.load();
+      expect(reloaded.remindersEnabled, false);
+      expect(reloaded.quietWindow,
+          const QuietWindow(startMinutes: 23 * 60, endMinutes: 6 * 60 + 30));
+      reloaded.dispose();
+    });
+
+    group('upgrade from the old two-flag settings (P1-10)', () {
+      Future<SettingsController> loadWith(Map<String, Object> prefs) async {
+        SharedPreferences.setMockInitialValues(prefs);
+        final c = SettingsController();
+        await c.load();
+        return c;
+      }
+
+      test('reminders stay on if either old flag was on', () async {
+        final c = await loadWith({'s_quietHours': true, 's_focusAlerts': false});
+        expect(c.remindersEnabled, true);
+        c.dispose();
+      });
+
+      test('reminders stay off if both old flags were off', () async {
+        final c = await loadWith({'s_quietHours': false, 's_focusAlerts': false});
+        expect(c.remindersEnabled, false);
+        c.dispose();
+      });
+
+      test('quiet hours start off: the old flag never silenced anything',
+          () async {
+        final c = await loadWith({'s_quietHours': true, 's_focusAlerts': true});
+        expect(c.quietWindow, isNull);
+        c.dispose();
+      });
     });
 
     test('changes theme mode', () {
@@ -95,7 +139,7 @@ void main() {
       var notifyCount = 0;
       controller.addListener(() => notifyCount++);
 
-      controller.setQuietHours(false);
+      controller.setRemindersEnabled(false);
       expect(notifyCount, greaterThan(0));
     });
 

@@ -2,7 +2,7 @@ import '../config/app_config.dart';
 import '../../features/home/models/task_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Offline AI Day Optimizer
+// Day Optimizer (rule-based)
 //
 // Runs entirely on-device with no network calls.  It analyses today's tasks
 // and produces a prioritised schedule along with a short rationale for each

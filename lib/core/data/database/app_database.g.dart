@@ -1200,8 +1200,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
   /// [JournalMood] enum name (e.g. "happy", "peaceful").
   final String mood;
 
-  /// Entry timestamp — this is "entry_timestamp" in docs/DEVELOPMENT_PLAN.md's
-  /// original schema note. Indexed — entries are always queried newest-first.
+  /// Entry timestamp ("entry_timestamp" in the API). Indexed — entries are
+  /// always queried newest-first.
   final DateTime timestamp;
 
   /// ARGB int from [Color.toARGB32], nullable — [JournalEntry.accentColor]

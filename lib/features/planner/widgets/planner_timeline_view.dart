@@ -6,8 +6,7 @@ import '../timeline_layout.dart';
 
 /// Absolutely-positioned day timeline — a Stack of hour lines + event
 /// blocks inside a scroll view. Not a candidate for ListView.builder: a
-/// timeline needs every item positioned by time-of-day simultaneously (see
-/// docs/DEVELOPMENT_PLAN.md Phase 4.1's audit note on this exact file).
+/// timeline needs every item positioned by time-of-day simultaneously.
 ///
 /// Events that overlap sit side by side, and identical events show as one card
 /// with a count (see [layoutTimeline]).

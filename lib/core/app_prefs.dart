@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'security/pin_hasher.dart';
+import 'security/secure_storage.dart';
 
 /// Thin wrapper around SharedPreferences for app-level flags, and
 /// FlutterSecureStorage (Keychain/Keystore-backed) for the PIN.
@@ -25,9 +27,7 @@ class AppPrefs {
   static const _secureKeyPinHash = 'app_pin_hash';
   static const _secureKeyPinSalt = 'app_pin_salt';
 
-  static const _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  static const FlutterSecureStorage _secureStorage = appSecureStorage;
 
   // ── Onboarding ──────────────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ class AppPrefs {
   /// secure storage. The raw PIN is never written to disk.
   static Future<void> savePin(String pin) async {
     final salt = PinHasher.generateSalt();
-    final hash = PinHasher.hash(pin, salt);
+    final hash = await _hashOffMainThread(pin, salt);
     await _secureStorage.write(key: _secureKeyPinSalt, value: salt);
     await _secureStorage.write(key: _secureKeyPinHash, value: hash);
     // A PIN now exists, so any earlier opt-out no longer applies.
@@ -90,33 +90,79 @@ class AppPrefs {
     final salt = await _secureStorage.read(key: _secureKeyPinSalt);
     final storedHash = await _secureStorage.read(key: _secureKeyPinHash);
     if (salt == null || storedHash == null) return false;
-    final inputHash = PinHasher.hash(input, salt);
+    final inputHash = await _hashOffMainThread(input, salt);
     return PinHasher.constantTimeEquals(inputHash, storedHash);
   }
 
-  /// Returns the stored PIN hash and salt (for syncing to the backend so the
-  /// PIN can be restored after an uninstall/reinstall), or null if unset.
-  static Future<({String hash, String salt})?> getPinHashAndSalt() async {
-    await _migrateLegacyPinIfNeeded();
-    final hash = await _secureStorage.read(key: _secureKeyPinHash);
-    final salt = await _secureStorage.read(key: _secureKeyPinSalt);
-    if (hash == null || salt == null) return null;
-    return (hash: hash, salt: salt);
+  /// PBKDF2 (10k HMAC rounds) on a background isolate so the PIN pad
+  /// doesn't drop frames on low-end devices.
+  static Future<String> _hashOffMainThread(String pin, String salt) =>
+      compute(_hashPinArgs, [pin, salt]);
+
+  // ── PIN attempt lockout ─────────────────────────────────────────────────
+
+  static const _keyPinFailures = 'pin_failed_attempts';
+  static const _keyPinLockedUntil = 'pin_locked_until';
+
+  /// Wrong PINs allowed before the first lockout.
+  static const pinFreeAttempts = 5;
+
+  /// Lockout after [failures] consecutive wrong PINs: none for the first
+  /// [pinFreeAttempts], then 30 s, doubling each further failure, capped at
+  /// 1 hour. Persisted, so restarting the app does not reset it.
+  @visibleForTesting
+  static Duration lockoutAfter(int failures) {
+    if (failures < pinFreeAttempts) return Duration.zero;
+    final doublings = (failures - pinFreeAttempts).clamp(0, 7);
+    final seconds = 30 * (1 << doublings);
+    return Duration(seconds: seconds.clamp(0, 3600));
   }
 
-  /// Writes an already-hashed PIN (fetched from the backend) directly to
-  /// secure storage, restoring a previously-set PIN on a fresh install
-  /// without requiring the user to re-enter or re-create it.
-  static Future<void> restoreHashedPin(String hash, String salt) async {
-    await _secureStorage.write(key: _secureKeyPinSalt, value: salt);
-    await _secureStorage.write(key: _secureKeyPinHash, value: hash);
+  /// When the PIN pad unlocks again, or null if it isn't locked.
+  static Future<DateTime?> pinLockedUntil([DateTime? now]) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyPinLockedUntil);
+    final until = raw == null ? null : DateTime.tryParse(raw);
+    if (until == null || !until.isAfter(now ?? DateTime.now())) return null;
+    return until;
   }
+
+  /// Verifies [input] while enforcing the lockout. Never checks the PIN while
+  /// locked out.
+  static Future<PinAttempt> attemptPin(String input, [DateTime? now]) async {
+    final at = now ?? DateTime.now();
+    final lockedUntil = await pinLockedUntil(at);
+    if (lockedUntil != null) return PinAttempt.locked(lockedUntil);
+
+    final prefs = await SharedPreferences.getInstance();
+    if (await verifyPin(input)) {
+      await prefs.remove(_keyPinFailures);
+      await prefs.remove(_keyPinLockedUntil);
+      return const PinAttempt.success();
+    }
+
+    final failures = (prefs.getInt(_keyPinFailures) ?? 0) + 1;
+    await prefs.setInt(_keyPinFailures, failures);
+    final lockout = lockoutAfter(failures);
+    if (lockout > Duration.zero) {
+      final until = at.add(lockout);
+      await prefs.setString(_keyPinLockedUntil, until.toIso8601String());
+      return PinAttempt.locked(until);
+    }
+    return PinAttempt.wrong(pinFreeAttempts - failures);
+  }
+
+  /// Deletes every value in secure storage (PIN and session), so nothing of
+  /// a deleted account is left on the device.
+  static Future<void> clearAllSecureData() => _secureStorage.deleteAll();
 
   static Future<void> clearPin() async {
     await _secureStorage.delete(key: _secureKeyPinHash);
     await _secureStorage.delete(key: _secureKeyPinSalt);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyKeyPin);
+    await prefs.remove(_keyPinFailures);
+    await prefs.remove(_keyPinLockedUntil);
   }
 
   /// Whether the user has explicitly chosen not to use a PIN (skipped setup,
@@ -173,4 +219,28 @@ class AppPrefs {
     if (!ids.add(taskId)) return;
     await prefs.setStringList(_keyPromptedOverdueTasks, ids.toList());
   }
+}
+
+String _hashPinArgs(List<String> args) => PinHasher.hash(args[0], args[1]);
+
+/// Outcome of [AppPrefs.attemptPin].
+class PinAttempt {
+  const PinAttempt.success()
+      : ok = true,
+        remainingBeforeLock = 0,
+        lockedUntil = null;
+  const PinAttempt.wrong(this.remainingBeforeLock)
+      : ok = false,
+        lockedUntil = null;
+  const PinAttempt.locked(DateTime this.lockedUntil)
+      : ok = false,
+        remainingBeforeLock = 0;
+
+  final bool ok;
+
+  /// Wrong attempts left before a lockout starts (only for a wrong PIN).
+  final int remainingBeforeLock;
+
+  /// Set when the PIN pad is locked.
+  final DateTime? lockedUntil;
 }

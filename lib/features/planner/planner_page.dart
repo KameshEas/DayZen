@@ -22,7 +22,6 @@ import 'widgets/planner_week_strip.dart';
 enum PlannerViewMode { timeline, list }
 
 /// PlannerPage — composes PlannerTimelineView under features/planner/widgets/.
-/// Split from a single 344-line file in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
 ///
 /// Browse any week from when you started using the app to two years ahead, and
 /// plan tasks on any of those days. The day being viewed lives in

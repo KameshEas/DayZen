@@ -2,9 +2,8 @@ import '../../features/journal/models/journal_entry.dart';
 
 /// Pure, stateless journal analytics.
 ///
-/// Extracted from `JournalController` (Phase 3.1 of
-/// docs/DEVELOPMENT_PLAN.md) — see `TaskAnalytics` for the full rationale,
-/// which applies identically here.
+/// Extracted from `JournalController` — see `TaskAnalytics` for the
+/// rationale, which applies identically here.
 class JournalAnalytics {
   JournalAnalytics._();
 

@@ -11,15 +11,15 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// All active (non soft-deleted) tasks, unordered — callers sort/filter
   /// as needed. Used by `TaskRepository.loadAll` to populate the in-memory
-  /// cache; see docs/DEVELOPMENT_PLAN.md Phase 2.5 for why a full in-memory
-  /// cache is still maintained on top of this DB-backed source of truth.
+  /// cache, kept on top of this DB-backed source of truth so the UI can read
+  /// synchronously.
   Future<List<TaskRow>> getAllActive() {
     return (select(tasks)..where((t) => t.deletedAt.isNull())).get();
   }
 
   /// Single-row insert. Replaces the old "rewrite entire list to
-  /// SharedPreferences" pattern — this is the actual fix for
-  /// docs/BASELINE_METRICS.md's headline scalability finding.
+  /// SharedPreferences" pattern, which rewrote every task on each change
+  /// and slowed down as the list grew.
   Future<void> insertTask(TasksCompanion task) {
     return into(tasks).insert(task, mode: InsertMode.insertOrReplace);
   }
@@ -34,10 +34,58 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   /// needs to see what was deleted locally; see [hardDeleteAll] for the
   /// destructive "clear all data" path.
   Future<void> softDeleteTask(String id) {
+    final now = DateTime.now();
+    return (update(tasks)..where((t) => t.id.equals(id))).write(
+      TasksCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+        dirty: const Value(true),
+      ),
+    );
+  }
+
+  // ── Sync bookkeeping ────────────────────────────────────────────────
+
+  /// Every row with local changes the server hasn't acknowledged yet,
+  /// including soft-deleted rows (tombstones), so deletes reach the server.
+  Future<List<TaskRow>> getDirty() {
+    return (select(tasks)..where((t) => t.dirty.equals(true))).get();
+  }
+
+  Future<TaskRow?> getById(String id) {
+    return (select(tasks)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Clears `dirty` on each of [sent] whose row is still exactly what was
+  /// sent. A row edited while the request was in flight stays dirty and goes
+  /// out with the next sync.
+  Future<void> markSynced(List<TaskRow> sent) {
+    return transaction(() async {
+      for (final row in sent) {
+        final current = await getById(row.id);
+        if (current == row) {
+          await (update(tasks)..where((t) => t.id.equals(row.id)))
+              .write(const TasksCompanion(dirty: Value(false)));
+        }
+      }
+    });
+  }
+
+  /// Writes a row that came from the server. Stored clean (not dirty), so
+  /// applying server state never queues another push.
+  Future<void> upsertFromServer(TasksCompanion row) {
+    return into(tasks).insert(
+      row.copyWith(dirty: const Value(false)),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// Applies a server-side delete: soft delete, stored clean.
+  Future<void> deleteFromServer(String id) {
     return (update(tasks)..where((t) => t.id.equals(id))).write(
       TasksCompanion(
         deletedAt: Value(DateTime.now()),
-        dirty: const Value(true),
+        dirty: const Value(false),
       ),
     );
   }
@@ -51,8 +99,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   /// Indexed query on the `date` column (see `idx_tasks_date` on [Tasks]).
   /// Not yet wired into the UI — Phase 2.5 deliberately kept
   /// `TaskController.forDate` doing in-memory filtering over the already-
-  /// loaded cache for now (see docs/DEVELOPMENT_PLAN.md for the scoping
-  /// rationale). Available for Phase 4 to adopt via StreamBuilder.
+  /// loaded cache for now. Available to adopt via StreamBuilder later.
   Stream<List<TaskRow>> watchForDate(DateTime day) {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/services/achievement_service.dart';
-import '../app_data.dart';
 
 /// Achievements page displaying gamification progress.
 class AchievementsPage extends StatefulWidget {
@@ -22,10 +21,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
   }
 
   void _loadAchievements() {
-    final controller = AIOptimizationScope.of(context);
-    _achievementsFuture = controller
-        .loadAchievements(forceRefresh: false)
-        .then((_) => controller.achievements ?? []);
+    _achievementsFuture = AchievementService.instance.getAchievements();
   }
 
   @override

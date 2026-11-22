@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Small shared widgets used by multiple insights cards (Phase 5.1 of
-// docs/DEVELOPMENT_PLAN.md — extracted from the former monolithic
-// insights_page.dart).
+// Small shared widgets used by multiple insights cards.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Section label used at the top of every Insights card.

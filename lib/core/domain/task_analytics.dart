@@ -3,8 +3,7 @@ import '../../features/home/models/task_model.dart';
 /// Pure, stateless task analytics — completion rates, focus time, and
 /// weekly summaries derived from a list of tasks.
 ///
-/// Extracted from `TaskController` (Phase 3.1 of docs/DEVELOPMENT_PLAN.md)
-/// so business rules are testable in isolation from `ChangeNotifier`/state-
+/// Extracted from `TaskController` so business rules are testable in isolation from `ChangeNotifier`/state-
 /// holding concerns. Every function takes the task list explicitly — no
 /// hidden state, no controller dependency. `TaskController` keeps thin
 /// delegating methods with the same names/signatures as before, so no UI
@@ -13,8 +12,7 @@ import '../../features/home/models/task_model.dart';
 /// Note: this intentionally does its own private date/week filtering
 /// (`_forDate`/`_forWeek`) rather than depending on
 /// `TaskController.forDate`/`forWeek` — those remain controller-level UI
-/// queries (see docs/DATABASE_SCHEMA.md's Phase 2.5 scoping note on why
-/// they stay in-memory), while these are a separate, private computation
+/// queries that deliberately stay in-memory, while these are a separate, private computation
 /// detail. A few lines of overlap between the two is preferable to coupling
 /// a pure domain class back to the stateful controller it was extracted
 /// out of.

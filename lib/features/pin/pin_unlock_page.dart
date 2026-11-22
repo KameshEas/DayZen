@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
@@ -31,13 +33,16 @@ class PinUnlockPage extends StatefulWidget {
 class _PinUnlockPageState extends State<PinUnlockPage>
     with SingleTickerProviderStateMixin {
   static const _pinLength = 4;
-  static const _maxAttempts = 5;
 
   final _auth = LocalAuthentication();
   String _pin = '';
   String? _errorMessage;
-  int _attempts = 0;
   bool _biometricAvailable = false;
+
+  /// Set while the persisted lockout is active (see AppPrefs.attemptPin).
+  DateTime? _lockedUntil;
+  Timer? _lockTicker;
+  bool _verifying = false;
 
   late final AnimationController _shakeCtrl;
   late final Animation<double> _shakeAnim;
@@ -53,6 +58,40 @@ class _PinUnlockPageState extends State<PinUnlockPage>
       CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticOut),
     );
     _checkBiometricAvailability();
+    _restoreLockout();
+  }
+
+  /// A lockout survives app restarts, so pick it up on open.
+  Future<void> _restoreLockout() async {
+    final until = await AppPrefs.pinLockedUntil();
+    if (until != null && mounted) _startLockout(until);
+  }
+
+  void _startLockout(DateTime until) {
+    _lockTicker?.cancel();
+    setState(() {
+      _lockedUntil = until;
+      _errorMessage = _lockMessage(until);
+    });
+    _lockTicker = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (!DateTime.now().isBefore(until)) {
+        t.cancel();
+        setState(() {
+          _lockedUntil = null;
+          _errorMessage = null;
+        });
+      } else {
+        setState(() => _errorMessage = _lockMessage(until));
+      }
+    });
+  }
+
+  static String _lockMessage(DateTime until) {
+    final left = until.difference(DateTime.now());
+    final secs = left.inSeconds + 1;
+    final text = secs >= 60 ? '${(secs / 60).ceil()} min' : '$secs s';
+    return 'Too many attempts. Try again in $text.';
   }
 
   Future<void> _checkBiometricAvailability() async {
@@ -69,12 +108,13 @@ class _PinUnlockPageState extends State<PinUnlockPage>
 
   @override
   void dispose() {
+    _lockTicker?.cancel();
     _shakeCtrl.dispose();
     super.dispose();
   }
 
   void _onDigit(String digit) {
-    if (_pin.length >= _pinLength) return;
+    if (_pin.length >= _pinLength || _lockedUntil != null || _verifying) return;
     final newPin = _pin + digit;
     setState(() {
       _pin = newPin;
@@ -89,20 +129,24 @@ class _PinUnlockPageState extends State<PinUnlockPage>
   }
 
   Future<void> _verify(String entered) async {
-    final isValid = await AppPrefs.verifyPin(entered);
-    if (isValid) {
+    _verifying = true;
+    final result = await AppPrefs.attemptPin(entered);
+    _verifying = false;
+    if (!mounted) return;
+    if (result.ok) {
       widget.onUnlocked();
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    _shakeCtrl.forward(from: 0);
+    setState(() => _pin = '');
+    final lockedUntil = result.lockedUntil;
+    if (lockedUntil != null) {
+      _startLockout(lockedUntil);
     } else {
-      _attempts++;
-      HapticFeedback.mediumImpact();
-      _shakeCtrl.forward(from: 0);
-      final remaining = _maxAttempts - _attempts;
-      setState(() {
-        _pin = '';
-        _errorMessage = remaining > 0
-            ? 'Incorrect PIN. $remaining attempt${remaining == 1 ? '' : 's'} remaining.'
-            : 'Too many attempts. Please try again later.';
-      });
+      final remaining = result.remainingBeforeLock;
+      setState(() => _errorMessage =
+          'Incorrect PIN. $remaining attempt${remaining == 1 ? '' : 's'} remaining.');
     }
   }
 

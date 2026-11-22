@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
 import 'onboarding_decoration_widgets.dart';
@@ -33,7 +33,7 @@ class OnboardingSlide1 extends StatelessWidget {
           const SizedBox(height: DzSpacing.lg),
           const OnboardingPillBadge(
             icon: Icons.shield_rounded,
-            label: '100% OFFLINE AI',
+            label: 'WORKS OFFLINE',
             style: OnboardingPillStyle.gray,
           ),
         ],

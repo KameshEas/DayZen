@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../core/data/journal_repository.dart';
 import '../core/domain/journal_analytics.dart';
 import '../core/services/journal_sync_manager.dart';
 import 'journal/models/journal_entry.dart';
-import '../../core/logging/app_logger.dart';
 
 class JournalController extends ChangeNotifier {
   List<JournalEntry> _entries = [];
@@ -20,56 +21,64 @@ class JournalController extends ChangeNotifier {
 
   Future<void> load() async {
     _entries = await JournalRepository.loadAll();
-    _entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    _sortNewestFirst();
     notifyListeners();
-    // Sync with server in background
-    syncWithServer();
+    // Push anything left unsynced from the last session, pull server changes.
+    unawaited(syncWithServer());
   }
 
   Future<void> addEntry(JournalEntry entry) async {
-    await insertLocal(entry);
-    // Queue for sync (fire-and-forget)
-    JournalSyncManager.instance.createEntryWithSync(this, entry);
+    _entries.insert(0, entry);
+    // Single-row insert (no full-list rewrite).
+    await JournalRepository.insertEntry(entry);
+    notifyListeners();
+    unawaited(JournalSyncManager.instance.requestSync(this));
   }
 
   Future<void> deleteEntry(String id) async {
-    await removeLocal(id);
-    // Queue for sync (fire-and-forget)
-    JournalSyncManager.instance.deleteEntryWithSync(this, id);
-  }
-
-  /// Local-only write path (no sync queuing). Used by [addEntry] above and
-  /// by [JournalSyncManager] when reconciling server state â€” calling
-  /// [addEntry] from there would re-queue a sync on every reconciled entry
-  /// and recurse forever (each pass re-inserting the same entry, which is
-  /// what previously caused the entry count to grow unbounded while the
-  /// app stayed open).
-  Future<void> insertLocal(JournalEntry entry) async {
-    _entries.insert(0, entry);
-    // Single-row insert â€” see docs/DATABASE_SCHEMA.md. Replaces the old
-    // "re-serialize and rewrite every entry" pattern.
-    await JournalRepository.insertEntry(entry);
-    notifyListeners();
-  }
-
-  /// Local-only delete path (no sync queuing) â€” see [insertLocal].
-  Future<void> removeLocal(String id) async {
     _entries.removeWhere((e) => e.id == id);
-    // Soft delete (deleted_at set, row retained for sync visibility) — see
-    // docs/DATABASE_SCHEMA.md.
+    // Soft delete (deleted_at set, row retained so the delete can be pushed).
     await JournalRepository.deleteEntry(id);
     notifyListeners();
+    unawaited(JournalSyncManager.instance.requestSync(this));
   }
 
-  /// Sync entries with server (background operation).
-  Future<void> syncWithServer() async {
-    try {
-      await JournalSyncManager.instance.syncEntries(this);
-    } catch (e) {
-      AppLogger.debug('Background journal sync failed: $e');
-      // Silently fail - local state is preserved
+  /// Sync entries with server (background operation). Never throws; failed
+  /// changes stay dirty in SQLite and go out on the next sync.
+  Future<void> syncWithServer() =>
+      JournalSyncManager.instance.requestSync(this);
+
+  /// Applies changes pulled from the server: written clean, never triggers
+  /// another sync, and skips entries with an unpushed local change.
+  Future<void> applyServerChanges({
+    required List<JournalEntry> upserts,
+    required List<String> deletedIds,
+  }) async {
+    if (upserts.isEmpty && deletedIds.isEmpty) return;
+
+    for (final id in deletedIds) {
+      if (await JournalRepository.hasPendingChanges(id)) continue;
+      await JournalRepository.deleteFromServer(id);
+      _entries.removeWhere((e) => e.id == id);
     }
+
+    for (final entry in upserts) {
+      if (await JournalRepository.hasPendingChanges(entry.id)) continue;
+      await JournalRepository.upsertFromServer(entry);
+      final idx = _entries.indexWhere((e) => e.id == entry.id);
+      if (idx == -1) {
+        _entries.add(entry);
+      } else {
+        _entries[idx] = entry;
+      }
+    }
+
+    _sortNewestFirst();
+    notifyListeners();
   }
+
+  void _sortNewestFirst() =>
+      _entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
   Future<void> clearAll() async {
     _entries.clear();
@@ -79,5 +88,3 @@ class JournalController extends ChangeNotifier {
     notifyListeners();
   }
 }
-
-

@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Decorative shared widgets used across onboarding slides (cards, icon
-// tiles, badges). Split out of onboarding_shared_widgets.dart, which
-// exceeded the Phase 5.1 ~300-line target — see docs/DEVELOPMENT_PLAN.md.
+// tiles, badges). Split out of onboarding_shared_widgets.dart to keep
+// files around 300 lines.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Wraps a slide's hero graphic so it drifts slightly during a page swipe,

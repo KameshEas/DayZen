@@ -102,37 +102,6 @@ class ContentService {
     }
   }
 
-  /// Fetch AI-generated quote based on productivity metrics.
-  /// Uses real API endpoint when available, falls back to static quotes on error.
-  Future<String> getAiQuote({
-    required int productivityScore,
-    double focusHours = 0.0,
-    int completedTasks = 0,
-  }) async {
-    try {
-      final response = await _apiClient.post('/ai/quote', {
-        'productivity_score': productivityScore,
-        'focus_hours': focusHours,
-        'completed_tasks': completedTasks,
-      });
-
-      if (response.containsKey('quote') && response['quote'] is String) {
-        return response['quote'] as String;
-      }
-
-      // Fallback to default if response invalid
-      return AppConfig.aiQuoteDefault;
-    } on ApiException {
-      // Return appropriate fallback based on score
-      if (productivityScore >= AppConfig.excellentScoreThreshold) {
-        return AppConfig.aiQuotesByScore[AppConfig.excellentScoreThreshold] ?? AppConfig.aiQuoteDefault;
-      }
-      return AppConfig.aiQuoteDefault;
-    } catch (e) {
-      return AppConfig.aiQuoteDefault;
-    }
-  }
-
   Future<String> getGreeting(int hour) async {
     try {
       if (hour < AppConfig.morningHourThreshold) {

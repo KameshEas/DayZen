@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import 'widgets/onboarding_bottom_bars.dart';
 import 'widgets/onboarding_slide_1.dart';
@@ -7,8 +7,7 @@ import 'widgets/onboarding_slide_3.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OnboardingPage — composes the 3 slide widgets + bottom bars under
-// features/onboarding/widgets/. Split from a single 758-line file in
-// Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
+// features/onboarding/widgets/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class OnboardingPage extends StatefulWidget {
@@ -76,9 +75,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: Row(
                   children: [
                     const SizedBox(width: 56),
-                    Expanded(
+                    const Expanded(
                       child: Center(
-                        child: const DzLogo(
+                        child: DzLogo(
                           layout: DzLogoLayout.horizontal,
                           width: 170,
                         ),

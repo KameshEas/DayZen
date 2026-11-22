@@ -7,6 +7,9 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// See the debug build type below.
+val sideBySideDebug = System.getenv("DAYZEN_SIDE_BY_SIDE") == "1"
+
 android {
     namespace = "com.aspiredesignovation.dayzen"
     compileSdk = flutter.compileSdkVersion
@@ -23,6 +26,7 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders["appLabel"] = "Dayzen"
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.aspiredesignovation.dayzen"
         // You can update the following values to match your application needs.
@@ -54,19 +58,47 @@ android {
             signingConfig = if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
                 signingConfigs.getByName("release")
             } else {
+                // A CI release signed with the debug key can't be uploaded as an
+                // update (or worse, gets distributed to testers). Fail loudly in
+                // CI; keep the debug fallback only for local `flutter run --release`.
+                if (System.getenv("CI") != null) {
+                    throw GradleException(
+                        "Release build in CI without ANDROID_KEYSTORE_PATH; refusing to sign with the debug key."
+                    )
+                }
                 signingConfigs.getByName("debug")
+            }
+        }
+        debug {
+            // Opt-in side-by-side install for testing on a phone that already
+            // has a release DayZen with real data: DAYZEN_SIDE_BY_SIDE=1 gives
+            // the debug build its own app id and label, so installing it never
+            // replaces (or reads) the release app's data.
+            if (sideBySideDebug) {
+                applicationIdSuffix = ".debug"
+                manifestPlaceholders["appLabel"] = "DayZen Dev"
             }
         }
     }
 }
 
+// google-services.json only registers the release app id. The side-by-side
+// debug build skips the Google Services step instead of faking a Firebase
+// registration; Firebase init then fails and is ignored (see lib/main.dart),
+// so that build simply runs without Crashlytics.
+if (sideBySideDebug) {
+    tasks.configureEach {
+        if (name == "processDebugGoogleServices") enabled = false
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-
-    // Firebase BoM — ensures compatible Firebase library versions
-    implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
+    // Firebase native libraries come from the FlutterFire plugins
+    // (firebase_core, firebase_crashlytics). firebase-analytics and
+    // firebase-auth were declared here but never used from Dart (auth is
+    // JWT); Analytics also auto-collects data, contradicting "no tracking"
+    // and the Play Data Safety answers.
 }
 
 flutter {

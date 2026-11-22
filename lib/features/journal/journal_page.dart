@@ -11,9 +11,7 @@ import 'widgets/journal_weekly_reflection_banner.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // JournalPage — composes the individual card/sheet widgets under
-// features/journal/widgets/. Split from a single 417-line file (grown from
-// the Phase 4 CustomScrollView conversion) in Phase 5.1 of
-// docs/DEVELOPMENT_PLAN.md.
+// features/journal/widgets/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class JournalPage extends StatefulWidget {
@@ -44,8 +42,8 @@ class _JournalPageState extends State<JournalPage> {
       // CustomScrollView + SliverList.separated so the (unbounded-growth)
       // entry list is lazily built — only visible entries (plus a small
       // buffer) are constructed, rather than every entry a user has ever
-      // written. See docs/PERFORMANCE_TESTING.md (Phase 4 of
-      // docs/DEVELOPMENT_PLAN.md). The header content above the list
+      // written (test/performance/seeded_data_benchmark_test.dart covers
+      // large journals). The header content above the list
       // stays as a plain sliver since it's fixed-size regardless of
       // entry count.
       builder: (context, _) => CustomScrollView(

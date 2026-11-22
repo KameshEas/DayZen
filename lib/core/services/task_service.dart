@@ -145,7 +145,12 @@ class TaskService {
 
   static TaskService get instance => _instance;
 
-  static final ApiClient _apiClient = ApiClient();
+  static ApiClient _apiClient = ApiClient();
+
+  /// Test seam: route this service through a client backed by a mock HTTP
+  /// client.
+  @visibleForTesting
+  static set apiClientForTesting(ApiClient client) => _apiClient = client;
 
   // BINDING 5-9: Task caching
   final Map<String, DzTask> _taskCache = {};
@@ -301,98 +306,88 @@ class TaskService {
     }
   }
 
-  /// BINDING 9: Sync tasks with server (CRITICAL REUSE - 4x per session)
-  /// API: POST /tasks/sync
-  /// Used By:
-  ///   1. SyncManager.syncTasks() - Orchestrator
-  ///   2. TaskController.syncWithServer() - On app start
-  ///   3. SyncManager.createTaskWithSync() - After create
-  ///   4. SyncManager.updateTaskWithSync() - After update
-  ///   5. SyncManager.deleteTaskWithSync() - After delete
+  /// BINDING 9: Push local changes and pull server changes (POST /tasks/sync).
   ///
-  /// OPTIMIZATION STRATEGY:
-  /// • Deduplication via lastSyncAt timestamp
-  /// • Skip redundant sync if done within 30 seconds
-  /// • Batch all local changes in single POST
-  /// • Server-side Last-Write-Wins resolution
+  /// [localTasks] are the rows with unpushed changes (see
+  /// `TaskRepository.dirtyRows`), not the whole list. [deletedAt] marks which
+  /// of them are local deletes (tombstones), so deletes reach the server.
+  ///
+  /// Throws [ApiException] on failure. It never substitutes cached data for a
+  /// server answer: the caller applies the result as server truth, so stale
+  /// data here would overwrite newer local edits.
+  ///
+  /// Returns `server_tasks` (live tasks to apply), `deleted_ids` (server
+  /// deletes, including any server task that came back with `deleted_at`),
+  /// `conflicts` and `synced_at` (server time, null if the server omits it).
   Future<Map<String, dynamic>> syncTasks({
     DateTime? lastSyncAt,
     required List<DzTask> localTasks,
+    Map<String, DateTime> deletedAt = const {},
   }) async {
-    try {
-      // OPTIMIZATION: Skip redundant sync if done recently (< 30s)
-      if (_lastSyncTime != null &&
-          DateTime.now().difference(_lastSyncTime!).inSeconds < 30) {
-        return {'server_tasks': [], 'deleted_ids': [], 'conflicts': []};
+    final tasks = localTasks.map((t) => taskSyncJson(t, deletedAt: deletedAt[t.id])).toList();
+
+    final body = {
+      'last_sync_at': lastSyncAt?.toUtc().toIso8601String(),
+      'tasks': tasks,
+    };
+
+    final response = await _apiClient.post('/tasks/sync', body);
+
+    final serverTasks = <DzTask>[];
+    final deletedIds = <String>[
+      ...?(response['deleted_ids'] as List<dynamic>?)?.whereType<String>(),
+    ];
+    for (final raw in (response['server_tasks'] as List<dynamic>?) ?? const []) {
+      final apiTask = TaskApiResponse.fromJson(raw as Map<String, dynamic>);
+      if (apiTask.id.isEmpty) continue;
+      if (apiTask.deletedAt != null) {
+        deletedIds.add(apiTask.id);
+      } else {
+        serverTasks.add(apiTask.toDzTask());
       }
-
-      final tasks = localTasks.map((t) {
-        // Format date as YYYY-MM-DD for backend
-        final dateStr = '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}';
-
-        return {
-          'id': t.id,
-          'title': t.title,
-          'description': t.subtitle,
-          'scheduled_date': dateStr,
-          'priority': t.priority.name,
-          'category': t.category.name,
-          'is_completed': t.isCompleted,
-          'accent_color_value': null, // TODO: Store accent color in model
-          'start_hour': t.startTime.hour,
-          'start_minute': t.startTime.minute,
-          'end_hour': t.endTime.hour,
-          'end_minute': t.endTime.minute,
-        };
-      }).toList();
-
-      final body = {
-        'last_sync_at': lastSyncAt?.toIso8601String(),
-        'tasks': tasks,
-      };
-
-      final response = await _apiClient.post('/tasks/sync', body);
-
-      // Parse server tasks
-      final serverTasks = (response['server_tasks'] as List<dynamic>?)
-          ?.map((t) => TaskApiResponse.fromJson(t as Map<String, dynamic>).toDzTask())
-          .toList() ?? [];
-
-      // OPTIMIZATION: Cache all results
-      for (final task in serverTasks) {
-        _taskCache[task.id] = task;
-      }
-
-      // Parse conflicts
-      final conflicts = (response['conflicts'] as List<dynamic>?)
-          ?.map((c) => SyncConflict.fromJson(c as Map<String, dynamic>))
-          .toList() ?? [];
-
-      // Parse deleted IDs
-      final deletedIds = (response['deleted_ids'] as List<dynamic>?)
-          ?.map((id) => id as String)
-          .toList() ?? [];
-
-      _lastSyncTime = DateTime.now(); // Track sync time for deduplication
-      _invalidateDateCache(); // Refresh date caches after sync
-
-      return {
-        'server_tasks': serverTasks,
-        'deleted_ids': deletedIds,
-        'conflicts': conflicts,
-        'synced_at': DateTime.parse(response['synced_at'] as String),
-      };
-    } on ApiException {
-      // Cache fallback: return cached tasks on error
-      if (_taskCache.isNotEmpty) {
-        return {
-          'server_tasks': _taskCache.values.toList(),
-          'deleted_ids': [],
-          'conflicts': [],
-        };
-      }
-      rethrow;
     }
+
+    for (final task in serverTasks) {
+      _taskCache[task.id] = task;
+    }
+
+    final conflicts = (response['conflicts'] as List<dynamic>?)
+            ?.map((c) => SyncConflict.fromJson(c as Map<String, dynamic>))
+            .toList() ??
+        <SyncConflict>[];
+
+    _lastSyncTime = DateTime.now();
+    _invalidateDateCache();
+
+    final syncedAtRaw = response['synced_at'];
+    return {
+      'server_tasks': serverTasks,
+      'deleted_ids': deletedIds,
+      'conflicts': conflicts,
+      'synced_at': syncedAtRaw is String ? DateTime.tryParse(syncedAtRaw) : null,
+    };
+  }
+
+  /// Wire format for one task in a sync push. Carries the start/end times
+  /// (previously omitted, so the server's copy fell back to 09:00-10:00 and
+  /// then overwrote the local task) and, for a local delete, `deleted_at`.
+  static Map<String, dynamic> taskSyncJson(DzTask t, {DateTime? deletedAt}) {
+    final dateStr = '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}';
+    return {
+      'id': t.id,
+      'title': t.title,
+      'description': t.subtitle,
+      'scheduled_date': dateStr,
+      'start_hour': t.startTime.hour,
+      'start_minute': t.startTime.minute,
+      'end_hour': t.endTime.hour,
+      'end_minute': t.endTime.minute,
+      'priority': t.priority.name,
+      'category': t.category.name,
+      'icon_code': t.icon?.codePoint,
+      'is_completed': t.isCompleted,
+      'deleted_at': deletedAt?.toUtc().toIso8601String(),
+    };
   }
 
   /// Get last sync time.

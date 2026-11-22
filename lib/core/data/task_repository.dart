@@ -6,11 +6,10 @@ import 'database/app_database.dart';
 import 'database/daos/task_dao.dart';
 import 'database/database_provider.dart';
 
-/// Task persistence, backed by SQLite (via drift) — see
-/// docs/DATABASE_SCHEMA.md. Each method here is a single-row operation;
-/// there is deliberately no `save(List<DzTask>)` full-list-rewrite method
-/// anymore (that was the Phase 2 scalability problem — see
-/// docs/BASELINE_METRICS.md).
+/// Task persistence, backed by SQLite (via drift). Each method here is a
+/// single-row operation; there is deliberately no `save(List<DzTask>)`
+/// full-list-rewrite method anymore (rewriting every task on each change
+/// slowed down as the list grew).
 class TaskRepository {
   static TaskDao get _dao => DatabaseProvider.instance.taskDao;
 
@@ -39,6 +38,26 @@ class TaskRepository {
   static Future<void> clearAll() {
     return _dao.hardDeleteAll();
   }
+
+  // ── Sync ──────────────────────────────────────────────────────────
+
+  /// Rows not yet acknowledged by the server, soft-deleted ones included.
+  static Future<List<TaskRow>> dirtyRows() => _dao.getDirty();
+
+  /// See [TaskDao.markSynced].
+  static Future<void> markSynced(List<TaskRow> sent) => _dao.markSynced(sent);
+
+  /// True when [id] has a local change still waiting to be pushed.
+  static Future<bool> hasPendingChanges(String id) async =>
+      (await _dao.getById(id))?.dirty ?? false;
+
+  /// Stores a server copy without marking it dirty (no push loop).
+  static Future<void> upsertFromServer(DzTask task) =>
+      _dao.upsertFromServer(_toCompanion(task));
+
+  static Future<void> deleteFromServer(String id) => _dao.deleteFromServer(id);
+
+  static DzTask fromRow(TaskRow row) => _fromRow(row);
 
   static DzTask _fromRow(TaskRow row) => DzTask(
         id: row.id,

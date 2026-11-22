@@ -12,9 +12,8 @@ import 'widgets/new_task_form_fields.dart';
 import 'widgets/new_task_shared_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// New Task Page — full-screen design matching the DayZen UI spec. Split
-// from a single 624-line file into features/tasks/widgets/ subcomponents
-// in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
+// New Task Page — full-screen design matching the DayZen UI spec.
+// Subcomponents live in features/tasks/widgets/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Start and end for a new task on [date]: the next full hour when it is today

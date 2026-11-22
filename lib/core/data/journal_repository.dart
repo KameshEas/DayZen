@@ -6,10 +6,9 @@ import 'database/app_database.dart';
 import 'database/daos/journal_dao.dart';
 import 'database/database_provider.dart';
 
-/// Journal entry persistence, backed by SQLite (via drift) — see
-/// docs/DATABASE_SCHEMA.md. Single-row operations; no more
-/// `save(List<JournalEntry>)` full-list rewrite (see
-/// docs/BASELINE_METRICS.md for why that pattern was the Phase 2 target).
+/// Journal entry persistence, backed by SQLite (via drift). Single-row
+/// operations; no more `save(List<JournalEntry>)` full-list rewrite, which
+/// rewrote every entry on each change and slowed down as the journal grew.
 class JournalRepository {
   static JournalDao get _dao => DatabaseProvider.instance.journalDao;
 
@@ -41,6 +40,25 @@ class JournalRepository {
   static Future<void> clearAll() {
     return _dao.hardDeleteAll();
   }
+
+  // ── Sync ──────────────────────────────────────────────────────────
+
+  /// Rows not yet acknowledged by the server, soft-deleted ones included.
+  static Future<List<JournalEntryRow>> dirtyRows() => _dao.getDirty();
+
+  static Future<void> markSynced(List<JournalEntryRow> sent) =>
+      _dao.markSynced(sent);
+
+  static Future<bool> hasPendingChanges(String id) async =>
+      (await _dao.getById(id))?.dirty ?? false;
+
+  /// Stores a server copy without marking it dirty (no push loop).
+  static Future<void> upsertFromServer(JournalEntry entry) =>
+      _dao.upsertFromServer(_toCompanion(entry));
+
+  static Future<void> deleteFromServer(String id) => _dao.deleteFromServer(id);
+
+  static JournalEntry fromRow(JournalEntryRow row) => _fromRow(row);
 
   static JournalEntry _fromRow(JournalEntryRow row) => JournalEntry(
         id: row.id,
