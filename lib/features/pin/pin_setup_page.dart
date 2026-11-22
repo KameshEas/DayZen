@@ -48,7 +48,7 @@ class _PinSetupPageState extends State<PinSetupPage> {
     // The PIN never leaves the device. Its hash used to be synced to the
     // backend, but a 4-digit PIN has only 10,000 values, so anyone with
     // server access could recover it instantly from hash + salt
-    // (docs/MOBILE_PROJECT_PLAN.md P0-4).
+    // (audit item P0-4).
     await AppPrefs.savePin(_pin);
     if (mounted) widget.onPinSet(context);
   }

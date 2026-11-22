@@ -7,8 +7,7 @@ import 'sign_up_page.dart';
 import 'widgets/auth_shared_widgets.dart';
 import 'widgets/login_form_card.dart';
 
-/// LoginPage — composes LoginFormCard under features/auth/widgets/. Split
-/// from a single 389-line file in Phase 5.1 of docs/DEVELOPMENT_PLAN.md.
+/// LoginPage — composes LoginFormCard under features/auth/widgets/.
 class LoginPage extends StatefulWidget {
   /// Called when the user successfully signs in, with the email used.
   final ValueChanged<String> onSignedIn;
@@ -155,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                       SizedBox(width: DzSpacing.xl),
                       AuthTrustBadge(
                         icon: Icons.storage_rounded,
-                        label: 'Local Storage',
+                        label: 'Works Offline',
                       ),
                     ],
                   ),
@@ -163,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // ── Copyright ──────────────────────────────────────
                   Text(
-                    '© 2024 DAYZEN AI. ALL RIGHTS RESERVED.',
+                    '© ${DateTime.now().year} DAYZEN',
                     style: DzTextStyles.caption.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 10,

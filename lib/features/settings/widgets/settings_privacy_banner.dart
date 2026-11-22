@@ -40,7 +40,7 @@ class SettingsPrivacyBanner extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'System Version 2.4.0',
+                  'Private by default',
                   style: DzTextStyles.caption.copyWith(
                     color: DzColors.privacyBannerIcon,
                     fontWeight: FontWeight.w500,

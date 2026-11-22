@@ -39,7 +39,7 @@ class AnimatedOnboardingSlideWelcome extends StatelessWidget {
             child: OnboardingSlideText(
               title: 'Welcome to DayZen',
               subtitle:
-                  'Your personal day optimizer. Plan, track, and optimize every moment for maximum focus and productivity.',
+                  'A calm planner and journal. Plan your day, reflect on it, and notice what helps.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
@@ -48,7 +48,7 @@ class AnimatedOnboardingSlideWelcome extends StatelessWidget {
             duration: Duration(milliseconds: 800),
             child: OnboardingPillBadge(
               icon: Icons.psychology_rounded,
-              label: 'AI-POWERED INSIGHTS',
+              label: 'PLANNER + JOURNAL',
               style: OnboardingPillStyle.blue,
             ),
           ),
@@ -94,7 +94,7 @@ class AnimatedOnboardingSlidePlan extends StatelessWidget {
             child: OnboardingSlideText(
               title: 'Smart Planning',
               subtitle:
-                  'Set your priorities and let AI help you organize your day. Break down goals into actionable tasks.',
+                  'Set your priorities and get a suggested order for your day. Break big goals into small steps.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
@@ -103,7 +103,7 @@ class AnimatedOnboardingSlidePlan extends StatelessWidget {
             duration: Duration(milliseconds: 800),
             child: OnboardingPillBadge(
               icon: Icons.lightbulb_outline_rounded,
-              label: 'INTELLIGENT SUGGESTIONS',
+              label: 'SMART SUGGESTIONS',
               style: OnboardingPillStyle.amber,
             ),
           ),
@@ -262,7 +262,7 @@ class AnimatedOnboardingSlidePrivacy extends StatelessWidget {
             child: OnboardingSlideText(
               title: 'Your Privacy First',
               subtitle:
-                  'Everything stays on your device. No tracking, no ads, no cloud by default. Your data is yours alone.',
+                  'Your tasks and journal are stored on this phone. Sign in only if you want sync and backup. No ads, no analytics.',
             ),
           ),
           const SizedBox(height: DzSpacing.lg),
@@ -271,7 +271,7 @@ class AnimatedOnboardingSlidePrivacy extends StatelessWidget {
             duration: Duration(milliseconds: 800),
             child: OnboardingPillBadge(
               icon: Icons.lock_rounded,
-              label: 'OFFLINE-FIRST SECURITY',
+              label: 'PRIVATE BY DEFAULT',
               style: OnboardingPillStyle.red,
             ),
           ),

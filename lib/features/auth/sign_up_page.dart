@@ -7,8 +7,6 @@ import 'widgets/auth_shared_widgets.dart';
 import 'widgets/signup_form_card.dart';
 
 /// SignUpPage — composes SignUpFormCard under features/auth/widgets/.
-/// Split from a single 309-line file in Phase 5.1 of
-/// docs/DEVELOPMENT_PLAN.md.
 class SignUpPage extends StatefulWidget {
   /// Called when account is successfully created, with the email used.
   final ValueChanged<String> onSignedUp;

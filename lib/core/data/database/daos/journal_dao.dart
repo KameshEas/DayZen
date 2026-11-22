@@ -12,8 +12,8 @@ class JournalDao extends DatabaseAccessor<AppDatabase>
 
   /// All active (non soft-deleted) entries, unordered — callers sort as
   /// needed. Used by `JournalRepository.loadAll` to populate the in-memory
-  /// cache (see docs/DEVELOPMENT_PLAN.md Phase 2.5 for the scoping
-  /// rationale on why a full in-memory cache remains on top of this DB).
+  /// cache. The cache stays on top of this DB on purpose: entry counts are
+  /// small and the UI reads synchronously from it.
   Future<List<JournalEntryRow>> getAllActive() {
     return (select(journalEntries)..where((e) => e.deletedAt.isNull())).get();
   }

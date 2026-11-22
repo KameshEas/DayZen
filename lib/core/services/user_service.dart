@@ -118,6 +118,12 @@ class UserService {
   Future<UserSettingsModel> updateUserSettings({
     bool? quietHoursEnabled,
     bool? focusAlertsEnabled,
+    bool? remindersEnabled,
+    // Quiet hours ("HH:MM"). Sent only when [sendQuietWindow] is true, so
+    // null can clear them (no quiet hours) instead of meaning "unchanged".
+    bool sendQuietWindow = false,
+    String? quietStart,
+    String? quietEnd,
     String? timezone,
     String? themeMode,
     String? accentColor,
@@ -134,6 +140,11 @@ class UserService {
       final body = <String, dynamic>{};
       if (quietHoursEnabled != null) body['quiet_hours_enabled'] = quietHoursEnabled;
       if (focusAlertsEnabled != null) body['focus_alerts_enabled'] = focusAlertsEnabled;
+      if (remindersEnabled != null) body['reminders_enabled'] = remindersEnabled;
+      if (sendQuietWindow) {
+        body['quiet_start'] = quietStart;
+        body['quiet_end'] = quietEnd;
+      }
       if (timezone != null) body['timezone'] = timezone;
       if (themeMode != null) body['theme_mode'] = themeMode;
       if (accentColor != null) body['accent_color'] = accentColor;

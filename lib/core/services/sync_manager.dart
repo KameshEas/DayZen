@@ -23,7 +23,7 @@ import '../../core/logging/app_logger.dart';
 ///
 /// Controllers trigger this with [requestSync] after a local write. Nothing
 /// here calls a controller mutator, which is what used to make every add or
-/// delete loop forever (docs/MOBILE_PROJECT_PLAN.md P0-1).
+/// delete loop forever (audit item P0-1).
 class SyncManager extends SyncCoordinator<TaskController> {
   SyncManager._();
 

@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design_system/design_system.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared widgets used across multiple settings sections (Phase 5.1 of
-// docs/DEVELOPMENT_PLAN.md — extracted from the former monolithic
-// settings_page.dart). Kept public (no leading underscore) since they're
+// Shared widgets used across multiple settings sections. Kept public (no leading underscore) since they're
 // now consumed from other files under features/settings/widgets/.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -137,14 +135,16 @@ class SettingsToggleRow extends StatelessWidget {
 
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: DzTextStyles.body),
+        Flexible(child: Text(label, style: DzTextStyles.body)),
         Switch.adaptive(
           value: value,
           onChanged: onChanged,

@@ -347,7 +347,7 @@ class JwtAuthService extends ChangeNotifier {
   /// The session is cleared only when the server definitively rejects the
   /// refresh token (400/401/403). Network failures, timeouts and 5xx keep the
   /// session: an offline-first app must not sign the user out because the
-  /// phone had no signal when it started (docs/MOBILE_PROJECT_PLAN.md P0-3).
+  /// phone had no signal when it started (audit item P0-3).
   Future<bool> _doRefresh() async {
     final refreshToken = _currentToken?.refreshToken;
     if (refreshToken == null) {

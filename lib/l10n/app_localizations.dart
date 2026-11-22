@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appDescription.
   ///
   /// In en, this message translates to:
-  /// **'Offline AI Day Optimizer'**
+  /// **'Calm day planner and journal'**
   String get appDescription;
 
   /// No description provided for @greetingMorning.

@@ -6,7 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:dayzen/core/notification_service.dart';
 import 'package:dayzen/features/home/models/task_model.dart';
 
-/// Regression for docs/MOBILE_PROJECT_PLAN.md P0-2: reminders were scheduled
+/// Regression for audit item P0-2: reminders were scheduled
 /// in UTC because `tz.local` was never pointed at the device zone.
 void main() {
   setUpAll(tzdata.initializeTimeZones);

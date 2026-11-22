@@ -23,7 +23,7 @@ import 'package:dayzen/features/journal/models/journal_entry.dart';
 import 'package:dayzen/features/journal_controller.dart';
 import 'package:dayzen/features/task_controller.dart';
 
-/// Regression tests for docs/MOBILE_PROJECT_PLAN.md P0-1 (controller <-> sync
+/// Regression tests for audit items P0-1 (controller <-> sync
 /// recursion) and P0-5 (sync protocol: deltas, tombstones, times, cursor).
 ///
 /// Before the fix, `TaskController.addTask` never returned: each add queued

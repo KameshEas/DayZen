@@ -29,7 +29,7 @@ class JournalController extends ChangeNotifier {
 
   Future<void> addEntry(JournalEntry entry) async {
     _entries.insert(0, entry);
-    // Single-row insert — see docs/DATABASE_SCHEMA.md.
+    // Single-row insert (no full-list rewrite).
     await JournalRepository.insertEntry(entry);
     notifyListeners();
     unawaited(JournalSyncManager.instance.requestSync(this));

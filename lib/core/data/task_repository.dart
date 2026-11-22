@@ -6,11 +6,10 @@ import 'database/app_database.dart';
 import 'database/daos/task_dao.dart';
 import 'database/database_provider.dart';
 
-/// Task persistence, backed by SQLite (via drift) — see
-/// docs/DATABASE_SCHEMA.md. Each method here is a single-row operation;
-/// there is deliberately no `save(List<DzTask>)` full-list-rewrite method
-/// anymore (that was the Phase 2 scalability problem — see
-/// docs/BASELINE_METRICS.md).
+/// Task persistence, backed by SQLite (via drift). Each method here is a
+/// single-row operation; there is deliberately no `save(List<DzTask>)`
+/// full-list-rewrite method anymore (rewriting every task on each change
+/// slowed down as the list grew).
 class TaskRepository {
   static TaskDao get _dao => DatabaseProvider.instance.taskDao;
 

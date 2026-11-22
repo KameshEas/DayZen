@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/domain/quiet_window.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
 import '../settings_controller.dart';
@@ -27,9 +28,7 @@ class SettingsPreferencesSection extends StatelessWidget {
                 iconBg: Theme.of(context).colorScheme.primaryContainer,
                 iconColor: Theme.of(context).colorScheme.primary,
                 title: 'Notification settings',
-                subtitle: ctrl.quietHours
-                    ? 'Quiet hours, focus mode alerts'
-                    : 'All notifications enabled',
+                subtitle: _notificationSummary(context, ctrl),
                 onTap: () => _showNotificationSheet(context, ctrl),
               ),
               const SettingsDivider(),
@@ -57,7 +56,27 @@ class SettingsPreferencesSection extends StatelessWidget {
     );
   }
 
+  static String _time(BuildContext context, SettingsController ctrl, int minutes) =>
+      MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+        alwaysUse24HourFormat: ctrl.use24Hour,
+      );
+
+  static String _notificationSummary(BuildContext context, SettingsController ctrl) {
+    if (!ctrl.remindersEnabled) return 'Task reminders off';
+    final w = ctrl.quietWindow;
+    if (w == null) return 'Task reminders on';
+    return 'Reminders on · quiet ${_time(context, ctrl, w.startMinutes)}–'
+        '${_time(context, ctrl, w.endMinutes)}';
+  }
+
   void _showNotificationSheet(BuildContext context, SettingsController ctrl) {
+    final tasks = TaskScope.of(context);
+    void apply() => tasks.applyReminderSettings(
+          enabled: ctrl.remindersEnabled,
+          quietWindow: ctrl.quietWindow,
+        );
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -65,49 +84,103 @@ class SettingsPreferencesSection extends StatelessWidget {
             BorderRadius.vertical(top: Radius.circular(DzRadius.modal)),
       ),
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
-          padding: const EdgeInsets.all(DzSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SettingsSheetHandle(),
-              const SizedBox(height: DzSpacing.md),
-              Text('Notification Settings',
-                  style: DzTextStyles.heading3
-                      .copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: DzSpacing.lg),
-              SettingsToggleRow(
-                label: 'Quiet Hours',
-                value: ctrl.quietHours,
-                onChanged: (v) {
-                  ctrl.setQuietHours(v);
-                  _syncNotifications(context, ctrl);
-                  setSt(() {});
-                },
+        builder: (ctx, setSt) {
+          final window = ctrl.quietWindow;
+          final muted = Theme.of(ctx).colorScheme.onSurfaceVariant;
+
+          Future<void> pickTime({required bool start}) async {
+            final w = ctrl.quietWindow ?? QuietWindow.defaultWindow;
+            final current = start ? w.startMinutes : w.endMinutes;
+            final picked = await showTimePicker(
+              context: ctx,
+              initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
+              helpText: start ? 'Quiet hours start' : 'Quiet hours end',
+              // Match the app's Units setting, not the phone's, so the
+              // picker and the From/To rows show the same clock.
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(alwaysUse24HourFormat: ctrl.use24Hour),
+                child: child!,
               ),
-              const SizedBox(height: DzSpacing.md),
-              SettingsToggleRow(
-                label: 'Focus Mode Alerts',
-                value: ctrl.focusAlerts,
-                onChanged: (v) {
-                  ctrl.setFocusAlerts(v);
-                  _syncNotifications(context, ctrl);
-                  setSt(() {});
-                },
-              ),
-              const SizedBox(height: DzSpacing.lg),
-            ],
-          ),
-        ),
+            );
+            if (picked == null) return;
+            final minutes = picked.hour * 60 + picked.minute;
+            ctrl.setQuietWindow(QuietWindow(
+              startMinutes: start ? minutes : w.startMinutes,
+              endMinutes: start ? w.endMinutes : minutes,
+            ));
+            apply();
+            setSt(() {});
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(DzSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SettingsSheetHandle(),
+                const SizedBox(height: DzSpacing.md),
+                Text('Notification Settings',
+                    style: DzTextStyles.heading3
+                        .copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: DzSpacing.lg),
+                SettingsToggleRow(
+                  key: const Key('reminders-toggle'),
+                  label: 'Task reminders',
+                  value: ctrl.remindersEnabled,
+                  onChanged: (v) {
+                    ctrl.setRemindersEnabled(v);
+                    apply();
+                    setSt(() {});
+                  },
+                ),
+                Text('5 minutes before and when each task starts.',
+                    style: DzTextStyles.caption.copyWith(color: muted)),
+                const SizedBox(height: DzSpacing.md),
+                SettingsToggleRow(
+                  key: const Key('quiet-hours-toggle'),
+                  label: 'Quiet hours',
+                  value: window != null,
+                  onChanged: ctrl.remindersEnabled
+                      ? (v) {
+                          ctrl.setQuietWindow(v ? QuietWindow.defaultWindow : null);
+                          apply();
+                          setSt(() {});
+                        }
+                      : null,
+                ),
+                Text(
+                  'Reminders that fall inside quiet hours are skipped, '
+                  'not delivered later.',
+                  style: DzTextStyles.caption.copyWith(color: muted),
+                ),
+                if (window != null && ctrl.remindersEnabled) ...[
+                  const SizedBox(height: DzSpacing.sm),
+                  ListTile(
+                    key: const Key('quiet-start'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('From'),
+                    trailing: Text(_time(ctx, ctrl, window.startMinutes),
+                        style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                    onTap: () => pickTime(start: true),
+                  ),
+                  ListTile(
+                    key: const Key('quiet-end'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('To'),
+                    trailing: Text(_time(ctx, ctrl, window.endMinutes),
+                        style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                    onTap: () => pickTime(start: false),
+                  ),
+                ],
+                const SizedBox(height: DzSpacing.lg),
+              ],
+            ),
+          );
+        },
       ),
     );
-  }
-
-  /// Syncs the TaskController notification state with the current settings.
-  void _syncNotifications(BuildContext context, SettingsController ctrl) {
-    final enabled = ctrl.quietHours || ctrl.focusAlerts;
-    TaskScope.of(context).setNotificationsEnabled(enabled);
   }
 
   void _showUnitsSheet(BuildContext context, SettingsController ctrl) {

@@ -35,8 +35,7 @@ class SyncOutcome {
 }
 
 /// Base class for the offline-first "local write → mark dirty →
-/// background push → clear dirty on success" sync pattern (Phase 3.2 of
-/// docs/DEVELOPMENT_PLAN.md).
+/// background push → clear dirty on success" sync pattern.
 ///
 /// Extracted from `SyncManager` (tasks) and `JournalSyncManager` (journal
 /// entries), which had hand-copied this exact state machine — the
@@ -50,7 +49,7 @@ class SyncOutcome {
 /// computed from the client's perspective (see the old `InsightsController`'s
 /// doc comment) — there's no local write to push, only a cache-freshness
 /// pull. That's a different pattern, and forcing it into this shape would
-/// be a worse fit than leaving it separate. See docs/ARCHITECTURE.md.
+/// be a worse fit than leaving it separate.
 abstract class SyncCoordinator<TController> extends ChangeNotifier {
   /// Whether a session exists. Replaceable in tests.
   @visibleForTesting
@@ -106,7 +105,7 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
   /// Controllers call this *after* they have written locally; it must never
   /// call back into a controller mutator. (The old `withSync(localWrite)`
   /// did, and since every mutator queued another `withSync`, each add or
-  /// delete re-ran itself forever — see docs/MOBILE_PROJECT_PLAN.md P0-1.)
+  /// delete re-ran itself forever — audit item P0-1.)
   ///
   /// A request that arrives while a sync is in flight is not dropped: it
   /// schedules exactly one follow-up sync, so a write made mid-sync is still

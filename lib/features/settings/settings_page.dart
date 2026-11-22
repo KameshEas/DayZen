@@ -10,11 +10,9 @@ import 'widgets/settings_privacy_banner.dart';
 import 'widgets/settings_privacy_section.dart';
 
 /// Settings page — composes the individual section widgets under
-/// features/settings/widgets/. Split from a single 1,048-line file in
-/// Phase 5.1 of docs/DEVELOPMENT_PLAN.md; see that document for why the
-/// section names here (Account/Preferences/Appearance/Privacy/AI) follow
-/// the app's actual visible section headers rather than the plan's
-/// original speculative names.
+/// features/settings/widgets/. Section widget names
+/// (Account/Preferences/Appearance/Privacy/AI) follow the visible section
+/// headers.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 

@@ -8,9 +8,8 @@ import 'journal_repository.dart';
 import 'task_repository.dart';
 import '../logging/app_logger.dart';
 
-/// One-time migration from the pre-Phase-2 SharedPreferences JSON-blob
-/// storage (see docs/BASELINE_METRICS.md) into the SQLite-backed
-/// [TaskRepository]/[JournalRepository] (see docs/DATABASE_SCHEMA.md).
+/// One-time migration from the old SharedPreferences JSON-blob storage
+/// into the SQLite-backed [TaskRepository]/[JournalRepository].
 ///
 /// Call [migrateIfNeeded] once during app startup, **before** the first
 /// `TaskController.load()` / `JournalController.load()` — otherwise a

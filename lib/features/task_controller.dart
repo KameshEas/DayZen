@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../core/domain/quiet_window.dart';
 
 import 'package:flutter/material.dart';
 import '../core/data/task_repository.dart';
@@ -21,6 +22,13 @@ class TaskController extends ChangeNotifier {
     } else {
       NotificationService.instance.rescheduleAll(_tasks);
     }
+  }
+
+  /// Applies the Settings reminder choices: on/off and quiet hours.
+  /// Re-schedules every reminder so the new window applies to existing ones.
+  void applyReminderSettings({required bool enabled, QuietWindow? quietWindow}) {
+    NotificationService.instance.quietWindow = quietWindow;
+    setNotificationsEnabled(enabled);
   }
 
   /// Re-creates all reminders (e.g. after the device time zone changed).
@@ -107,8 +115,8 @@ class TaskController extends ChangeNotifier {
 
   Future<void> addTask(DzTask task) async {
     _tasks.add(task);
-    // Single-row insert — see docs/DATABASE_SCHEMA.md. Replaces the old
-    // "re-serialize and rewrite the entire task list" pattern.
+    // Single-row insert. Replaces the old "re-serialize and rewrite the
+    // entire task list" pattern.
     await TaskRepository.insertTask(task);
     notifyListeners();
     if (_notificationsEnabled) {
@@ -156,8 +164,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> deleteTask(String id) async {
     _tasks.removeWhere((t) => t.id == id);
-    // Soft delete (deleted_at set, row retained for sync visibility) — see
-    // docs/DATABASE_SCHEMA.md.
+    // Soft delete (deleted_at set, row retained so sync can push the delete).
     await TaskRepository.deleteTask(id);
     notifyListeners();
     if (_notificationsEnabled) {

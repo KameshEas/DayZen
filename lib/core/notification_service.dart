@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../features/home/models/task_model.dart';
+import 'domain/quiet_window.dart';
 import './logging/app_logger.dart';
 
 /// Handles scheduling and cancelling local notifications for planned tasks.
@@ -14,6 +15,16 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
+  /// Reminders that would fire inside this window aren't scheduled (null =
+  /// no quiet hours). Set from Settings; call [rescheduleAll] after changing
+  /// it so already-scheduled reminders follow the new window.
+  QuietWindow? quietWindow;
+
+  /// Whether a reminder at [when] should actually be delivered.
+  @visibleForTesting
+  static bool allowedAt(DateTime when, QuietWindow? window) =>
+      window == null || !window.contains(when.hour, when.minute);
+
   // ── Initialise ────────────────────────────────────────────────────────
 
   Future<void> init() async {
@@ -22,7 +33,7 @@ class NotificationService {
     tz.initializeTimeZones();
     // `tz.local` is UTC until set explicitly. Without this every reminder
     // fired at the task's wall-clock time *in UTC* (e.g. 14:30 instead of
-    // 09:00 in IST). See docs/MOBILE_PROJECT_PLAN.md P0-2.
+    // 09:00 in IST). Audit item P0-2.
     await refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -116,9 +127,11 @@ class NotificationService {
     const preReminderMinutes = 5;
     final preDateTime = taskDateTime.subtract(const Duration(minutes: preReminderMinutes));
 
-    // Don't schedule notifications in the past
-    final shouldScheduleOnTime = taskDateTime.isAfter(now);
-    final shouldSchedulePre = preDateTime.isAfter(now);
+    // Don't schedule notifications in the past, or inside quiet hours.
+    final shouldScheduleOnTime =
+        taskDateTime.isAfter(now) && allowedAt(taskDateTime, quietWindow);
+    final shouldSchedulePre =
+        preDateTime.isAfter(now) && allowedAt(preDateTime, quietWindow);
 
     AppLogger.debug('NotificationService: scheduling task ${task.id}');
     AppLogger.debug(' - now: $now');
@@ -153,6 +166,11 @@ class NotificationService {
         presentSound: true,
       ),
     );
+
+    // A skipped reminder may still be scheduled from before (the task was
+    // moved into quiet hours, or the window changed): cancel it.
+    if (!shouldSchedulePre) await _plugin.cancel(id: preId);
+    if (!shouldScheduleOnTime) await _plugin.cancel(id: onTimeId);
 
     // Schedule pre-reminder 5 minutes before (if in future)
     if (shouldSchedulePre) {

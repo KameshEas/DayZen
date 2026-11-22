@@ -86,8 +86,8 @@ class AchievementService {
   ///
   /// There is no server source: the app used to call GET /achievements,
   /// which the DayZen API has never had, so the page always showed an error.
-  /// Achievements will be computed on the device (DEVELOPMENT_PLAN.md
-  /// M-1.13, gentle milestones); until then there are none.
+  /// Achievements will be computed on the device (planned: gentle
+  /// milestones); until then there are none.
   Future<List<Achievement>> getAchievements({
     bool forceRefresh = false,
   }) async =>
