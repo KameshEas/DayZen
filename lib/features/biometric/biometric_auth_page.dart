@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/config/app_config.dart';
 
 /// Full-screen biometric authentication page.
 ///
@@ -165,7 +166,7 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
                         const SizedBox(height: DzSpacing.md),
                       ],
                       Text(
-                  'PRIVACY BY DESIGN  •  DATA STAYS LOCAL',
+                  AppConfig.lockScreenFooter,
                   textAlign: TextAlign.center,
                   style: DzTextStyles.caption.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,

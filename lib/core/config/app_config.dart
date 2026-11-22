@@ -203,6 +203,11 @@ class AppConfig {
   static const String pinSetupTitle = 'Lock In Your Privacy';
   static const String pinSetupBody = 'Set a 4-digit code. Your tasks and journal stay yours alone.';
   static const String pinSetupFooter = 'Encrypted. On-device. Nowhere else.';
+  // The PIN is a salted hash in on-device secure storage and never synced.
+  // Tasks and journal can sync, so don't say the data stays local.
+  static const String lockScreenFooter = 'PRIVACY BY DESIGN  •  PIN STAYS ON DEVICE';
+  static const String newTaskPrivacyNote =
+      "Saved on this phone. Synced to your account only when you're signed in.";
   static const String pinSetupError = 'Enter all 4 digits to continue.';
   static const String pinUnlockTitle = 'Welcome Back';
   static const String pinUnlockSubtitle = 'Enter your PIN to pick up where you left off.';
@@ -211,7 +216,6 @@ class AppConfig {
   static const String signupTitle = 'Start Your Streak';
 
   // ── Task/Journal Detail Copy ─────────────────────────────────────────
-  static const String taskNotFound = 'This task\'s gone';
   static const String journalEntryNotFound = 'This entry\'s gone';
 
   // ── Router Copy ──────────────────────────────────────────────────────
