@@ -10,6 +10,8 @@ import '../../app_data.dart';
 import '../../biometric/biometric_setup_guide_page.dart';
 import '../../pin/pin_setup_page.dart';
 import '../settings_controller.dart';
+import '../../../core/data/database/database_provider.dart';
+import '../../../core/services/counters_service.dart';
 import 'settings_shared_widgets.dart';
 
 /// The "PRIVACY" card on the Settings page â€” PIN lock, biometric lock, data
@@ -176,6 +178,9 @@ class _SettingsPrivacySectionState extends State<SettingsPrivacySection> {
                 task: () async {
                   await tasks.clearAll();
                   await journal.clearAll();
+                  // Check-ins, day closes, Rhythm and counters (local only).
+                  await DatabaseProvider.instance.localOnlyDao.clearAll();
+                  await CountersService.instance.clearAll();
                 },
               );
             },

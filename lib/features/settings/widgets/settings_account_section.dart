@@ -9,6 +9,7 @@ import '../../../core/services/account_deletion_service.dart';
 import '../../app_data.dart';
 import '../settings_controller.dart';
 import 'delete_account_dialog.dart';
+import '../../../core/data/database/database_provider.dart';
 import 'settings_shared_widgets.dart';
 
 /// The "ACCOUNT" card on the Settings page — sign-in status, account sheet,
@@ -180,6 +181,8 @@ class SettingsAccountSection extends StatelessWidget {
       wipeLocalData: () async {
         await tasks.clearAll(); // also cancels scheduled reminders
         await journal.clearAll();
+        // Check-ins, day closes, Rhythm and counters (local only).
+        await DatabaseProvider.instance.localOnlyDao.clearAll();
         await AppPrefs.clearPin();
         await AppPrefs.clearAllSecureData();
         final prefs = await SharedPreferences.getInstance();
