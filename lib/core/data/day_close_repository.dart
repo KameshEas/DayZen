@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 
 import 'database/app_database.dart';
 import 'database/database_provider.dart';
@@ -37,6 +38,10 @@ abstract class DayCloseStore {
 class DayCloseRepository implements DayCloseStore {
   const DayCloseRepository();
 
+  /// Bumped after every save, so screens showing a day's close (the Home
+  /// card) refresh even when they were rebuilt while Close the Day was open.
+  static final ValueNotifier<int> changes = ValueNotifier(0);
+
   static DateTime midnight(DateTime d) => DateTime(d.year, d.month, d.day);
 
   @override
@@ -47,15 +52,17 @@ class DayCloseRepository implements DayCloseStore {
   }
 
   @override
-  Future<void> save(DayCloseRecord r) =>
-      DatabaseProvider.instance.localOnlyDao.saveDayClose(DayClosesCompanion(
-        date: Value(midnight(r.date)),
-        closedAt: Value(r.closedAt),
-        done: Value(r.done),
-        carried: Value(r.carried),
-        released: Value(r.released),
-        journalEntryId: Value(r.journalEntryId),
-      ));
+  Future<void> save(DayCloseRecord r) async {
+    await DatabaseProvider.instance.localOnlyDao.saveDayClose(DayClosesCompanion(
+      date: Value(midnight(r.date)),
+      closedAt: Value(r.closedAt),
+      done: Value(r.done),
+      carried: Value(r.carried),
+      released: Value(r.released),
+      journalEntryId: Value(r.journalEntryId),
+    ));
+    changes.value++;
+  }
 
   @override
   Future<List<DayCloseRecord>> between(DateTime from, DateTime to) async {

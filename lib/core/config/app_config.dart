@@ -152,17 +152,17 @@ class AppConfig {
   static const String defaultDailyReflectionAuthor = 'MIKE MURDOCK';
 
   // ── Empty State Messages ─────────────────────────────────────────────
-  static const String emptyTasksMessage = 'Nothing on the board yet — add your first win.';
-  static const String allTasksDoneMessage = 'Cleared the board. That\'s momentum.';
-  static const String emptyJournalMessage = 'One entry a day builds real clarity. Start now.';
+  static const String emptyTasksMessage = 'Nothing planned yet. Add one thing when you are ready.';
+  static const String allTasksDoneMessage = 'Everything for today is done. Enjoy the rest of it.';
+  static const String emptyJournalMessage = 'A line now and then is enough. Write when it helps.';
 
   // ── Productivity Insights Messages ───────────────────────────────────
   static const Map<int, String> productivityDeltaMessages = {
-    80: 'Dominance week — that\'s the standard.',
-    50: 'Building momentum — stack these days.',
+    80: 'A full, steady week.',
+    50: 'A good week, at your own pace.',
   };
 
-  static const String productivityDeltaDefault = 'Every day counts — keep stacking wins.';
+  static const String productivityDeltaDefault = 'Every week looks different, and that is fine.';
 
   // ── AI Quotes (Fallback) ─────────────────────────────────────────────
   static const Map<int, String> aiQuotesByScore = {
@@ -205,8 +205,8 @@ class AppConfig {
   static const String onboardingSecondaryCta = 'Enable Sync (Optional)';
 
   // ── Home Copy ────────────────────────────────────────────────────────
-  static const String homeAllDoneSubtitle = 'Cleared the board. That\'s momentum.';
-  static const String homeRemainingSubtitleTemplate = '{n} task(s) standing between you and done.';
+  static const String homeAllDoneSubtitle = 'Everything for today is done. Enjoy the rest of it.';
+  static const String homeRemainingSubtitleTemplate = '{n} left for today, at your own pace.';
   static const String homeEmptyTitle = 'Blank slate. Your move.';
   static const String homeEmptyBody = 'Nothing on the board yet — add your first win.';
   static const String homeEmptyAction = 'Add a Task';

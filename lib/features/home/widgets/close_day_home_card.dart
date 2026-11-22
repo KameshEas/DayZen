@@ -35,6 +35,22 @@ class _CloseDayHomeCardState extends State<CloseDayHomeCard> {
       _load();
 
   DayCloseStore get _store => widget.store ?? const DayCloseRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    DayCloseRepository.changes.addListener(_reload);
+  }
+
+  @override
+  void dispose() {
+    DayCloseRepository.changes.removeListener(_reload);
+    super.dispose();
+  }
+
+  void _reload() {
+    if (mounted) setState(() => _state = _load());
+  }
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
   Future<({DayCloseRecord? closed, bool whatsNew, bool firstEvening})> _load() async {
