@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
 import 'models/task_model.dart';
+import '../planner/widgets/day_load_pill.dart';
 import '../rhythm/widgets/rhythm_card.dart';
 import 'widgets/close_day_home_card.dart';
 import 'widgets/day_optimizer_home_card.dart';
@@ -84,6 +85,8 @@ class _HomeBody extends StatelessWidget {
             onAction: () => context.push(RoutePaths.newTask),
           )
         else ...[
+          DayLoadIndicator(tasks: taskCtrl, day: now),
+          const SizedBox(height: DzSpacing.md),
           SyncStatusIndicator(
             taskController: taskCtrl,
             showFullStatus: true,

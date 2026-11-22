@@ -13,6 +13,7 @@ import '../home/models/task_model.dart';
 import '../tasks/widgets/task_actions_sheet.dart';
 import 'planner_selection.dart';
 import 'schedule_suggestions_widget.dart';
+import 'widgets/day_load_pill.dart';
 import 'widgets/planner_date_header.dart';
 import 'widgets/planner_list_view.dart';
 import 'widgets/planner_timeline_view.dart';
@@ -152,6 +153,12 @@ class _PlannerPageState extends State<PlannerPage> {
           day: selected,
           onAdd: () => _addTask(selected),
         ),
+        if (dayTasks.any((t) => t.status == TaskStatus.active))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                DzSpacing.md, 0, DzSpacing.md, DzSpacing.xs),
+            child: DayLoadIndicator(tasks: taskCtrl, day: selected),
+          ),
 
         // ── AI schedule suggestions (opt-in) + view mode ────────
         Padding(
