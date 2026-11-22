@@ -18,6 +18,7 @@ import '../../features/planner/planner_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/splash/splash_page.dart';
+import '../../features/home/models/task_model.dart';
 import '../../features/tasks/new_task_page.dart';
 import '../../features/tasks/task_detail_page.dart';
 import '../../features/journal/journal_detail_page.dart';
@@ -165,9 +166,11 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.newTask,
           name: RouteNames.newTask,
-          // The Planner passes the day being viewed as `extra`.
+          // The Planner passes the day being viewed as `extra`; the task
+          // actions sheet passes a DzTask to edit it.
           builder: (context, state) => NewTaskPage(
             initialDate: state.extra is DateTime ? state.extra as DateTime : null,
+            task: state.extra is DzTask ? state.extra as DzTask : null,
           ),
         ),
         GoRoute(

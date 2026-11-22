@@ -36,7 +36,8 @@ DzTask _task(String id, {String title = 'Task', int startHour = 9}) => DzTask(
       endTime: TimeOfDay(hour: startHour + 1, minute: 45),
       priority: TaskPriority.routine,
       category: TaskCategory.work,
-      date: DateTime(2026, 11, 20),
+      // In the future, so the rollover that load() runs leaves it alone.
+      date: DateTime(2099, 11, 20),
     );
 
 JournalEntry _entry(String id) => JournalEntry(
@@ -167,7 +168,7 @@ void main() {
               {
                 'id': 's1',
                 'title': 'From server',
-                'scheduled_date': '2026-11-21',
+                'scheduled_date': '2099-11-21',
                 'start_hour': 7,
                 'start_minute': 30,
                 'end_hour': 8,
@@ -270,5 +271,103 @@ void main() {
       );
       expect((await TaskRepository.loadAll()).single.title, 'local edit');
     });
+  });
+
+  test('first sync after the v2 upgrade ignores the v1 cursor (full pull)',
+      () async {
+    SharedPreferences.setMockInitialValues(
+        {'sync_cursor_tasks': '2026-11-22T11:07:10.591310Z'});
+    final server = _Server((_) async => _json({
+          'server_tasks': [],
+          'deleted_ids': [],
+          'conflicts': [],
+          'synced_at': '2026-11-23T08:00:00Z',
+        }));
+    TaskService.apiClientForTesting = server.client();
+
+    await SyncManager.instance.sync(TaskController());
+
+    expect(server.body(0)['last_sync_at'], isNull);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('sync_cursor_tasks'), isNull);
+    expect(await SyncCursor.load(SyncManager.cursorKey),
+        DateTime.utc(2026, 11, 23, 8));
+  }, timeout: const Timeout(Duration(seconds: 10)));
+
+  group('Gentle Rollover with sync (Phase 1a)', () {
+    test('rolled tasks are stored dirty and pushed with v2 fields', () async {
+      final server = _Server((_) async =>
+          _json({'server_tasks': [], 'deleted_ids': [], 'conflicts': []}));
+      TaskService.apiClientForTesting = server.client();
+      final c = TaskController();
+      await c.addTask(DzTask(
+        id: 'old',
+        title: 'Carry me',
+        startTime: const TimeOfDay(hour: 14, minute: 0),
+        endTime: const TimeOfDay(hour: 15, minute: 0),
+        date: DateTime(2027, 1, 10),
+      ));
+      await _idle(SyncManager.instance);
+
+      expect(await c.rollOver(now: DateTime(2027, 1, 12, 8)), 1);
+      await _idle(SyncManager.instance);
+
+      final row = (await TaskRepository.loadAll()).single;
+      expect(row.date, DateTime(2027, 1, 12));
+      expect(row.rolloverCount, 2);
+      final pushed = (server.body(server.requests.length - 1)['tasks'] as List)
+          .single as Map<String, dynamic>;
+      expect(pushed['scheduled_date'], '2027-01-12');
+      expect(pushed['rollover_count'], 2);
+      expect(pushed['original_date'], '2027-01-10');
+      expect(pushed['start_hour'], 14);
+      expect(await TaskRepository.dirtyRows(), isEmpty,
+          reason: 'the server acknowledged the push');
+
+      expect(await c.rollOver(now: DateTime(2027, 1, 12, 20)), 0,
+          reason: 'a second resume the same day moves nothing');
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('pulls before rolling over: a task completed on another device '
+        'stays done on its day', () async {
+      final server = _Server((_) async => _json({
+            'server_tasks': [
+              {
+                'id': 'shared', 'title': 'Shared', 'category': 'work',
+                'priority': 'routine', 'is_completed': true, 'status': 'done',
+                'completed_at': '2027-01-11T21:00:00+00:00',
+                'scheduled_date': '2027-01-11', 'start_hour': 9,
+                'start_minute': 0, 'end_hour': 10, 'end_minute': 0,
+                'rollover_count': 0,
+                'created_at': '2027-01-11T08:00:00',
+                'updated_at': '2027-01-11T21:00:00',
+              },
+            ],
+            'deleted_ids': [],
+            'conflicts': [],
+          }));
+      TaskService.apiClientForTesting = server.client();
+      final c = TaskController();
+      // This phone last saw it yesterday, still open.
+      await c.applyServerChanges(upserts: [
+        DzTask(
+          id: 'shared',
+          title: 'Shared',
+          startTime: const TimeOfDay(hour: 9, minute: 0),
+          endTime: const TimeOfDay(hour: 10, minute: 0),
+          date: DateTime(2027, 1, 11),
+        ),
+      ], deletedIds: []);
+
+      await c.syncThenRollOver(now: DateTime(2027, 1, 12, 7));
+      await _idle(SyncManager.instance);
+
+      final t = c.taskById('shared')!;
+      expect(t.status, TaskStatus.done);
+      expect(t.date, DateTime(2027, 1, 11));
+      expect(t.rolloverCount, 0);
+      expect(await TaskRepository.dirtyRows(), isEmpty,
+          reason: 'nothing to push back over the completion');
+    }, timeout: const Timeout(Duration(seconds: 10)));
   });
 }

@@ -30,7 +30,9 @@ class InsightsData {
     required int journalCount,
     required DateTime now,
   }) {
-    final todays = tasks.where((t) => t.isSameDay(now)).toList();
+    final todays = tasks
+        .where((t) => t.status != TaskStatus.released && t.isSameDay(now))
+        .toList();
     final mindful = TaskAnalytics.mindfulProgress(tasks, now);
     return InsightsData(
       productivityScore: TaskAnalytics.score(tasks, now),

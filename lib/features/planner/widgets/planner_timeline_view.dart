@@ -17,9 +17,13 @@ class PlannerTimelineView extends StatefulWidget {
     required this.currentHour,
     required this.currentMinute,
     this.showNow = true,
+    this.onTapEvent,
   });
 
   final List<PlannerEvent> events;
+
+  /// Called when a card is tapped (the planner opens its task actions).
+  final ValueChanged<PlannerEvent>? onTapEvent;
   final int currentHour;
   final int currentMinute;
 
@@ -151,6 +155,9 @@ class _PlannerTimelineViewState extends State<PlannerTimelineView> {
                       height: height,
                       width: width,
                       count: slot.count,
+                      onTap: widget.onTapEvent == null
+                          ? null
+                          : () => widget.onTapEvent!(e),
                     ),
                   );
                 }),
@@ -206,11 +213,13 @@ class _EventBlock extends StatelessWidget {
     required this.height,
     required this.width,
     required this.count,
+    this.onTap,
   });
 
   final PlannerEvent event;
   final double height;
   final double width;
+  final VoidCallback? onTap;
 
   /// More than one when identical events were merged into this card.
   final int count;
@@ -224,9 +233,16 @@ class _EventBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final showIcon = width >= _hideIconBelow;
-    final showSubtitle = event.subtitle.isNotEmpty && width >= _hideSubtitleBelow;
+    final released = event.isReleased;
+    final subtitle = released ? 'Let go · ${event.subtitle}' : event.subtitle;
+    final showSubtitle = subtitle.isNotEmpty && width >= _hideSubtitleBelow;
+    final state = event.isCompleted
+        ? ', done'
+        : released
+            ? ', let go'
+            : '';
 
-    return Container(
+    final card = Container(
       height: height.clamp(AppConfig.timelineMinEventHeight.toDouble(), AppConfig.timelineMaxEventHeight.toDouble()),
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
@@ -277,7 +293,7 @@ class _EventBlock extends StatelessWidget {
                 ),
                 if (showSubtitle)
                   Text(
-                    event.subtitle,
+                    subtitle,
                     style: DzTextStyles.small.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -300,6 +316,25 @@ class _EventBlock extends StatelessWidget {
             ),
           const SizedBox(width: DzSpacing.sm),
         ],
+      ),
+    );
+
+    return Semantics(
+      button: onTap != null,
+      label: '${event.title}, ${event.subtitle}$state'
+          '${count > 1 ? ', $count identical tasks' : ''}',
+      excludeSemantics: true,
+      child: Opacity(
+        // Let go on purpose: quieter, not struck through or red.
+        opacity: released ? 0.5 : 1,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(DzRadius.card),
+            child: card,
+          ),
+        ),
       ),
     );
   }

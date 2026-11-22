@@ -29,6 +29,25 @@ class Tasks extends Table {
   BoolColumn get isCompleted =>
       boolean().withDefault(const Constant(false))();
 
+  /// [TaskStatus] name: `active`, `done` or `released`. Schema v2.
+  /// [isCompleted] mirrors `status == 'done'` for one release so older code
+  /// paths and older servers stay consistent.
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  /// When the task was completed. Rows completed before v2 were backfilled
+  /// from `updatedAt`, so for those it's approximate.
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  /// Days this task has been carried forward by Gentle Rollover.
+  IntColumn get rolloverCount =>
+      integer().withDefault(const Constant(0))();
+
+  /// 1 (light) to 3 (heavy). Null = not set.
+  IntColumn get effort => integer().nullable()();
+
+  /// The date the task was first planned for, set on its first rollover.
+  DateTimeColumn get originalDate => dateTime().nullable()();
+
   /// Normalised to midnight, matching [DzTask.date]. Indexed — this is the
   /// column `forDate`/`forWeek` filter on.
   DateTimeColumn get date => dateTime()();

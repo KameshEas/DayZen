@@ -33,7 +33,13 @@ class SyncManager extends SyncCoordinator<TaskController> {
 
   static final TaskService _taskService = TaskService.instance;
 
-  static const String cursorKey = 'sync_cursor_tasks';
+  /// Bumped with task schema v2. A phone upgrading from v1 stored server
+  /// tasks without the v2 fields (it had no columns for them), and a delta
+  /// pull from the old cursor would never send those tasks again. A new key
+  /// means the first sync after the upgrade is one full pull, which fills
+  /// them in before rollover can act on stale data.
+  static const String cursorKey = 'sync_cursor_tasks_v2';
+  static const String _legacyCursorKey = 'sync_cursor_tasks';
 
   @override
   String get entityLabel => 'Task';
@@ -41,6 +47,7 @@ class SyncManager extends SyncCoordinator<TaskController> {
   @override
   Future<SyncOutcome> performSync(TaskController controller) async {
     final dirty = await TaskRepository.dirtyRows();
+    await SyncCursor.clear(_legacyCursorKey);
     final cursor = await SyncCursor.load(cursorKey);
     final requestStartedAt = DateTime.now().toUtc();
 
@@ -51,6 +58,7 @@ class SyncManager extends SyncCoordinator<TaskController> {
         for (final row in dirty)
           if (row.deletedAt != null) row.id: row.deletedAt!,
       },
+      localFor: controller.taskById,
     );
 
     await TaskRepository.markSynced(dirty);
@@ -78,6 +86,7 @@ class SyncManager extends SyncCoordinator<TaskController> {
   void clearSyncState() {
     super.clearSyncState();
     unawaited(SyncCursor.clear(cursorKey));
+    unawaited(SyncCursor.clear(_legacyCursorKey));
   }
 
   /// Sync tasks with server. Alias for [sync] matching the original public
