@@ -118,6 +118,8 @@ Future<String> _bootstrap({
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
     AppPrefs.isBiometricEnabled(),
+    AppPrefs.isOnboardingV2Done(),
+    AppPrefs.onboardingVariant(),
     taskCtrl.load(),
     journalCtrl.load(),
     settingsCtrl.load(),
@@ -129,10 +131,20 @@ Future<String> _bootstrap({
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && await hasBiometrics;
+  final onboardingV2Done = results[3] as bool;
+  final variant = results[4] as String;
+  AppRouter.onboardingVariant = variant;
 
   await NotificationService.instance.init();
-  // The permission prompt waits on the user, so never block startup on it.
-  unawaited(NotificationService.instance.requestPermission());
+  // Onboarding v2 (and installs that went through it) never get a system
+  // dialog at startup: the permission is asked after "Yes" to the gentle
+  // nudge, or when reminders are turned on in Settings (M-1.7). The v1
+  // flow and older installs keep the old behaviour. The prompt waits on
+  // the user, so never block startup on it.
+  final v2Flow = onboardingV2Done || (!seenOnboarding && variant == 'v2');
+  if (!v2Flow) {
+    unawaited(NotificationService.instance.requestPermission());
+  }
 
   taskCtrl.applyReminderSettings(
     enabled: settingsCtrl.remindersEnabled,
@@ -171,6 +183,7 @@ Future<String> _bootstrap({
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
     isSignedIn: authService.isAuthenticated,
+    onboardingV2Done: onboardingV2Done,
   );
 }
 

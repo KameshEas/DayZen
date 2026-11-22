@@ -16,6 +16,7 @@ import '../../features/insights/insights_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/maintenance/maintenance_screen.dart';
 import '../../features/onboarding/widgets/onboarding_page_animated.dart';
+import '../../features/onboarding_v2/onboarding_v2_page.dart';
 import '../design_system/design_system.dart';
 import '../../features/pin/pin_setup_page.dart';
 import '../../features/pin/pin_unlock_page.dart';
@@ -32,6 +33,10 @@ GoRouter? _appRouter;
 AppVersionController? _appVersionController;
 
 class AppRouter {
+  /// Which onboarding `/onboarding` shows: `v2` (default) or `v1`. Set by
+  /// bootstrap from [AppPrefs.onboardingVariant] before the route is shown.
+  static String onboardingVariant = AppPrefs.buildOnboardingVariant;
+
   /// [startRoute] resolves once app bootstrap (storage, controllers, etc.)
   /// finishes; the splash waits for both its animation and this future.
   static void initialize({
@@ -91,25 +96,12 @@ class AppRouter {
         GoRoute(
           path: RoutePaths.onboarding,
           name: RouteNames.onboarding,
-          // Onboarding art and gradient are light-only, so pin the light brand theme.
-          builder: (context, state) => Theme(
-            data: DzTheme.light(),
-            child: AnimatedOnboardingPage(
-            // "Start Offline" — true offline path, skip the login wall
-            // entirely and go straight to securing the app with a PIN.
-            onDone: () {
-              AppPrefs.markOnboardingSeen();
-              context.go('/pin-setup');
-            },
-            // "Enable Sync (Optional)" — routes through Login/Sign Up,
-            // where an account can be created to enable cloud sync
-            // (Login itself still offers a "Continue Offline" fallback).
-            onEnableSync: () {
-              AppPrefs.markOnboardingSeen();
-              context.go(RoutePaths.login);
-            },
-          ),
-          ),
+          builder: (context, state) => onboardingVariant == 'v1'
+              ? _onboardingV1(context)
+              : OnboardingV2Page(
+                  onFinished: () => context.go(RoutePaths.home),
+                  onRestore: () => context.go(RoutePaths.login),
+                ),
         ),
         GoRoute(
           path: RoutePaths.login,
@@ -253,6 +245,27 @@ class AppRouter {
     );
   }
 
+  /// The original slides (onboarding v1), kept for the A/B comparison.
+  /// Their art and gradient are light-only, so the light brand theme is
+  /// pinned.
+  static Widget _onboardingV1(BuildContext context) => Theme(
+        data: DzTheme.light(),
+        child: AnimatedOnboardingPage(
+          // "Start Offline": skip the login wall and go straight to
+          // securing the app with a PIN.
+          onDone: () {
+            AppPrefs.markOnboardingSeen();
+            context.go('/pin-setup');
+          },
+          // "Enable Sync (Optional)": through Login/Sign Up, where an
+          // account can be created (Login still offers "Continue Offline").
+          onEnableSync: () {
+            AppPrefs.markOnboardingSeen();
+            context.go(RoutePaths.login);
+          },
+        ),
+      );
+
   static GoRouter get router {
     if (_appRouter == null) {
       throw StateError(
@@ -267,6 +280,11 @@ class AppRouter {
   /// otherwise straight to home (the user just authenticated). The app-lock
   /// PIN is device-local; after a reinstall the user sets a new one.
   static Future<void> _routeAfterAuth(BuildContext context) async {
+    // Onboarding v2 defers the PIN to the first journal entry (M-1.7).
+    if (await AppPrefs.isOnboardingV2Done()) {
+      if (context.mounted) context.go(RoutePaths.home);
+      return;
+    }
     final hasPin = await AppPrefs.hasPin();
     if (!context.mounted) return;
     if (hasPin) {
@@ -284,10 +302,13 @@ class AppRouter {
     required bool hasPin,
     required bool biometricEnabled,
     required bool isSignedIn,
+    bool onboardingV2Done = false,
   }) {
     if (showOnboarding) return RoutePaths.onboarding;
     if (biometricEnabled) return '/biometric-unlock';
     if (hasPin) return '/pin-unlock';
+    // Onboarding v2 has no sign-up: an offline user goes straight home.
+    if (onboardingV2Done) return RoutePaths.home;
     // No app-lock configured (PIN is optional). A previously-authenticated
     // user should land straight on home, not be forced back through login.
     if (isSignedIn) return RoutePaths.home;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/domain/quiet_window.dart';
+import '../../../core/notification_service.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../app_data.dart';
 import '../settings_controller.dart';
@@ -133,6 +134,9 @@ class SettingsPreferencesSection extends StatelessWidget {
                     ctrl.setRemindersEnabled(v);
                     apply();
                     setSt(() {});
+                    // New installs are never prompted at startup (M-1.7),
+                    // so turning reminders on is where the OS asks.
+                    if (v) NotificationService.instance.requestPermission();
                   },
                 ),
                 Text('5 minutes before and when each task starts.',
