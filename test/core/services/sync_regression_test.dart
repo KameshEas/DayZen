@@ -83,6 +83,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    SyncCoordinator.isSignedIn = () => true;
     DatabaseProvider.instanceForTesting =
         AppDatabase.forTesting(NativeDatabase.memory());
     SyncManager.instance.clearSyncState();

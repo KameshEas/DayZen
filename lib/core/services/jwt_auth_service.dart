@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../logging/app_logger.dart';
 import '../config/app_config.dart';
+import '../security/secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 /// JWT token model
@@ -84,10 +85,10 @@ class JwtAuthService extends ChangeNotifier {
 
   // Created on first use, so an instance that was never `initialize()`d can still
   // save or clear a session instead of failing (and the failure being swallowed).
-  late final FlutterSecureStorage _secureStorage = _storageOverride ??
-      const FlutterSecureStorage(
-        aOptions: AndroidOptions(resetOnError: true),
-      );
+  // The app-wide config (see secure_storage.dart): a second config here is
+  // what left the encrypted session on disk after sign-out.
+  late final FlutterSecureStorage _secureStorage =
+      _storageOverride ?? appSecureStorage;
   JwtToken? _currentToken;
   AuthUser? _currentUser;
   bool _initialized = false;
@@ -431,40 +432,39 @@ class JwtAuthService extends ChangeNotifier {
     };
   }
 
-  /// Request password reset email
-  /// Backend will send an email with reset link/token
-  Future<void> requestPasswordReset({
-    required String email,
-    required String apiBaseUrl,
-  }) async {
-    try {
-      final url = Uri.parse('$apiBaseUrl/auth/request-password-reset');
-
-      final response = await _http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email.trim()}),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        AppLogger.debug('Password reset email sent');
-        return;
-      } else {
-        throw Exception('Failed to send password reset email: ${response.statusCode}');
-      }
-    } catch (e) {
-      AppLogger.debug('Password reset error: $e');
-      rethrow;
-    }
-  }
-
   /// Sign out and clear session
+  ///
+  /// The local session is cleared first, so signing out always works, even
+  /// offline. Then the refresh token is revoked on the server (best effort):
+  /// otherwise it stays valid there until it expires.
   Future<void> signOut() async {
+    final refreshToken = _currentToken?.refreshToken;
     try {
       await _clearSession();
       notifyListeners();
     } catch (e) {
       AppLogger.debug('Sign out error: $e');
+    }
+    if (refreshToken != null) await _revokeOnServer(refreshToken);
+  }
+
+  Future<void> _revokeOnServer(String refreshToken) async {
+    try {
+      final response = await _http
+          .post(
+            Uri.parse('${AppConfig.apiBaseUrl}/auth/logout'),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-App-ID': AppConfig.appId,
+            },
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        AppLogger.debug('Server logout returned ${response.statusCode}');
+      }
+    } catch (e) {
+      AppLogger.debug('Server logout failed (token expires on its own): $e');
     }
   }
 

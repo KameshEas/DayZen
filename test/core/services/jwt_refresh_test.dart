@@ -147,4 +147,53 @@ void main() {
     expect(keys.first, isNotNull);
     expect(keys.first, keys.last);
   });
+
+  group('signOut', () {
+    test('revokes the refresh token on the server after clearing locally',
+        () async {
+      final calls = <http.Request>[];
+      final auth = JwtAuthService(
+        httpClient: MockClient((r) async {
+          calls.add(r);
+          return http.Response('{"success": true}', 200);
+        }),
+      );
+      FlutterSecureStorage.setMockInitialValues({
+        'jwt_token': jsonEncode({
+          'accessToken': _jwt(DateTime.now().add(const Duration(hours: 1))),
+          'refreshToken': 'refresh-1',
+        }),
+        'auth_user': jsonEncode({'id': 'u1', 'email': 'a@b.c', 'name': null}),
+      });
+      await auth.initialize();
+
+      await auth.signOut();
+
+      expect(auth.isAuthenticated, isFalse);
+      expect(await const FlutterSecureStorage().read(key: 'jwt_token'), isNull);
+      expect(calls, hasLength(1));
+      expect(calls.single.url.path, endsWith('/auth/logout'));
+      expect(jsonDecode(calls.single.body), {'refresh_token': 'refresh-1'});
+    });
+
+    test('offline: still signs out locally', () async {
+      final auth = JwtAuthService(
+        httpClient:
+            MockClient((_) async => throw const SocketException('offline')),
+      );
+      FlutterSecureStorage.setMockInitialValues({
+        'jwt_token': jsonEncode({
+          'accessToken': _jwt(DateTime.now().add(const Duration(hours: 1))),
+          'refreshToken': 'refresh-1',
+        }),
+        'auth_user': jsonEncode({'id': 'u1', 'email': 'a@b.c', 'name': null}),
+      });
+      await auth.initialize();
+
+      await auth.signOut();
+
+      expect(auth.isAuthenticated, isFalse);
+      expect(await const FlutterSecureStorage().read(key: 'jwt_token'), isNull);
+    });
+  });
 }

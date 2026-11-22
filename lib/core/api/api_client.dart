@@ -147,7 +147,7 @@ class ApiClient {
           ..headers.addAll({
             ..._defaultHeaders,
             ...authHeaders,
-            if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey,
+            'Idempotency-Key': ?idempotencyKey,
             ...?headers,
           });
         if (payload != null) request.body = payload;

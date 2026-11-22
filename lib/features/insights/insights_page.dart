@@ -11,7 +11,6 @@ import 'widgets/insights_greeting.dart';
 import 'widgets/insights_mindfulness_card.dart';
 import 'widgets/insights_productivity_score_card.dart';
 import 'widgets/insights_reflection_image_card.dart';
-import 'widgets/insights_sync_indicator.dart';
 import 'widgets/insights_top_category_card.dart';
 import 'widgets/insights_weekly_completion_card.dart';
 
@@ -27,10 +26,9 @@ class InsightsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final insightsCtrl = InsightsScope.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge(
-          [TaskScope.of(context), JournalScope.of(context), insightsCtrl]),
+      listenable:
+          Listenable.merge([TaskScope.of(context), JournalScope.of(context)]),
       builder: (context, _) {
         final d = InsightsData.from(context);
         final hasData = TaskScope.of(context).all.isNotEmpty ||
@@ -56,10 +54,6 @@ class InsightsPage extends StatelessWidget {
                 onAction: () => context.push(RoutePaths.newTask),
               )
             else ...[
-              InsightsSyncIndicator(
-                insightsController: insightsCtrl,
-                showFullStatus: true,
-              ),
               InsightsProductivityScoreCard(data: d),
               const SizedBox(height: DzSpacing.md),
               InsightsFocusTrendCard(data: d),

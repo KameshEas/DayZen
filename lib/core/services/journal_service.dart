@@ -2,7 +2,6 @@
 ///
 /// API Bindings:
 /// - BINDING 10: GET /journal (listEntries) - Per-range cache
-/// - BINDING 11: GET /journal/{id} (getEntry) - Per-entry cache
 /// - BINDING 12: POST /journal (createEntry) - Single operation
 /// - BINDING 13: PUT /journal/{id} (updateEntry) - Single operation
 /// - BINDING 14: DELETE /journal/{id} (deleteEntry) - Single operation
@@ -190,30 +189,6 @@ class JournalService {
       return 'since_${since.toIso8601String()}';
     }
     return 'all';
-  }
-
-  /// BINDING 11: Get a single journal entry.
-  /// API: GET /journal/{id}
-  /// Cache: Per-entry cache
-  /// OPTIMIZATION: Single entry cache hit
-  Future<JournalApiResponse> getEntry(String entryId) async {
-    try {
-      // Check entry cache first
-      if (_journalCache.containsKey(entryId)) {
-        return _journalCache[entryId]!;
-      }
-
-      final response = await _apiClient.get('/journal/$entryId');
-      final entry = JournalApiResponse.fromJson(response);
-      _journalCache[entryId] = entry;
-      return entry;
-    } on ApiException {
-      // Return cached entry if available
-      if (_journalCache.containsKey(entryId)) {
-        return _journalCache[entryId]!;
-      }
-      rethrow;
-    }
   }
 
   /// BINDING 12: Create a new journal entry.

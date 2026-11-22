@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'security/pin_hasher.dart';
+import 'security/secure_storage.dart';
 
 /// Thin wrapper around SharedPreferences for app-level flags, and
 /// FlutterSecureStorage (Keychain/Keystore-backed) for the PIN.
@@ -20,9 +21,7 @@ class AppPrefs {
   static const _secureKeyPinHash = 'app_pin_hash';
   static const _secureKeyPinSalt = 'app_pin_salt';
 
-  static const _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  static const FlutterSecureStorage _secureStorage = appSecureStorage;
 
   // ── Onboarding ──────────────────────────────────────────────────────────
 
@@ -144,6 +143,10 @@ class AppPrefs {
     }
     return PinAttempt.wrong(pinFreeAttempts - failures);
   }
+
+  /// Deletes every value in secure storage (PIN and session), so nothing of
+  /// a deleted account is left on the device.
+  static Future<void> clearAllSecureData() => _secureStorage.deleteAll();
 
   static Future<void> clearPin() async {
     await _secureStorage.delete(key: _secureKeyPinHash);

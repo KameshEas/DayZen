@@ -12,15 +12,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
+import 'core/services/sync_triggers.dart';
 import 'features/app_data.dart';
 import 'features/journal_controller.dart';
-import 'features/insights_controller.dart';
-import 'features/ai_optimization_controller.dart';
 import 'features/notification_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
 AppLifecycleListener? _lifecycleListener;
+SyncTriggers? _syncTriggers;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,8 +35,6 @@ void _runApp() {
   final taskCtrl = TaskController();
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
-  final insightsCtrl = InsightsController();
-  final aiOptCtrl = AIOptimizationController();
   final notifCtrl = NotificationController();
 
   AppRouter.initialize(
@@ -44,8 +42,6 @@ void _runApp() {
       taskCtrl: taskCtrl,
       journalCtrl: journalCtrl,
       settingsCtrl: settingsCtrl,
-      insightsCtrl: insightsCtrl,
-      aiOptCtrl: aiOptCtrl,
       notifCtrl: notifCtrl,
     ),
   );
@@ -54,8 +50,6 @@ void _runApp() {
     tasks: taskCtrl,
     journal: journalCtrl,
     settings: settingsCtrl,
-    insights: insightsCtrl,
-    aiOptimization: aiOptCtrl,
     notifications: notifCtrl,
     child: const DayZenApp(),
   ));
@@ -65,8 +59,6 @@ Future<String> _bootstrap({
   required TaskController taskCtrl,
   required JournalController journalCtrl,
   required SettingsController settingsCtrl,
-  required InsightsController insightsCtrl,
-  required AIOptimizationController aiOptCtrl,
   required NotificationController notifCtrl,
 }) async {
   final authService = JwtAuthService.instance;
@@ -104,8 +96,6 @@ Future<String> _bootstrap({
     taskCtrl.load(),
     journalCtrl.load(),
     settingsCtrl.load(),
-    insightsCtrl.load(),
-    aiOptCtrl.load(),
     notifCtrl.load(),
   ]);
   // Only ever written once; the Planner lets you browse back to this day.
@@ -123,8 +113,21 @@ Future<String> _bootstrap({
 
   // Travel or a zone change while backgrounded moves every reminder's real
   // time; re-check the zone whenever the app comes back to the foreground.
+  // Pull the account's data right after sign-in and whenever the app comes
+  // back to the foreground (see SyncTriggers).
+  _syncTriggers ??= SyncTriggers(
+    auth: authService,
+    isSignedIn: () => authService.isAuthenticated,
+    syncAll: () => Future.wait([
+      taskCtrl.syncWithServer(),
+      journalCtrl.syncWithServer(),
+      notifCtrl.load(),
+    ]),
+  )..attach();
+
   _lifecycleListener ??= AppLifecycleListener(
     onResume: () async {
+      _syncTriggers?.onResume();
       if (await NotificationService.instance.refreshTimeZone()) {
         await taskCtrl.rescheduleNotifications();
       }

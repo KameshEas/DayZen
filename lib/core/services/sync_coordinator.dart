@@ -1,6 +1,7 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/logging/app_logger.dart';
+import 'jwt_auth_service.dart';
 
 /// Persisted pull cursor ("server time of the last successful sync") per
 /// entity. Kept in SharedPreferences so a cold start does a delta sync
@@ -46,11 +47,16 @@ class SyncOutcome {
 /// else lives here once.
 ///
 /// **Not** used by `InsightsSyncManager`: insights are read-only/server-
-/// computed from the client's perspective (see `InsightsController`'s own
+/// computed from the client's perspective (see the old `InsightsController`'s
 /// doc comment) — there's no local write to push, only a cache-freshness
 /// pull. That's a different pattern, and forcing it into this shape would
 /// be a worse fit than leaving it separate. See docs/ARCHITECTURE.md.
 abstract class SyncCoordinator<TController> extends ChangeNotifier {
+  /// Whether a session exists. Replaceable in tests.
+  @visibleForTesting
+  static bool Function() isSignedIn =
+      () => JwtAuthService.instance.isAuthenticated;
+
   bool _isSyncing = false;
   DateTime? _lastSuccessfulSync;
 
@@ -106,6 +112,10 @@ abstract class SyncCoordinator<TController> extends ChangeNotifier {
   /// schedules exactly one follow-up sync, so a write made mid-sync is still
   /// pushed promptly.
   Future<void> requestSync(TController controller) async {
+    // Signed out (offline mode): there is no account to sync with, so don't
+    // send requests that can only fail with 401. Local changes stay dirty
+    // and go out after sign-in (see SyncTriggers).
+    if (!isSignedIn()) return;
     if (_isSyncing) {
       _resyncRequested = true;
       return;

@@ -1,6 +1,5 @@
 import 'package:dayzen/core/domain/task_analytics.dart';
 import 'package:dayzen/core/services/jwt_auth_service.dart';
-import 'package:dayzen/features/ai_optimization_controller.dart';
 import 'package:dayzen/features/app_data.dart';
 import 'package:dayzen/features/home/models/task_model.dart';
 import 'package:dayzen/features/insights/insights_page.dart';
@@ -9,9 +8,7 @@ import 'package:dayzen/features/insights/widgets/insights_focus_trend_card.dart'
 import 'package:dayzen/features/insights/widgets/insights_greeting.dart';
 import 'package:dayzen/features/insights/widgets/insights_mindfulness_card.dart';
 import 'package:dayzen/features/insights/widgets/insights_productivity_score_card.dart';
-import 'package:dayzen/features/insights/widgets/insights_sync_indicator.dart';
 import 'package:dayzen/features/insights/widgets/insights_top_category_card.dart';
-import 'package:dayzen/features/insights_controller.dart';
 import 'package:dayzen/features/journal_controller.dart';
 import 'package:dayzen/features/notification_controller.dart';
 import 'package:dayzen/features/settings/settings_controller.dart';
@@ -64,8 +61,6 @@ Widget _page(List<DzTask> tasks) => MaterialApp(
         tasks: _SeededTasks(tasks),
         journal: JournalController(),
         settings: SettingsController(),
-        insights: InsightsController(),
-        aiOptimization: AIOptimizationController(),
         notifications: NotificationController(),
         child: const Scaffold(body: InsightsPage()),
       ),
@@ -174,15 +169,6 @@ void main() {
       expect(InsightsGreeting.nameFor(AuthUser(id: '1', email: 'kamesh@b.co', name: '  ')), 'kamesh');
     });
 
-    test('rewords the sync status', () {
-      String d(String s, {bool syncing = false}) =>
-          InsightsSyncIndicator.describe(s, isSyncing: syncing);
-      expect(d('Never synced'), 'Not synced yet');
-      expect(d('Just now'), 'Synced just now');
-      expect(d('5 min ago'), 'Synced 5 min ago');
-      expect(d('Sync error'), "Couldn't sync");
-      expect(d('5 min ago', syncing: true), 'Syncing…');
-    });
   });
 
   group('cards', () {

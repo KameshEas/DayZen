@@ -7,7 +7,6 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
 import 'models/task_model.dart';
-import 'widgets/ai_recommendations_card.dart';
 import 'widgets/home_daily_reflection_card.dart';
 import 'widgets/home_focus_score_card.dart';
 import 'widgets/home_greeting_header.dart';
@@ -87,10 +86,6 @@ class _HomeBody extends StatelessWidget {
           SyncStatusIndicator(
             taskController: taskCtrl,
             showFullStatus: true,
-          ),
-          const SizedBox(height: DzSpacing.md),
-          AIRecommendationsCard(
-            aiController: AIOptimizationScope.of(context),
           ),
           const SizedBox(height: DzSpacing.md),
           HomeFocusScoreCard(score: score, hasTasks: tasks.isNotEmpty),

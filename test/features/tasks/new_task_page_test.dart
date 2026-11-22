@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:dayzen/core/app_prefs.dart';
-import 'package:dayzen/features/ai_optimization_controller.dart';
 import 'package:dayzen/features/app_data.dart';
 import 'package:dayzen/features/home/models/task_model.dart';
-import 'package:dayzen/features/insights_controller.dart';
 import 'package:dayzen/features/journal_controller.dart';
 import 'package:dayzen/features/notification_controller.dart';
 import 'package:dayzen/features/settings/settings_controller.dart';
@@ -36,8 +34,6 @@ Widget _pageWith(TaskController tasks) => MaterialApp(
         tasks: tasks,
         journal: JournalController(),
         settings: SettingsController(),
-        insights: InsightsController(),
-        aiOptimization: AIOptimizationController(),
         notifications: NotificationController(),
         child: const NewTaskPage(),
       ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:dayzen/features/ai_optimization_controller.dart';
 import 'package:dayzen/features/app_data.dart';
-import 'package:dayzen/features/insights_controller.dart';
 import 'package:dayzen/features/journal_controller.dart';
 import 'package:dayzen/features/notification_controller.dart';
 import 'package:dayzen/features/settings/settings_controller.dart';
@@ -35,8 +33,6 @@ void main() {
       final taskCtrl = _FireableTaskController();
       final settingsCtrl = _FireableSettingsController();
       final journalCtrl = JournalController();
-      final insightsCtrl = InsightsController();
-      final aiCtrl = AIOptimizationController();
       final notifCtrl = NotificationController();
 
       var buildCount = 0;
@@ -47,8 +43,6 @@ void main() {
             tasks: taskCtrl,
             journal: journalCtrl,
             settings: settingsCtrl,
-            insights: insightsCtrl,
-            aiOptimization: aiCtrl,
             notifications: notifCtrl,
             child: Builder(
               builder: (context) {
@@ -81,13 +75,11 @@ void main() {
   );
 
   testWidgets(
-    'AppScopes exposes all six controllers via their respective scopes',
+    'AppScopes exposes every controller via its scope',
     (tester) async {
       final taskCtrl = TaskController();
       final journalCtrl = JournalController();
       final settingsCtrl = SettingsController();
-      final insightsCtrl = InsightsController();
-      final aiCtrl = AIOptimizationController();
       final notifCtrl = NotificationController();
 
       late BuildContext capturedContext;
@@ -98,8 +90,6 @@ void main() {
             tasks: taskCtrl,
             journal: journalCtrl,
             settings: settingsCtrl,
-            insights: insightsCtrl,
-            aiOptimization: aiCtrl,
             notifications: notifCtrl,
             child: Builder(
               builder: (context) {
@@ -114,8 +104,6 @@ void main() {
       expect(TaskScope.of(capturedContext), same(taskCtrl));
       expect(JournalScope.of(capturedContext), same(journalCtrl));
       expect(SettingsScope.of(capturedContext), same(settingsCtrl));
-      expect(InsightsScope.of(capturedContext), same(insightsCtrl));
-      expect(AIOptimizationScope.of(capturedContext), same(aiCtrl));
       expect(NotificationScope.of(capturedContext), same(notifCtrl));
     },
   );
