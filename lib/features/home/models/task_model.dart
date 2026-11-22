@@ -46,6 +46,13 @@ extension TaskCategoryX on TaskCategory {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Task status
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `released` = let go on purpose (Close the Day). Neither done nor carried.
+enum TaskStatus { active, done, released }
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Task model
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -59,9 +66,16 @@ class DzTask {
     TaskCategory? category,
     this.icon,
     this.subtitle,
-    this.isCompleted = false,
+    TaskStatus? status,
+    bool isCompleted = false,
+    this.completedAt,
+    this.rolloverCount = 0,
+    this.effort,
+    DateTime? originalDate,
     DateTime? date,
   })  : _category = category ?? TaskCategory.work,
+        status = status ?? (isCompleted ? TaskStatus.done : TaskStatus.active),
+        originalDate = originalDate == null ? null : _midnight(originalDate),
         date = _midnight(date ?? DateTime.now());
 
   final String id;
@@ -75,7 +89,22 @@ class DzTask {
   TaskCategory get category => _category ?? TaskCategory.work;
   final IconData? icon;
   final String? subtitle;
-  bool isCompleted;
+
+  final TaskStatus status;
+  bool get isCompleted => status == TaskStatus.done;
+
+  /// Set when the task becomes done, cleared when it leaves done.
+  final DateTime? completedAt;
+
+  /// Days Gentle Rollover has carried this task forward.
+  final int rolloverCount;
+
+  /// 1 (light) to 3 (heavy); null = not set.
+  final int? effort;
+
+  /// The date first planned for, set on the first rollover. Midnight.
+  final DateTime? originalDate;
+
   /// Normalised to midnight (date only, no time component).
   final DateTime date;
 
@@ -96,18 +125,55 @@ class DzTask {
     return '${fmt(startTime)} — ${fmt(endTime)}';
   }
 
-  DzTask copyWith({bool? isCompleted}) => DzTask(
-        id: id,
-        title: title,
-        startTime: startTime,
-        endTime: endTime,
-        priority: priority,
-        category: _category,
-        icon: icon,
-        subtitle: subtitle,
-        isCompleted: isCompleted ?? this.isCompleted,
-        date: date,
-      );
+  /// [isCompleted] is shorthand for done/active; un-completing a released
+  /// task leaves it released. Entering done stamps [completedAt] with [now]
+  /// (default: the current time); leaving done clears it.
+  DzTask copyWith({
+    String? title,
+    TimeOfDay? startTime,
+    TimeOfDay? endTime,
+    TaskPriority? priority,
+    TaskCategory? category,
+    IconData? icon,
+    bool? isCompleted,
+    TaskStatus? status,
+    DateTime? date,
+    int? rolloverCount,
+    DateTime? originalDate,
+    DateTime? now,
+  }) {
+    final next = status ??
+        switch (isCompleted) {
+          null => this.status,
+          true => TaskStatus.done,
+          false =>
+            this.status == TaskStatus.done ? TaskStatus.active : this.status,
+        };
+    final DateTime? nextCompletedAt;
+    if (next != TaskStatus.done) {
+      nextCompletedAt = null;
+    } else if (this.status != TaskStatus.done) {
+      nextCompletedAt = now ?? DateTime.now();
+    } else {
+      nextCompletedAt = completedAt;
+    }
+    return DzTask(
+      id: id,
+      title: title ?? this.title,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      priority: priority ?? this.priority,
+      category: category ?? _category,
+      icon: icon ?? this.icon,
+      subtitle: subtitle,
+      status: next,
+      completedAt: nextCompletedAt,
+      rolloverCount: rolloverCount ?? this.rolloverCount,
+      effort: effort,
+      originalDate: originalDate ?? this.originalDate,
+      date: date ?? this.date,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -121,8 +187,16 @@ class DzTask {
         'iconCode': icon?.codePoint,
         'subtitle': subtitle,
         'isCompleted': isCompleted,
+        'status': status.name,
+        'completedAtMs': completedAt?.millisecondsSinceEpoch,
+        'rolloverCount': rolloverCount,
+        'effort': effort,
+        'originalDateMs': originalDate?.millisecondsSinceEpoch,
         'dateMs': date.millisecondsSinceEpoch,
       };
+
+  static DateTime? _dateFromMs(Object? ms) =>
+      ms is int ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
 
   factory DzTask.fromJson(Map<String, dynamic> json) {
     try {
@@ -160,7 +234,12 @@ class DzTask {
             ? IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons')
             : null,
         subtitle: json['subtitle'] as String?,
+        status: TaskStatus.values.asNameMap()[json['status']],
         isCompleted: json['isCompleted'] as bool? ?? false,
+        completedAt: _dateFromMs(json['completedAtMs']),
+        rolloverCount: json['rolloverCount'] as int? ?? 0,
+        effort: json['effort'] as int?,
+        originalDate: _dateFromMs(json['originalDateMs']),
         date: json['dateMs'] != null && json['dateMs'] is int
             ? DateTime.fromMillisecondsSinceEpoch(json['dateMs'] as int)
             : DateTime.now(),
@@ -196,6 +275,8 @@ class PlannerEvent {
     required this.accentColor,
     required this.icon,
     this.isCompleted = false,
+    this.isReleased = false,
+    this.taskIds = const [],
   });
 
   final String title;
@@ -206,6 +287,31 @@ class PlannerEvent {
   final Color accentColor;
   final IconData icon;
   final bool isCompleted;
+
+  /// Let go on purpose: drawn faded, never as a failure.
+  final bool isReleased;
+
+  /// The tasks this card stands for (more than one when identical tasks were
+  /// merged into one card by the timeline layout).
+  final List<String> taskIds;
+
+  PlannerEvent copyWith({
+    bool? isCompleted,
+    bool? isReleased,
+    List<String>? taskIds,
+  }) =>
+      PlannerEvent(
+        title: title,
+        subtitle: subtitle,
+        hour: hour,
+        minute: minute,
+        durationMinutes: durationMinutes,
+        accentColor: accentColor,
+        icon: icon,
+        isCompleted: isCompleted ?? this.isCompleted,
+        isReleased: isReleased ?? this.isReleased,
+        taskIds: taskIds ?? this.taskIds,
+      );
 
   factory PlannerEvent.fromTask(DzTask task) {
     final startMins = task.startTime.hour * 60 + task.startTime.minute;
@@ -219,6 +325,8 @@ class PlannerEvent {
       accentColor: task.priority.color,
       icon: task.icon ?? Icons.circle_outlined,
       isCompleted: task.isCompleted,
+      isReleased: task.status == TaskStatus.released,
+      taskIds: [task.id],
     );
   }
 }

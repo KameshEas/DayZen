@@ -30,6 +30,18 @@ class TaskApiResponse {
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
+  // v2 fields (server migration 012). Each `has…` flag is false when the
+  // server didn't send the key at all (an older server), so the local value
+  // is kept instead of being reset. A key sent as null clears the value.
+  final TaskStatus? status;
+  final bool hasCompletedAt;
+  final DateTime? completedAt;
+  final int? rolloverCount;
+  final bool hasEffort;
+  final int? effort;
+  final bool hasOriginalDate;
+  final DateTime? originalDate;
+
   TaskApiResponse({
     required this.id,
     required this.title,
@@ -46,7 +58,18 @@ class TaskApiResponse {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.status,
+    this.hasCompletedAt = false,
+    this.completedAt,
+    this.rolloverCount,
+    this.hasEffort = false,
+    this.effort,
+    this.hasOriginalDate = false,
+    this.originalDate,
   });
+
+  static DateTime? _parseDate(Object? raw) =>
+      raw is String && raw.isNotEmpty ? DateTime.tryParse(raw) : null;
 
   /// Parse from API response (handles both old and new backend formats).
   factory TaskApiResponse.fromJson(Map<String, dynamic> json) {
@@ -83,6 +106,15 @@ class TaskApiResponse {
         deletedAt: json['deleted_at'] != null && (json['deleted_at'] as String?)?.isNotEmpty == true
           ? DateTime.parse(json['deleted_at'] as String)
           : null,
+        status: TaskStatus.values.asNameMap()[json['status']],
+        hasCompletedAt: json.containsKey('completed_at'),
+        // Server timestamps are UTC; the app works in local time.
+        completedAt: _parseDate(json['completed_at'])?.toLocal(),
+        rolloverCount: json['rollover_count'] as int?,
+        hasEffort: json.containsKey('effort'),
+        effort: json['effort'] as int?,
+        hasOriginalDate: json.containsKey('original_date'),
+        originalDate: _parseDate(json['original_date']),
       );
     } catch (e) {
       return TaskApiResponse(
@@ -105,8 +137,19 @@ class TaskApiResponse {
     }
   }
 
-  /// Convert to local DzTask model.
-  DzTask toDzTask() {
+  /// Convert to the local model. [local] is the copy already on the phone,
+  /// if any: fields an older server doesn't send keep their local value.
+  DzTask toDzTask({DzTask? local}) {
+    // No `status` from the server (pre-v2): follow is_completed, but never
+    // turn a task the user released back into active or done. Mirrors the
+    // server's rule A2 for old clients.
+    final TaskStatus resolvedStatus = status ??
+        (local?.status == TaskStatus.released
+            ? TaskStatus.released
+            : (isCompleted ? TaskStatus.done : TaskStatus.active));
+    final DateTime? resolvedCompletedAt = resolvedStatus != TaskStatus.done
+        ? null
+        : (hasCompletedAt ? completedAt : local?.completedAt);
     return DzTask(
       id: id,
       title: title,
@@ -116,7 +159,11 @@ class TaskApiResponse {
       category: TaskCategory.values.asNameMap()[category] ?? TaskCategory.work,
       icon: iconCode != null ? IconData(iconCode!, fontFamily: 'MaterialIcons') : null,
       subtitle: subtitle,
-      isCompleted: isCompleted,
+      status: resolvedStatus,
+      completedAt: resolvedCompletedAt,
+      rolloverCount: rolloverCount ?? local?.rolloverCount ?? 0,
+      effort: hasEffort ? effort : local?.effort,
+      originalDate: hasOriginalDate ? originalDate : local?.originalDate,
       date: dateMs,
     );
   }
@@ -320,6 +367,7 @@ class TaskService {
     DateTime? lastSyncAt,
     required List<DzTask> localTasks,
     Map<String, DateTime> deletedAt = const {},
+    DzTask? Function(String id)? localFor,
   }) async {
     final tasks = localTasks.map((t) => taskSyncJson(t, deletedAt: deletedAt[t.id])).toList();
 
@@ -340,7 +388,7 @@ class TaskService {
       if (apiTask.deletedAt != null) {
         deletedIds.add(apiTask.id);
       } else {
-        serverTasks.add(apiTask.toDzTask());
+        serverTasks.add(apiTask.toDzTask(local: localFor?.call(apiTask.id)));
       }
     }
 
@@ -368,8 +416,11 @@ class TaskService {
   /// Wire format for one task in a sync push. Carries the start/end times
   /// (previously omitted, so the server's copy fell back to 09:00-10:00 and
   /// then overwrote the local task) and, for a local delete, `deleted_at`.
+  static String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   static Map<String, dynamic> taskSyncJson(DzTask t, {DateTime? deletedAt}) {
-    final dateStr = '${t.date.year}-${t.date.month.toString().padLeft(2, '0')}-${t.date.day.toString().padLeft(2, '0')}';
+    final dateStr = _ymd(t.date);
     return {
       'id': t.id,
       'title': t.title,
@@ -383,6 +434,12 @@ class TaskService {
       'category': t.category.name,
       'icon_code': t.icon?.codePoint,
       'is_completed': t.isCompleted,
+      // v2 (server migration 012). Older servers ignore unknown keys.
+      'status': t.status.name,
+      'completed_at': t.completedAt?.toUtc().toIso8601String(),
+      'rollover_count': t.rolloverCount,
+      'effort': t.effort,
+      'original_date': t.originalDate == null ? null : _ymd(t.originalDate!),
       'deleted_at': deletedAt?.toUtc().toIso8601String(),
     };
   }

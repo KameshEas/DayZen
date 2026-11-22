@@ -67,7 +67,7 @@ void main() {
       await _short(tester);
       await tester.pumpWidget(_timeline([_e('a', 9), _e('a', 9), _e('a', 9)]));
 
-      expect(find.bySemanticsLabel('3 identical tasks'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('3 identical tasks')), findsOneWidget);
       handle.dispose();
     });
   });

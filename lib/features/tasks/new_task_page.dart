@@ -37,7 +37,10 @@ class NewTaskPage extends StatefulWidget {
   /// Optional initial date (defaults to today).
   final DateTime? initialDate;
 
-  const NewTaskPage({super.key, this.initialDate});
+  /// When set, the page edits this task instead of creating one.
+  final DzTask? task;
+
+  const NewTaskPage({super.key, this.initialDate, this.task});
 
   @override
   State<NewTaskPage> createState() => _NewTaskPageState();
@@ -54,15 +57,36 @@ class _NewTaskPageState extends State<NewTaskPage> {
   TaskCategory _category = TaskCategory.work;
   NewTaskPriorityLevel _priority = NewTaskPriorityLevel.medium;
 
+  /// The priority level the page opened with. Zen has no level of its own, so
+  /// an edited zen task keeps zen unless the user picks a different level.
+  late final NewTaskPriorityLevel _initialPriority;
+
+  bool get _editing => widget.task != null;
+
   @override
   void initState() {
     super.initState();
-    _scheduledDate = dayOnly(widget.initialDate ?? DateTime.now());
-    final times = defaultTaskTimes(_scheduledDate, DateTime.now());
-    _startTime = times.$1;
-    _endTime = times.$2;
-    // Auto-focus the title field
-    WidgetsBinding.instance.addPostFrameCallback((_) => _titleFocus.requestFocus());
+    final task = widget.task;
+    if (task != null) {
+      _titleCtrl.text = task.title;
+      _scheduledDate = task.date;
+      _startTime = task.startTime;
+      _endTime = task.endTime;
+      _category = task.category;
+      _priority = switch (task.priority) {
+        TaskPriority.low => NewTaskPriorityLevel.low,
+        TaskPriority.high => NewTaskPriorityLevel.high,
+        TaskPriority.routine || TaskPriority.zen => NewTaskPriorityLevel.medium,
+      };
+    } else {
+      _scheduledDate = dayOnly(widget.initialDate ?? DateTime.now());
+      final times = defaultTaskTimes(_scheduledDate, DateTime.now());
+      _startTime = times.$1;
+      _endTime = times.$2;
+      // Auto-focus the title field
+      WidgetsBinding.instance.addPostFrameCallback((_) => _titleFocus.requestFocus());
+    }
+    _initialPriority = _priority;
   }
 
   @override
@@ -127,12 +151,18 @@ class _NewTaskPageState extends State<NewTaskPage> {
     );
     if (!mounted || pickedTime == null) return;
 
+    // Keep the task's length (an hour for a new one), ending by 23:59.
+    final length = (_endTime.hour * 60 + _endTime.minute) -
+        (_startTime.hour * 60 + _startTime.minute);
+    final endMinutes = pickedTime.hour * 60 +
+        pickedTime.minute +
+        (length > 0 ? length : 60);
     setState(() {
       _scheduledDate = pickedDate;
       _startTime = pickedTime;
-      _endTime = pickedTime.hour >= 23
+      _endTime = endMinutes > 23 * 60 + 59
           ? const TimeOfDay(hour: 23, minute: 59)
-          : TimeOfDay(hour: pickedTime.hour + 1, minute: pickedTime.minute);
+          : TimeOfDay(hour: endMinutes ~/ 60, minute: endMinutes % 60);
     });
   }
 
@@ -149,6 +179,27 @@ class _NewTaskPageState extends State<NewTaskPage> {
       return;
     }
     _saving = true;
+
+    final editing = widget.task;
+    if (editing != null) {
+      final edited = editing.copyWith(
+        title: title,
+        startTime: _startTime,
+        endTime: _endTime,
+        priority: _priority == _initialPriority ? null : _toDzPriority(),
+        category: _category,
+        icon: _category == editing.category ? null : _categoryIcon(_category),
+        date: _scheduledDate,
+      );
+      try {
+        await TaskScope.of(context).updateTask(editing.id, edited);
+      } catch (_) {
+        _saving = false;
+        rethrow;
+      }
+      if (mounted) Navigator.of(context).pop(edited);
+      return;
+    }
 
     final task = DzTask(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -197,7 +248,7 @@ class _NewTaskPageState extends State<NewTaskPage> {
           color: Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(
-          'New Task',
+          _editing ? 'Edit Task' : 'New Task',
           style: DzTextStyles.heading3.copyWith(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
@@ -292,7 +343,11 @@ class _NewTaskPageState extends State<NewTaskPage> {
           ],
         ),
       ),
-      bottomNavigationBar: NewTaskBottomBar(primary: primary, onSave: _save),
+      bottomNavigationBar: NewTaskBottomBar(
+        primary: primary,
+        onSave: _save,
+        label: _editing ? 'Save changes' : 'Add to My Day',
+      ),
     );
   }
 }
