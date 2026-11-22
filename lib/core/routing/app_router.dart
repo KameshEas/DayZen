@@ -11,6 +11,7 @@ import '../../features/auth/login_page.dart';
 import '../../features/auth/sign_up_page.dart';
 import '../../features/biometric/biometric_auth_page.dart';
 import '../../features/close_day/close_day_page.dart';
+import '../../features/debug/counters_page.dart';
 import '../../features/debug/test_notification_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/home/models/task_model.dart';
@@ -251,6 +252,13 @@ class AppRouter {
             final id = state.pathParameters['id']!;
             return JournalDetailPage(journalId: id);
           },
+        ),
+
+        // ── Tester counters: hidden (7 taps on the app version), but in
+        // release builds too, since testers run release builds ─────────
+        GoRoute(
+          path: RoutePaths.counters,
+          builder: (context, state) => const CountersPage(),
         ),
 
         // ── Debug routes (test page): not reachable in release builds ───
