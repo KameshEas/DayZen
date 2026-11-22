@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_prefs.dart';
@@ -10,9 +12,15 @@ import '../app_data.dart';
 import '../home/models/task_model.dart';
 import '../tasks/widgets/task_actions_sheet.dart';
 import 'planner_selection.dart';
+import 'schedule_suggestions_widget.dart';
 import 'widgets/planner_date_header.dart';
+import 'widgets/planner_list_view.dart';
 import 'widgets/planner_timeline_view.dart';
 import 'widgets/planner_week_strip.dart';
+
+/// Timeline (hour grid) vs a flat time-sorted list — same tasks, same tap
+/// behaviour, just a different read of the day.
+enum PlannerViewMode { timeline, list }
 
 /// PlannerPage — composes PlannerTimelineView under features/planner/widgets/.
 ///
@@ -30,6 +38,8 @@ class PlannerPage extends StatefulWidget {
 }
 
 class _PlannerPageState extends State<PlannerPage> {
+  bool _showAiSuggestions = false;
+  PlannerViewMode _viewMode = PlannerViewMode.timeline;
 
   /// The day the app was first opened (null until read), the far end of the
   /// calendar you can browse back to.
@@ -37,12 +47,29 @@ class _PlannerPageState extends State<PlannerPage> {
 
   PlannerSelection get _selection => widget.selection ?? PlannerSelection.instance;
 
+  // Drives the timeline's "now" indicator line. The page otherwise only
+  // rebuilds when TaskController notifies (task added/edited/completed), so
+  // without this the current-time line stayed frozen at whatever time the
+  // page happened to last rebuild at, instead of tracking real time.
+  Timer? _clockTimer;
+  DateTime _now = DateTime.now();
+
   @override
   void initState() {
     super.initState();
+    _selection.catchUpToToday();
     AppPrefs.firstUseDate().then((d) {
       if (mounted && d != null) setState(() => _firstUse = d);
     });
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
   }
 
   /// The earliest day worth showing: the older of the first-use day and the
@@ -126,15 +153,51 @@ class _PlannerPageState extends State<PlannerPage> {
           onAdd: () => _addTask(selected),
         ),
 
-        // ── Timeline ─────────────────────────────────────────────
+        // ── AI schedule suggestions (opt-in) + view mode ────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              DzGhostButton(
+                label: _showAiSuggestions
+                    ? AppConfig.plannerHideAiSuggestions
+                    : AppConfig.plannerShowAiSuggestions,
+                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                onPressed: () => setState(() => _showAiSuggestions = !_showAiSuggestions),
+              ),
+              _ViewModeToggle(
+                mode: _viewMode,
+                onChanged: (m) => setState(() => _viewMode = m),
+              ),
+            ],
+          ),
+        ),
+        if (_showAiSuggestions) ...[
+          // Capped and independently scrollable: with the offline optimizer
+          // this reliably renders one card per task (previously the remote
+          // version rarely got past its compact loading/error card), and an
+          // unbounded list here would push the Column below past the
+          // screen — a bottom overflow, not just a cosmetic issue.
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.35),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: DzSpacing.md),
+              child: ScheduleSuggestionsWidget(tasks: dayTasks),
+            ),
+          ),
+          const SizedBox(height: DzSpacing.md),
+        ],
+
+        // ── Timeline / List ──────────────────────────────────────
         Expanded(
-          child: _buildTimeline(context, selected, today, dayTasks),
+          child: _buildDayView(context, selected, today, dayTasks),
         ),
       ],
     );
   }
 
-  Widget _buildTimeline(
+  Widget _buildDayView(
     BuildContext context,
     DateTime selected,
     DateTime today,
@@ -159,14 +222,23 @@ class _PlannerPageState extends State<PlannerPage> {
       );
     }
 
-    final now = DateTime.now();
+    if (_viewMode == PlannerViewMode.list) {
+      return PlannerListView(
+        key: ValueKey(selected),
+        events: events,
+        onEventTap: (id) => showTaskActions(context, [id]),
+        onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
+      );
+    }
+
     return PlannerTimelineView(
       key: ValueKey(selected),
       events: events,
-      currentHour: now.hour,
-      currentMinute: now.minute,
+      currentHour: _now.hour,
+      currentMinute: _now.minute,
       showNow: isSameDay(selected, today),
       onTapEvent: (e) => showTaskActions(context, e.taskIds),
+      onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
     );
   }
 
@@ -194,6 +266,57 @@ class _PlannerPageState extends State<PlannerPage> {
             body: 'You can still add a task to log $label.',
             illustration: DzIllustration.emptyDayPast,
           );
+  }
+}
+
+/// Pill-shaped icon toggle between the timeline and list reads of a day.
+class _ViewModeToggle extends StatelessWidget {
+  const _ViewModeToggle({required this.mode, required this.onChanged});
+
+  final PlannerViewMode mode;
+  final ValueChanged<PlannerViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(DzRadius.button),
+        boxShadow: DzShadows.soft,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _segment(context, PlannerViewMode.timeline, Icons.view_timeline_outlined, 'Timeline view'),
+          _segment(context, PlannerViewMode.list, Icons.view_agenda_outlined, 'List view'),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(BuildContext context, PlannerViewMode value, IconData icon, String label) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = value == mode;
+    return Semantics(
+      container: true,
+      label: label,
+      button: true,
+      selected: isSelected,
+      child: InkWell(
+        onTap: () => onChanged(value),
+        borderRadius: BorderRadius.circular(DzRadius.button - 2),
+        child: AnimatedContainer(
+          duration: DzDuration.fast,
+          padding: const EdgeInsets.symmetric(horizontal: DzSpacing.sm + 2, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? scheme.primary.withValues(alpha: 0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(DzRadius.button - 2),
+          ),
+          child: Icon(icon, size: 18, color: isSelected ? scheme.primary : scheme.onSurfaceVariant),
+        ),
+      ),
+    );
   }
 }
 

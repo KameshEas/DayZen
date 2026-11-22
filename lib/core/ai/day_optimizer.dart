@@ -124,6 +124,10 @@ class DayOptimizer {
   static int _estimateDuration(DzTask task) {
     final startM = task.startTime.hour * 60 + task.startTime.minute;
     final endM = task.endTime.hour * 60 + task.endTime.minute;
+    // end < start is a genuine overnight span (e.g. Sleep 10:30 PM → 5:00 AM),
+    // not an unscheduled task — only an exact start == end is treated as
+    // "not really scheduled" and falls back to the priority default below.
+    if (endM < startM) return (1440 - startM) + endM;
     final scheduled = endM - startM;
     if (scheduled > 0) return scheduled;
     return switch (task.priority) {
