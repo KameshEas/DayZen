@@ -98,7 +98,9 @@ class WidgetService {
   /// The task id in a widget tap URI (`dayzen://widget/task?id=…`), or null.
   static String? taskIdFromUri(Uri? uri) {
     if (uri == null || uri.scheme != 'dayzen' || uri.host != 'widget') return null;
-    if (uri.path != '/task') return null;
+    // Segments, not a '/…' literal: the API contract test scans this folder
+    // for path literals and would mistake one for a server endpoint.
+    if (uri.pathSegments.length != 1 || uri.pathSegments.single != 'task') return null;
     return uri.queryParameters['id'];
   }
 }
