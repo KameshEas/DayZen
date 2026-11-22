@@ -21,6 +21,7 @@ import 'features/app_data.dart';
 import 'features/app_update/app_version_controller.dart';
 import 'features/journal_controller.dart';
 import 'features/notification_controller.dart';
+import 'features/rhythm/rhythm_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
@@ -41,6 +42,7 @@ void _runApp() {
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
   final notifCtrl = NotificationController();
+  final rhythmCtrl = RhythmController();
 
   // Constructed synchronously, before Firebase.initializeApp() below —
   // AppVersionService reads AnalyticsService.instance lazily, only once it
@@ -55,6 +57,7 @@ void _runApp() {
       journalCtrl: journalCtrl,
       settingsCtrl: settingsCtrl,
       notifCtrl: notifCtrl,
+      rhythmCtrl: rhythmCtrl,
       appVersionCtrl: appVersionCtrl,
     ),
     appVersionController: appVersionCtrl,
@@ -65,6 +68,7 @@ void _runApp() {
     journal: journalCtrl,
     settings: settingsCtrl,
     notifications: notifCtrl,
+    rhythm: rhythmCtrl,
     child: const DayZenApp(),
   ));
 }
@@ -74,6 +78,7 @@ Future<String> _bootstrap({
   required JournalController journalCtrl,
   required SettingsController settingsCtrl,
   required NotificationController notifCtrl,
+  required RhythmController rhythmCtrl,
   required AppVersionController appVersionCtrl,
 }) async {
   // The shared singleton — every JwtAuthService.instance call site across
@@ -128,6 +133,9 @@ Future<String> _bootstrap({
   ]);
   // Only ever written once; the Planner lets you browse back to this day.
   await AppPrefs.recordFirstUse();
+  // Rhythm learns from tasks as they change (done, carried, let go).
+  await rhythmCtrl.load(taskCtrl.all);
+  taskCtrl.addListener(() => rhythmCtrl.updateTasks(taskCtrl.all));
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it

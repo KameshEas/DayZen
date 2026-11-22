@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import '../app_data.dart';
 import 'package:flutter/material.dart';
 import '../../core/ai/day_optimizer.dart';
 import '../../core/design_system/design_system.dart' hide TaskPriority;
@@ -40,7 +41,10 @@ class _OptimizerSheet extends StatelessWidget {
       listenable: taskCtrl,
       builder: (context, _) => _buildSheet(
         context,
-        DayOptimizer.optimise(taskCtrl.forDate(DateTime.now())),
+        DayOptimizer.optimise(
+          taskCtrl.forDate(DateTime.now()),
+          profile: RhythmScope.maybeOf(context)?.profile,
+        ),
       ),
     );
   }
@@ -51,9 +55,7 @@ class _OptimizerSheet extends StatelessWidget {
       children: [
         BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.2),
-          ),
+          child: Container(color: Colors.black.withValues(alpha: 0.2)),
         ),
         DraggableScrollableSheet(
           initialChildSize: 0.75,
@@ -66,122 +68,150 @@ class _OptimizerSheet extends StatelessWidget {
                 top: Radius.circular(DzRadius.card),
               ),
             ),
-        child: Column(
-          children: [
-            // ── Handle ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: DzSpacing.sm),
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ),
-            // ── Header ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                DzSpacing.lg, DzSpacing.sm, DzSpacing.lg, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: scheme.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: DzSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Optimize My Day',
-                            style: DzTextStyles.heading3
-                                .copyWith(fontWeight: FontWeight.w700)),
-                        Text(
-                          'Runs on your phone, no internet needed',
-                          style: DzTextStyles.caption
-                              .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: DzSpacing.md),
-            // ── Content ───────────────────────────────────────────
-            Expanded(
-              child: ListView(
-                controller: controller,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: DzSpacing.lg, vertical: 0),
-                children: [
-                  // Summary card
-                  DayOptimizerSummaryCard(result: result),
-                  const SizedBox(height: DzSpacing.md),
-                  if (result.suggestions.isEmpty) ...[
-                    const SizedBox(height: DzSpacing.xl),
-                    Center(
-                      child: Column(
-                        children: [
-                          const Icon(Icons.sentiment_satisfied_alt_rounded,
-                              size: 64, color: DzColors.zenGreen),
-                          const SizedBox(height: DzSpacing.md),
-                          Text(
-                            'No tasks to optimize today!',
-                            style: DzTextStyles.heading3.copyWith(
-                                color: DzColors.zenGreen,
-                                fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: DzSpacing.sm),
-                          Text(
-                            'Add a new task to see AI suggestions.',
-                            style: DzTextStyles.body.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          ),
-                        ],
+            child: Column(
+              children: [
+                // ── Handle ────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: DzSpacing.sm),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(height: DzSpacing.xl),
-                  ]
-                  else ...[
-                    Text('Suggested Schedule',
-                        style: DzTextStyles.heading3
-                            .copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: DzSpacing.sm),
-                    ...result.suggestions.map((s) => DayOptimizerSuggestionTile(
-                          suggestion: s,
-                          onCompleteChanged: (_) => taskCtrl.toggleTask(s.task.id),
-                        )),
-                    const SizedBox(height: DzSpacing.md),
-                  ],
-                  // Break recommendation
-                  DayOptimizerBreakCard(recommendation: result.breakRecommendation),
-                  const SizedBox(height: DzSpacing.xl),
-                ],
-              ),
+                  ),
+                ),
+                // ── Header ────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    DzSpacing.lg,
+                    DzSpacing.sm,
+                    DzSpacing.lg,
+                    0,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: DzSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Optimize My Day',
+                              style: DzTextStyles.heading3.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              'Runs on your phone, no internet needed',
+                              style: DzTextStyles.caption.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: DzSpacing.md),
+                // ── Content ───────────────────────────────────────────
+                Expanded(
+                  child: ListView(
+                    controller: controller,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DzSpacing.lg,
+                      vertical: 0,
+                    ),
+                    children: [
+                      // Summary card
+                      DayOptimizerSummaryCard(result: result),
+                      const SizedBox(height: DzSpacing.md),
+                      if (result.suggestions.isEmpty) ...[
+                        const SizedBox(height: DzSpacing.xl),
+                        Center(
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.sentiment_satisfied_alt_rounded,
+                                size: 64,
+                                color: DzColors.zenGreen,
+                              ),
+                              const SizedBox(height: DzSpacing.md),
+                              Text(
+                                'No tasks to optimize today!',
+                                style: DzTextStyles.heading3.copyWith(
+                                  color: DzColors.zenGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: DzSpacing.sm),
+                              Text(
+                                'Add a new task to see AI suggestions.',
+                                style: DzTextStyles.body.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: DzSpacing.xl),
+                      ] else ...[
+                        Text(
+                          'Suggested Schedule',
+                          style: DzTextStyles.heading3.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: DzSpacing.sm),
+                        ...result.suggestions.map(
+                          (s) => DayOptimizerSuggestionTile(
+                            suggestion: s,
+                            onCompleteChanged: (_) =>
+                                taskCtrl.toggleTask(s.task.id),
+                          ),
+                        ),
+                        const SizedBox(height: DzSpacing.md),
+                      ],
+                      // Break recommendation
+                      DayOptimizerBreakCard(
+                        recommendation: result.breakRecommendation,
+                      ),
+                      const SizedBox(height: DzSpacing.xl),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-        ),
-    ],
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
 import 'models/task_model.dart';
+import '../rhythm/widgets/rhythm_card.dart';
 import 'widgets/close_day_home_card.dart';
 import 'widgets/day_optimizer_home_card.dart';
 import 'widgets/home_daily_reflection_card.dart';
@@ -87,6 +88,8 @@ class _HomeBody extends StatelessWidget {
             taskController: taskCtrl,
             showFullStatus: true,
           ),
+          const SizedBox(height: DzSpacing.md),
+          const RhythmCard(),
           const SizedBox(height: DzSpacing.md),
           DayOptimizerHomeCard(taskCtrl: taskCtrl),
           const SizedBox(height: DzSpacing.md),
