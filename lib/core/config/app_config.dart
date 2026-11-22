@@ -132,11 +132,6 @@ class AppConfig {
       "A minute to sort what's left and note how it felt.";
   static const String checkinReminderTitle = "How's your energy?";
   static const String checkinReminderBody = 'One tap. It helps DayZen learn your rhythm.';
-  static const String overdueTaskPopupDoneLabel = 'Yes, done';
-  // Shorter than the original "No, didn't happen" — that wrapped to two
-  // lines in the half-width button next to "Yes, done" and looked broken.
-  static const String overdueTaskPopupSkipLabel = "Didn't happen";
-  static const String overdueTaskPopupTitle = 'Did you get to these?';
 
   // ── Timeline View Configuration ──────────────────────────────────────
   static const double timelineHourHeight = 72.0;

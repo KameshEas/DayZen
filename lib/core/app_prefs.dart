@@ -13,7 +13,6 @@ class AppPrefs {
   static const _keyOnboardingSeen = 'onboarding_seen';
   static const _keyBiometricEnabled = 's_biometricEnabled';
   static const _keyFirstUse = 'first_use_date';
-  static const _keyPromptedOverdueTasks = 'prompted_overdue_task_ids';
   static const _keyOnboardingVariant = 'onboarding_variant';
   static const _keyOnboardingV2Done = 'onboarding_v2_done';
   static const _keyRhythmPrior = 'rhythm_prior';
@@ -264,23 +263,6 @@ class AppPrefs {
   static Future<bool> isBiometricEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyBiometricEnabled) ?? false;
-  }
-
-  // ── Task completion follow-up ────────────────────────────────────────────
-
-  /// Task ids already asked about (via the overdue-tasks popup or a
-  /// notification's "Didn't happen" action) — so a task is only ever asked
-  /// about once, regardless of how long it stays incomplete afterward.
-  static Future<Set<String>> promptedOverdueTaskIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(_keyPromptedOverdueTasks) ?? const []).toSet();
-  }
-
-  static Future<void> markOverdueTaskPrompted(String taskId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = (prefs.getStringList(_keyPromptedOverdueTasks) ?? const []).toSet();
-    if (!ids.add(taskId)) return;
-    await prefs.setStringList(_keyPromptedOverdueTasks, ids.toList());
   }
 }
 
