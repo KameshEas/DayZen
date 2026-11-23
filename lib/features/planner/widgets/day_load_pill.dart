@@ -52,6 +52,7 @@ class DayLoadIndicator extends StatelessWidget {
   Future<void> _explain(BuildContext context, DayLoadResult r) async {
     final suggest = r.suggestMoveId == null ? null : tasks.taskById(r.suggestMoveId!);
     final move = await showModalBottomSheet<bool>(
+      useRootNavigator: true, // above the tab bar, not inside the shell
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(

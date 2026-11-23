@@ -232,7 +232,7 @@ class AppConfig {
   static const String achievementsErrorTitle = 'Couldn\'t load your wins';
   static const String achievementsEmptyTitle = 'Your first badge is waiting';
   static const String achievementsEmptyBody = 'Small milestones appear here as you go. No streaks, nothing to lose.';
-  static const String achievementsProgressHeader = 'Your Progress';
+  static const String achievementsProgressHeader = 'So far';
 
   // ── Settings Copy ────────────────────────────────────────────────────
   static const String settingsFooter = 'DayZen • Private by default. Sync only if you choose.';

@@ -19,6 +19,7 @@ Future<void> maybeOfferPin(BuildContext context, {required int journalEntries}) 
   await MomentsService.markFired(Moment.pinOffer);
   if (!context.mounted) return;
   final setUp = await showModalBottomSheet<bool>(
+    useRootNavigator: true, // above the tab bar, not inside the shell
     context: context,
     showDragHandle: true,
     builder: (ctx) => SafeArea(
