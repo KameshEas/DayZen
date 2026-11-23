@@ -207,6 +207,7 @@ class AppConfig {
   // ── Home Copy ────────────────────────────────────────────────────────
   static const String homeAllDoneSubtitle = 'Everything for today is done. Enjoy the rest of it.';
   static const String homeRemainingSubtitleTemplate = '{n} left for today, at your own pace.';
+  static const String homeNothingLeftSubtitle = 'Nothing left open today.';
   static const String homeEmptyTitle = 'Blank slate. Your move.';
   static const String homeEmptyBody = 'Nothing on the board yet — add your first win.';
   static const String homeEmptyAction = 'Add a Task';

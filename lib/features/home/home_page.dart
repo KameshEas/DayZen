@@ -71,9 +71,13 @@ class _HomeBody extends StatelessWidget {
         HomeGreetingHeader(
           dateLabel: dateLabel,
           greeting: greeting,
-          subtitle: remaining == 0 && anyDone
-              ? AppConfig.homeAllDoneSubtitle
-              : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
+          subtitle: tasks.isEmpty
+              ? AppConfig.emptyTasksMessage
+              : remaining == 0
+                  ? (anyDone
+                      ? AppConfig.homeAllDoneSubtitle
+                      : AppConfig.homeNothingLeftSubtitle)
+                  : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
         ),
         const SizedBox(height: DzSpacing.lg),
         const MomentCard(),
