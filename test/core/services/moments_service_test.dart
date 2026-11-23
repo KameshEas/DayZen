@@ -7,6 +7,7 @@ import 'package:dayzen/features/notification_controller.dart';
 import 'package:dayzen/features/settings/settings_controller.dart';
 import 'package:dayzen/features/task_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -87,6 +88,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Insights unlock in 4 days'), findsOneWidget);
       expect(find.text('Milestones'), findsOneWidget);
+    });
+
+    testWidgets('the unlock card and Milestones are separate TalkBack nodes',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final today = DateTime.now();
+      SharedPreferences.setMockInitialValues({
+        'first_use_date':
+            DateTime(today.year, today.month, today.day - 2).toIso8601String(),
+      });
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      final milestones = tester.getSemantics(find.text('Milestones'));
+      final unlock = tester.getSemantics(find.text('Insights unlock in 4 days'));
+      expect(identical(milestones, unlock), isFalse);
+      expect(milestones.label, isNot(contains('unlock')));
+      expect(milestones.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      handle.dispose();
     });
 
     testWidgets('from day 7: no unlock card', (tester) async {

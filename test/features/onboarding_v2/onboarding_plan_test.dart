@@ -112,4 +112,26 @@ void main() {
     expect(dentist.endTime.hour * 60 + dentist.endTime.minute, 10 * 60 + 30);
     expect(tasks.every((t) => t.status == TaskStatus.active), isTrue);
   });
+
+  test('a fixed time that already passed today keeps its time tomorrow', () {
+    final plan = OnboardingPlan.build(
+      drafts: const [TaskDraft(title: 'Gym', startMinute: 18 * 60, durationMinutes: 60)],
+      prior: RhythmPrior.morning,
+      now: DateTime(2027, 1, 12, 21, 57),
+    );
+    expect(plan.single.dayOffset, 1);
+    expect(plan.single.startMinute, 18 * 60);
+    expect(plan.single.timePassed, isTrue);
+    expect(plan.single.movedToTomorrow, isTrue);
+  });
+
+  test('a fixed time still running today stays today', () {
+    final plan = OnboardingPlan.build(
+      drafts: const [TaskDraft(title: 'Gym', startMinute: 18 * 60, durationMinutes: 60)],
+      prior: RhythmPrior.morning,
+      now: DateTime(2027, 1, 12, 18, 30),
+    );
+    expect(plan.single.dayOffset, 0);
+    expect(plan.single.timePassed, isFalse);
+  });
 }

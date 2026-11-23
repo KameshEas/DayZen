@@ -30,7 +30,9 @@ class InsightsPage extends StatefulWidget {
 class _InsightsPageState extends State<InsightsPage> {
   /// Read once per visit: whether Insights is still locked (before day 7).
   late final Future<int> _unlocksIn = AppPrefs.firstUseDate().then(
-      (first) => MomentsService.insightsUnlocksIn(firstUse: first, now: DateTime.now()));
+    (first) =>
+        MomentsService.insightsUnlocksIn(firstUse: first, now: DateTime.now()),
+  );
 
   // The centre button floats over the bottom of the list; without this the last
   // card would sit underneath it.
@@ -46,17 +48,24 @@ class _InsightsPageState extends State<InsightsPage> {
 
   Widget _content(BuildContext context, int unlocksIn) {
     return ListenableBuilder(
-      listenable:
-          Listenable.merge([TaskScope.of(context), JournalScope.of(context)]),
+      listenable: Listenable.merge([
+        TaskScope.of(context),
+        JournalScope.of(context),
+      ]),
       builder: (context, _) {
         final d = InsightsData.from(context);
-        final hasData = TaskScope.of(context).all.isNotEmpty ||
+        final hasData =
+            TaskScope.of(context).all.isNotEmpty ||
             JournalScope.of(context).all.isNotEmpty;
         final suggestion = d.suggestion;
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(
-              DzSpacing.lg, DzSpacing.md, DzSpacing.lg, _bottomClearance),
+            DzSpacing.lg,
+            DzSpacing.md,
+            DzSpacing.lg,
+            _bottomClearance,
+          ),
           children: [
             InsightsGreeting(
               subtitle: hasData
@@ -122,39 +131,53 @@ class _UnlockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Each card is its own semantics node: without the containers the
+    // info card's text merged into the tappable Milestones card, making one
+    // big "button" for TalkBack whose centre wasn't tappable.
     return Column(
       children: [
-        DzCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.hourglass_bottom_rounded, color: scheme.primary),
-              const SizedBox(height: DzSpacing.sm),
-              Semantics(
-                header: true,
-                child: Text(
-                  daysLeft == 1 ? 'Insights unlock tomorrow' : 'Insights unlock in $daysLeft days',
-                  style: DzTextStyles.heading3,
+        Semantics(
+          container: true,
+          child: DzCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.hourglass_bottom_rounded, color: scheme.primary),
+                const SizedBox(height: DzSpacing.sm),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    daysLeft == 1
+                        ? 'Insights unlock tomorrow'
+                        : 'Insights unlock in $daysLeft days',
+                    style: DzTextStyles.heading3,
+                  ),
                 ),
-              ),
-              const SizedBox(height: DzSpacing.xs),
-              Text(
-                'A week of use gives DayZen enough to show you real patterns: '
-                'your week in one card, your sharpest hours, and what lifts you.',
-                style: DzTextStyles.body.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
+                const SizedBox(height: DzSpacing.xs),
+                Text(
+                  'A week of use gives DayZen enough to show you real patterns: '
+                  'your week in one card, your sharpest hours, and what lifts you.',
+                  style: DzTextStyles.body.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: DzSpacing.md),
-        DzCard(
-          onTap: () => context.push(RoutePaths.achievements),
-          child: const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Text('🌿', style: TextStyle(fontSize: 24)),
-            title: Text('Milestones'),
-            subtitle: Text('Small markers that only ever go up.'),
-            trailing: Icon(Icons.chevron_right_rounded),
+        Semantics(
+          container: true,
+          button: true,
+          child: DzCard(
+            onTap: () => context.push(RoutePaths.achievements),
+            child: const ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Text('🌿', style: TextStyle(fontSize: 24)),
+              title: Text('Milestones'),
+              subtitle: Text('Small markers that only ever go up.'),
+              trailing: Icon(Icons.chevron_right_rounded),
+            ),
           ),
         ),
       ],

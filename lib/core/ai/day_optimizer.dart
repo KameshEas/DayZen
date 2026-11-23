@@ -324,7 +324,7 @@ class DayOptimizer {
           'high-stakes work first, lighter items after lunch.';
     }
 
-    return 'Balanced day: $durationText of focused work across $incomplete tasks. '
+    return 'Balanced day: $durationText of focused work across $incomplete ${incomplete == 1 ? 'task' : 'tasks'}. '
         'I\'ve sequenced them for steady, calm momentum.';
   }
 
