@@ -13,7 +13,10 @@ class AppPrefs {
   static const _keyOnboardingSeen = 'onboarding_seen';
   static const _keyBiometricEnabled = 's_biometricEnabled';
   static const _keyFirstUse = 'first_use_date';
-  static const _keyPromptedOverdueTasks = 'prompted_overdue_task_ids';
+  static const _keyOnboardingVariant = 'onboarding_variant';
+  static const _keyOnboardingV2Done = 'onboarding_v2_done';
+  static const _keyRhythmPrior = 'rhythm_prior';
+  static const _keyWhatsNewCloseDaySeen = 'whats_new_close_day_seen';
 
   /// Set when the user explicitly declines to set a PIN (skips PIN setup, or
   /// turns "PIN Lock" off in Settings). PIN is optional, so this stops the
@@ -39,6 +42,65 @@ class AppPrefs {
   static Future<void> markOnboardingSeen() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyOnboardingSeen, true);
+  }
+
+  // ── Onboarding v2 (plan M-1.6 / M-1.8) ──────────────────────────────────
+
+  /// Which onboarding a fresh install gets: `v2` (plan today in 60 seconds,
+  /// the default) or `v1` (the old slides). Set per tester build with
+  /// `--dart-define=ONBOARDING_VARIANT=v1` for the A/B comparison.
+  static const String buildOnboardingVariant =
+      String.fromEnvironment('ONBOARDING_VARIANT', defaultValue: 'v2');
+
+  /// The variant this install was given, fixed the first time it is read so
+  /// a later build with another default doesn't switch it mid-test.
+  static Future<String> onboardingVariant() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_keyOnboardingVariant);
+    if (stored == 'v1' || stored == 'v2') return stored!;
+    const variant = buildOnboardingVariant == 'v1' ? 'v1' : 'v2';
+    await prefs.setString(_keyOnboardingVariant, variant);
+    return variant;
+  }
+
+  static Future<bool> isOnboardingV2Done() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyOnboardingV2Done) ?? false;
+  }
+
+  /// Marks v2 finished (or skipped). Also marks the shared onboarding flag
+  /// and the "New: Close your day" card as seen: a new user doesn't need
+  /// to be told about a feature they just met.
+  static Future<void> markOnboardingV2Done() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnboardingV2Done, true);
+    await prefs.setBool(_keyOnboardingSeen, true);
+    await prefs.setBool(_keyWhatsNewCloseDaySeen, true);
+  }
+
+  /// The onboarding "When are you sharpest?" answer, by name; null if never
+  /// answered.
+  static Future<String?> rhythmPriorName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyRhythmPrior);
+  }
+
+  static Future<void> setRhythmPriorName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyRhythmPrior, name);
+  }
+
+  /// The one-time "New: Close your day" card for installs that finished
+  /// onboarding before it existed (M-1.8).
+  static Future<bool> shouldShowWhatsNewCloseDay() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getBool(_keyOnboardingSeen) ?? false) &&
+        !(prefs.getBool(_keyWhatsNewCloseDaySeen) ?? false);
+  }
+
+  static Future<void> markWhatsNewCloseDaySeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyWhatsNewCloseDaySeen, true);
   }
 
   // ── First use ───────────────────────────────────────────────────────────
@@ -201,23 +263,6 @@ class AppPrefs {
   static Future<bool> isBiometricEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyBiometricEnabled) ?? false;
-  }
-
-  // ── Task completion follow-up ────────────────────────────────────────────
-
-  /// Task ids already asked about (via the overdue-tasks popup or a
-  /// notification's "Didn't happen" action) — so a task is only ever asked
-  /// about once, regardless of how long it stays incomplete afterward.
-  static Future<Set<String>> promptedOverdueTaskIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(_keyPromptedOverdueTasks) ?? const []).toSet();
-  }
-
-  static Future<void> markOverdueTaskPrompted(String taskId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = (prefs.getStringList(_keyPromptedOverdueTasks) ?? const []).toSet();
-    if (!ids.add(taskId)) return;
-    await prefs.setStringList(_keyPromptedOverdueTasks, ids.toList());
   }
 }
 

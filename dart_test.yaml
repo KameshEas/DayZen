@@ -1,0 +1,8 @@
+# Golden (screenshot) tests render text with the host's fonts, so images
+# made on Windows don't match a Linux CI runner pixel for pixel. They are
+# skipped by default and run locally:
+#   flutter test --tags golden --run-skipped                  # compare
+#   flutter test --tags golden --run-skipped --update-goldens # re-record
+tags:
+  golden:
+    skip: "Golden tests are host-specific; run with --tags golden --run-skipped"

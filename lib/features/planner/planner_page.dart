@@ -13,6 +13,7 @@ import '../home/models/task_model.dart';
 import '../tasks/widgets/task_actions_sheet.dart';
 import 'planner_selection.dart';
 import 'schedule_suggestions_widget.dart';
+import 'widgets/day_load_pill.dart';
 import 'widgets/planner_date_header.dart';
 import 'widgets/planner_list_view.dart';
 import 'widgets/planner_timeline_view.dart';
@@ -152,6 +153,12 @@ class _PlannerPageState extends State<PlannerPage> {
           day: selected,
           onAdd: () => _addTask(selected),
         ),
+        if (dayTasks.any((t) => t.status == TaskStatus.active))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                DzSpacing.md, 0, DzSpacing.md, DzSpacing.xs),
+            child: DayLoadIndicator(tasks: taskCtrl, day: selected),
+          ),
 
         // ── AI schedule suggestions (opt-in) + view mode ────────
         Padding(
@@ -203,7 +210,11 @@ class _PlannerPageState extends State<PlannerPage> {
     DateTime today,
     List<DzTask> tasks,
   ) {
-    final events = tasks.map(PlannerEvent.fromTask).toList();
+    // Let-go tasks live in the "Let go" list, not on the day (M-1.12).
+    final events = tasks
+        .where((t) => t.status != TaskStatus.released)
+        .map(PlannerEvent.fromTask)
+        .toList();
 
     if (events.isEmpty) {
       final copy = _emptyCopy(selected, today);
@@ -238,6 +249,7 @@ class _PlannerPageState extends State<PlannerPage> {
       currentMinute: _now.minute,
       showNow: isSameDay(selected, today),
       onTapEvent: (e) => showTaskActions(context, e.taskIds),
+      profile: RhythmScope.maybeOf(context)?.profile,
       onToggleComplete: (id) => TaskScope.of(context).toggleTask(id),
     );
   }
@@ -328,16 +340,14 @@ class _DaySummaryRow extends StatelessWidget {
   final DateTime day;
   final VoidCallback onAdd;
 
+  int get _released => tasks.where((t) => t.status == TaskStatus.released).length;
+
   String get _summary {
-    if (tasks.isEmpty) return 'No tasks';
-    final released = tasks.where((t) => t.status == TaskStatus.released).length;
-    final planned = tasks.length - released;
+    final planned = tasks.length - _released;
+    if (planned == 0) return _released == 0 ? 'No tasks' : '';
     final done = tasks.where((t) => t.isCompleted).length;
     final noun = planned == 1 ? 'task' : 'tasks';
-    return [
-      if (planned > 0) '$planned $noun · $done done',
-      if (released > 0) '$released let go',
-    ].join(' · ');
+    return '$planned $noun · $done done';
   }
 
   @override
@@ -348,9 +358,29 @@ class _DaySummaryRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              _summary,
-              style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (_summary.isNotEmpty)
+                  Text(
+                    _summary,
+                    style: DzTextStyles.caption.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                if (_released > 0)
+                  TextButton(
+                    onPressed: () => context.push(RoutePaths.released),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, DzSizing.minTouchTarget),
+                      padding: const EdgeInsets.symmetric(horizontal: DzSpacing.sm),
+                      foregroundColor: scheme.onSurfaceVariant,
+                    ),
+                    child: Text('$_released let go',
+                        style: DzTextStyles.caption.copyWith(
+                          decoration: TextDecoration.underline,
+                          color: scheme.onSurfaceVariant,
+                        )),
+                  ),
+              ],
             ),
           ),
           TextButton.icon(

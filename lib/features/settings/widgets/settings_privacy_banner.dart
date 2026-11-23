@@ -1,16 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/design_system/design_system.dart';
+import '../../../core/routing/route_paths.dart';
 
 /// Decorative header banner shown at the top of the Settings page.
-class SettingsPrivacyBanner extends StatelessWidget {
+class SettingsPrivacyBanner extends StatefulWidget {
   const SettingsPrivacyBanner({super.key});
+
+  /// Taps on the version that open the hidden tester counters (M-1.11).
+  static const secretTaps = 7;
+
+  @override
+  State<SettingsPrivacyBanner> createState() => _SettingsPrivacyBannerState();
+}
+
+class _SettingsPrivacyBannerState extends State<SettingsPrivacyBanner> {
+  int _taps = 0;
+
+  void _onVersionTap() {
+    _taps++;
+    if (_taps >= SettingsPrivacyBanner.secretTaps) {
+      _taps = 0;
+      context.push(RoutePaths.counters);
+    }
+  }
 
   // Cached at module scope: the installed version never changes at runtime,
   // so there's no reason to re-fetch it (and re-show a loading gap) on
   // every rebuild of this widget.
   static Future<PackageInfo>? _packageInfo;
-  static Future<PackageInfo> get _version => _packageInfo ??= PackageInfo.fromPlatform();
+  static Future<PackageInfo> get _version =>
+      _packageInfo ??= PackageInfo.fromPlatform();
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +40,10 @@ class SettingsPrivacyBanner extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(DzRadius.card),
         gradient: const LinearGradient(
-          colors: [DzColors.privacyBannerGradientStart, DzColors.privacyBannerGradientEnd],
+          colors: [
+            DzColors.privacyBannerGradientStart,
+            DzColors.privacyBannerGradientEnd,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -46,18 +70,24 @@ class SettingsPrivacyBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                FutureBuilder<PackageInfo>(
-                  future: _version,
-                  builder: (context, snapshot) {
-                    final info = snapshot.data;
-                    return Text(
-                      info == null ? 'App Version' : 'App Version ${info.version}',
-                      style: DzTextStyles.caption.copyWith(
-                        color: DzColors.privacyBannerIcon,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
+                GestureDetector(
+                  onTap: _onVersionTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: FutureBuilder<PackageInfo>(
+                    future: _version,
+                    builder: (context, snapshot) {
+                      final info = snapshot.data;
+                      return Text(
+                        info == null
+                            ? 'App Version'
+                            : 'App Version ${info.version}',
+                        style: DzTextStyles.caption.copyWith(
+                          color: DzColors.privacyBannerIcon,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(

@@ -65,10 +65,18 @@ class _DzPrimaryButtonState extends State<DzPrimaryButton>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width ?? double.infinity,
-      height: DzSizing.buttonHeight,
+    // At least the standard height, but free to grow: with large system
+    // text (200 %) a fixed height clipped the label.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: widget.width ?? double.infinity,
+        maxWidth: widget.width ?? double.infinity,
+        minHeight: DzSizing.buttonHeight,
+      ),
       child: GestureDetector(
+        // Only drives the press animation; the button inside is the one
+        // (labelled) tap target screen readers should see.
+        excludeFromSemantics: true,
         onTapDown: (_) => _onTapDown(),
         onTapUp: (_) => _onTapUp(),
         onTapCancel: _onTapCancel,
@@ -98,10 +106,14 @@ class _DzPrimaryButtonState extends State<DzPrimaryButton>
                           children: [
                             widget.icon!,
                             const SizedBox(width: DzSpacing.sm),
-                            Text(widget.label),
+                            // Flexible: a long label (or 200 % text) wraps
+                            // instead of overflowing next to the icon.
+                            Flexible(
+                              child: Text(widget.label, textAlign: TextAlign.center),
+                            ),
                           ],
                         )
-                      : Text(widget.label),
+                      : Text(widget.label, textAlign: TextAlign.center),
             ),
           ),
         ),
@@ -168,10 +180,18 @@ class _DzSecondaryButtonState extends State<DzSecondaryButton>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width ?? double.infinity,
-      height: DzSizing.buttonHeight,
+    // At least the standard height, but free to grow: with large system
+    // text (200 %) a fixed height clipped the label.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: widget.width ?? double.infinity,
+        maxWidth: widget.width ?? double.infinity,
+        minHeight: DzSizing.buttonHeight,
+      ),
       child: GestureDetector(
+        // Only drives the press animation; the button inside is the one
+        // (labelled) tap target screen readers should see.
+        excludeFromSemantics: true,
         onTapDown: (_) => _onTapDown(),
         onTapUp: (_) => _onTapUp(),
         onTapCancel: _onTapCancel,
@@ -202,10 +222,14 @@ class _DzSecondaryButtonState extends State<DzSecondaryButton>
                           children: [
                             widget.icon!,
                             const SizedBox(width: DzSpacing.sm),
-                            Text(widget.label),
+                            // Flexible: a long label (or 200 % text) wraps
+                            // instead of overflowing next to the icon.
+                            Flexible(
+                              child: Text(widget.label, textAlign: TextAlign.center),
+                            ),
                           ],
                         )
-                      : Text(widget.label),
+                      : Text(widget.label, textAlign: TextAlign.center),
             ),
           ),
         ),
@@ -268,6 +292,8 @@ class _DzGhostButtonState extends State<DzGhostButton>
   Widget build(BuildContext context) {
     final textColor = widget.color ?? Theme.of(context).colorScheme.primary;
     return GestureDetector(
+      // Animation only; the TextButton is the labelled tap target.
+      excludeFromSemantics: true,
       onTapDown: (_) => _onTapDown(),
       onTapUp: (_) => _onTapUp(),
       onTapCancel: _onTapCancel,
@@ -352,6 +378,9 @@ class _DzIconButtonState extends State<DzIconButton>
       label: widget.tooltip,
       button: true,
       child: GestureDetector(
+        // Only drives the press animation; the button inside is the one
+        // (labelled) tap target screen readers should see.
+        excludeFromSemantics: true,
         onTapDown: (_) => _onTapDown(),
         onTapUp: (_) => _onTapUp(),
         onTapCancel: _onTapCancel,

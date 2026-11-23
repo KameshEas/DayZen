@@ -13,6 +13,14 @@ abstract final class RoutePaths {
   static const String signup = '/signup';
   static const String forceUpdate = '/force-update';
   static const String maintenance = '/maintenance';
+  static const String closeDay = '/close-day';
+  static const String released = '/released';
+  static const String achievements = '/achievements';
+  static const String checkin = '/checkin';
+  static const String rhythmHistory = '/rhythm-history';
+
+  /// Hidden tester screen (M-1.11); reachable in release builds.
+  static const String counters = '/debug/counters';
 
   static String journalDetailPath(String id) => '/journal/$id';
 }
@@ -31,4 +39,7 @@ abstract final class RouteNames {
   static const String signup = 'signup';
   static const String forceUpdate = 'forceUpdate';
   static const String maintenance = 'maintenance';
+  static const String closeDay = 'closeDay';
+  static const String released = 'released';
+  static const String achievements = 'achievements';
 }

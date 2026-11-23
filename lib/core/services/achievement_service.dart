@@ -1,10 +1,18 @@
-/// Service for achievement/gamification management.
-///
-/// API Binding:
-/// - BINDING 25: GET /achievements (getAchievements)
+/// Gentle milestones (plan M-1.13), computed on the device.
 library;
 
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../features/home/models/task_model.dart';
 import '../api/api_client.dart';
+import '../data/checkin_repository.dart';
+import '../data/day_close_repository.dart';
+import '../data/journal_repository.dart';
+import '../data/task_repository.dart';
+import '../domain/gentle_milestones.dart';
+import '../logging/app_logger.dart';
 
 /// Individual achievement with progress tracking.
 class Achievement {
@@ -82,16 +90,68 @@ class AchievementService {
 
   static AchievementService get instance => _instance;
 
-  /// All achievements with progress and unlock status.
-  ///
-  /// There is no server source: the app used to call GET /achievements,
-  /// which the DayZen API has never had, so the page always showed an error.
-  /// Achievements will be computed on the device (planned: gentle
-  /// milestones); until then there are none.
+  static const _unlockedKey = 'milestones_unlocked_at';
+
+  /// Every gentle milestone with its progress. Computed from local data (the
+  /// DayZen API has no achievements endpoint). A milestone, once reached,
+  /// stays reached: its unlock time is saved, so deleting tasks later never
+  /// takes it away. [stats] is a test seam.
   Future<List<Achievement>> getAchievements({
     bool forceRefresh = false,
-  }) async =>
-      const [];
+    MilestoneStats? stats,
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final s = stats ?? await _collectStats();
+    final prefs = await SharedPreferences.getInstance();
+    final unlocked = <String, String>{
+      ...((jsonDecode(prefs.getString(_unlockedKey) ?? '{}') as Map)
+          .cast<String, String>()),
+    };
+    var changed = false;
+    final out = <Achievement>[];
+    for (final m in GentleMilestones.evaluate(s)) {
+      if (m.reached && !unlocked.containsKey(m.def.id)) {
+        unlocked[m.def.id] = at.toIso8601String();
+        changed = true;
+      }
+      final unlockedAt = DateTime.tryParse(unlocked[m.def.id] ?? '');
+      out.add(Achievement(
+        id: m.def.id,
+        title: m.def.title,
+        description: m.def.description,
+        icon: m.def.icon,
+        progress: AchievementProgress(
+          current: unlockedAt != null ? m.def.target : m.current,
+          target: m.def.target,
+        ),
+        unlockedAt: unlockedAt,
+      ));
+    }
+    if (changed) await prefs.setString(_unlockedKey, jsonEncode(unlocked));
+    return out;
+  }
+
+  Future<MilestoneStats> _collectStats() async {
+    try {
+      final tasks = await TaskRepository.loadAll();
+      final journal = await JournalRepository.loadAll();
+      final closes = await const DayCloseRepository()
+          .between(DateTime(2000), DateTime(2100));
+      final checkins = await const CheckinRepository().since(DateTime(2000));
+      return MilestoneStats(
+        tasksPlanned: tasks.length,
+        tasksDone: tasks.where((t) => t.status == TaskStatus.done).length,
+        tasksLetGo: tasks.where((t) => t.status == TaskStatus.released).length,
+        daysClosed: closes.length,
+        journalEntries: journal.length,
+        checkins: checkins.length,
+      );
+    } catch (e) {
+      AppLogger.warning('Milestone stats unavailable: $e');
+      return const MilestoneStats();
+    }
+  }
 
   /// Get only unlocked achievements.
   Future<List<Achievement>> getUnlockedAchievements({

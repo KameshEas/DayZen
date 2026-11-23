@@ -104,7 +104,9 @@ class _ListRow extends StatelessWidget {
                           ),
                           if (event.subtitle.isNotEmpty)
                             Text(
-                              event.subtitle,
+                              event.rolloverCount > 0
+                                  ? '${event.subtitle} · Carried ${event.rolloverCount}×'
+                                  : event.subtitle,
                               style: DzTextStyles.small.copyWith(color: scheme.onSurfaceVariant),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

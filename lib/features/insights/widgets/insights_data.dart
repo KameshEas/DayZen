@@ -13,6 +13,7 @@ class InsightsData {
     required this.todayDone,
     required this.todayPlanned,
     required this.streakDays,
+    this.activeDays7 = 0,
     required this.focusBars,
     required this.weekFocusMinutes,
     required this.completionBars,
@@ -39,6 +40,7 @@ class InsightsData {
       todayDone: todays.where((t) => t.isCompleted).length,
       todayPlanned: todays.length,
       streakDays: TaskAnalytics.streakDays(tasks, now),
+      activeDays7: TaskAnalytics.activeDaysLast7(tasks, now),
       focusBars: TaskAnalytics.weekFocusFractions(tasks, now),
       weekFocusMinutes: TaskAnalytics.weekFocusMinutes(tasks, now)
           .fold<int>(0, (sum, m) => sum + m),
@@ -65,6 +67,10 @@ class InsightsData {
   final int todayPlanned;
   final int streakDays;
 
+  /// Days with something done in the last 7 (a rolling count; see
+  /// [TaskAnalytics.activeDaysLast7]).
+  final int activeDays7;
+
   /// Focus time per weekday (Mon-Sun) as a fraction of the busiest day.
   final List<double> focusBars;
   final int weekFocusMinutes;
@@ -88,11 +94,12 @@ class InsightsData {
   String get weekFocusLabel => TaskAnalytics.formatMinutes(weekFocusMinutes);
   bool get hasFocusTime => weekFocusMinutes > 0;
 
-  /// One honest line under "Hello": the streak if there is one, otherwise where
-  /// today stands.
+  /// One honest line under "Hello": how the week has gone if there's
+  /// something to say, otherwise where today stands. Never a streak (M-1.13):
+  /// a rolling count can't be "broken" by a quiet day.
   String get greetingSubtitle {
-    if (streakDays >= 2) {
-      return "You're on a $streakDays-day streak. Keep it going.";
+    if (activeDays7 >= 2) {
+      return 'You got something done on $activeDays7 of the last 7 days.';
     }
     if (todayPlanned == 0) {
       return 'Nothing planned for today yet. Add a task to get started.';

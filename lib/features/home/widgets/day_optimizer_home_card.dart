@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app_data.dart';
 import '../../../core/ai/day_optimizer.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../task_controller.dart';
@@ -16,7 +17,10 @@ class DayOptimizerHomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final result = DayOptimizer.optimise(taskCtrl.forDate(DateTime.now()));
+    final result = DayOptimizer.optimise(
+      taskCtrl.forDate(DateTime.now()),
+      profile: RhythmScope.maybeOf(context)?.profile,
+    );
 
     return InkWell(
       onTap: () => showDayOptimizerSheet(context, taskCtrl),

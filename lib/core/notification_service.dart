@@ -1,11 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show ValueNotifier, visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'app_prefs.dart';
 import 'config/app_config.dart';
 import 'data/task_repository.dart';
 import '../features/home/models/task_model.dart';
@@ -28,6 +27,26 @@ class NotificationService {
   /// no quiet hours). Set from Settings; call [rescheduleAll] after changing
   /// it so already-scheduled reminders follow the new window.
   QuietWindow? quietWindow;
+
+  // ── App-level reminders (not tied to a task) ──────────────────────────
+  // Task notification ids are derived from task ids and are never negative,
+  // so app-level reminders use negative ids and can't collide with them.
+
+  /// The evening "Close your day" prompt (plan M-1.10).
+  static const int closeDayId = -1;
+
+  /// Energy check-in prompts (plan M-2.5), at most two a day.
+  static const List<int> checkinIds = [-2, -3];
+
+  /// Payload prefix for a notification that opens a screen when tapped.
+  static const String routePayloadPrefix = 'route:';
+
+  /// A route a tapped notification asked to open. The app shell listens and
+  /// navigates, then clears it.
+  final ValueNotifier<String?> pendingRoute = ValueNotifier(null);
+
+  ({bool enabled, int minuteOfDay})? _closeDay;
+  List<DateTime> _checkins = const [];
 
   /// Whether a reminder at [when] should actually be delivered.
   @visibleForTesting
@@ -81,7 +100,108 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
     _initialized = true;
+
+    // Opened by tapping a notification while the app was closed.
+    try {
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      final payload = launch?.notificationResponse?.payload;
+      if ((launch?.didNotificationLaunchApp ?? false) &&
+          payload != null &&
+          payload.startsWith(routePayloadPrefix)) {
+        pendingRoute.value = payload.substring(routePayloadPrefix.length);
+      }
+    } catch (e) {
+      AppLogger.warning('Notification launch details unavailable: $e');
+    }
   }
+
+  // ── Close the Day reminder ────────────────────────────────────────────
+
+  /// A daily prompt at [minuteOfDay] that opens Close the Day. Not
+  /// scheduled when it falls inside the quiet window. Survives
+  /// [rescheduleAll] and [cancelAll], which only clear task reminders.
+  Future<void> setCloseDayReminder({
+    required bool enabled,
+    required int minuteOfDay,
+  }) async {
+    _closeDay = (enabled: enabled, minuteOfDay: minuteOfDay);
+    await _applyCloseDay();
+  }
+
+  Future<void> _applyCloseDay() async {
+    if (!_initialized) return;
+    await _plugin.cancel(id: closeDayId);
+    final cfg = _closeDay;
+    if (cfg == null || !cfg.enabled) return;
+    final now = tz.TZDateTime.now(tz.local);
+    var at = tz.TZDateTime(tz.local, now.year, now.month, now.day,
+        cfg.minuteOfDay ~/ 60, cfg.minuteOfDay % 60);
+    if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
+    if (!allowedAt(at, quietWindow)) return;
+    await _plugin.zonedSchedule(
+      id: closeDayId,
+      title: AppConfig.closeDayReminderTitle,
+      body: AppConfig.closeDayReminderBody,
+      scheduledDate: at,
+      notificationDetails: _gentleDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: '$routePayloadPrefix/close-day',
+    );
+  }
+
+  // ── Energy check-ins ──────────────────────────────────────────────────
+
+  /// Schedules the given check-in prompts (at most [checkinIds].length),
+  /// skipping past times and quiet hours. An empty list cancels them.
+  Future<void> setCheckinPrompts(List<DateTime> times) async {
+    _checkins = List.unmodifiable(times.take(checkinIds.length));
+    await _applyCheckins();
+  }
+
+  Future<void> _applyCheckins() async {
+    if (!_initialized) return;
+    for (final id in checkinIds) {
+      await _plugin.cancel(id: id);
+    }
+    final now = tz.TZDateTime.now(tz.local);
+    for (var i = 0; i < _checkins.length; i++) {
+      final t = _checkins[i];
+      final at = tz.TZDateTime(
+          tz.local, t.year, t.month, t.day, t.hour, t.minute);
+      if (!at.isAfter(now) || !allowedAt(at, quietWindow)) continue;
+      await _plugin.zonedSchedule(
+        id: checkinIds[i],
+        title: AppConfig.checkinReminderTitle,
+        body: AppConfig.checkinReminderBody,
+        scheduledDate: at,
+        notificationDetails: _gentleDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+        payload: '$routePayloadPrefix/checkin',
+      );
+    }
+  }
+
+  Future<void> _applyAppReminders() async {
+    await _applyCloseDay();
+    await _applyCheckins();
+  }
+
+  static const _gentleDetails = NotificationDetails(
+    android: AndroidNotificationDetails(
+      'dayzen_gentle',
+      'Gentle prompts',
+      channelDescription: 'Close the day and energy check-ins',
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+    ),
+    iOS: DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: false,
+      presentSound: false,
+    ),
+  );
 
   // ── Time zone ─────────────────────────────────────────────────────────
 
@@ -360,9 +480,12 @@ class NotificationService {
 
   // ── Cancel all notifications ──────────────────────────────────────────
 
+  /// Cancels every task reminder. App-level prompts (Close the Day,
+  /// check-ins) have their own switches and are put back straight away.
   Future<void> cancelAll() async {
     if (!_initialized) return;
     await _plugin.cancelAll();
+    await _applyAppReminders();
   }
 
   // ── Re-schedule all upcoming tasks ────────────────────────────────────
@@ -371,6 +494,7 @@ class NotificationService {
   Future<void> rescheduleAll(List<DzTask> tasks) async {
     if (!_initialized) return;
     await _plugin.cancelAll();
+    await _applyAppReminders();
     final now = DateTime.now();
     for (final task in tasks) {
       if (task.status != TaskStatus.active) continue;
@@ -394,7 +518,7 @@ class NotificationService {
 
 /// Entry point for a tapped notification action when the app process is
 /// not running (Android). Runs in its own isolate — no access to any live
-/// controller, so it goes straight to [TaskRepository]/[AppPrefs] instead.
+/// controller, so it goes straight to [TaskRepository] instead.
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) {
   unawaited(_handleFollowUpResponse(response.actionId, response.payload));
@@ -405,12 +529,16 @@ void notificationTapBackground(NotificationResponse response) {
 /// notification.
 Future<void> _handleFollowUpResponse(String? actionId, String? payload) async {
   if (payload == null) return;
+  if (payload.startsWith(NotificationService.routePayloadPrefix)) {
+    NotificationService.instance.pendingRoute.value =
+        payload.substring(NotificationService.routePayloadPrefix.length);
+    return;
+  }
   final taskId = payload;
 
   if (actionId == _followUpSkipActionId) {
-    // Just an acknowledgement — the task stays whatever it already was,
-    // it's simply not asked about again.
-    await AppPrefs.markOverdueTaskPrompted(taskId);
+    // Just an acknowledgement: the task stays active, and Gentle Rollover
+    // or Close the Day carries it on. Nothing to record.
     return;
   }
 

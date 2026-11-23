@@ -8,6 +8,8 @@ mixin _$LocalOnlyDaoMixin on DatabaseAccessor<AppDatabase> {
   $DayClosesTable get dayCloses => attachedDatabase.dayCloses;
   $RhythmProfileTable get rhythmProfile => attachedDatabase.rhythmProfile;
   $CountersTable get counters => attachedDatabase.counters;
+  $RhythmProfileHistoryTable get rhythmProfileHistory =>
+      attachedDatabase.rhythmProfileHistory;
   LocalOnlyDaoManager get managers => LocalOnlyDaoManager(this);
 }
 
@@ -22,4 +24,9 @@ class LocalOnlyDaoManager {
       $$RhythmProfileTableTableManager(_db.attachedDatabase, _db.rhythmProfile);
   $$CountersTableTableManager get counters =>
       $$CountersTableTableManager(_db.attachedDatabase, _db.counters);
+  $$RhythmProfileHistoryTableTableManager get rhythmProfileHistory =>
+      $$RhythmProfileHistoryTableTableManager(
+        _db.attachedDatabase,
+        _db.rhythmProfileHistory,
+      );
 }

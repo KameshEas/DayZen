@@ -7,6 +7,10 @@ import '../../core/utils/date_formatter.dart';
 import '../app_data.dart';
 import '../task_controller.dart';
 import 'models/task_model.dart';
+import '../planner/widgets/day_load_pill.dart';
+import '../rhythm/widgets/rhythm_card.dart';
+import 'widgets/close_day_home_card.dart';
+import 'widgets/moment_card.dart';
 import 'widgets/day_optimizer_home_card.dart';
 import 'widgets/home_daily_reflection_card.dart';
 import 'widgets/home_focus_score_card.dart';
@@ -67,11 +71,17 @@ class _HomeBody extends StatelessWidget {
         HomeGreetingHeader(
           dateLabel: dateLabel,
           greeting: greeting,
-          subtitle: remaining == 0 && anyDone
-              ? AppConfig.homeAllDoneSubtitle
-              : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
+          subtitle: tasks.isEmpty
+              ? AppConfig.emptyTasksMessage
+              : remaining == 0
+                  ? (anyDone
+                      ? AppConfig.homeAllDoneSubtitle
+                      : AppConfig.homeNothingLeftSubtitle)
+                  : AppConfig.homeRemainingSubtitleTemplate.replaceAll('{n}', '$remaining'),
         ),
         const SizedBox(height: DzSpacing.lg),
+        const MomentCard(),
+        const CloseDayHomeCard(),
         if (tasks.isEmpty)
           DzEmptyState(
             icon: Icons.task_alt_outlined,
@@ -81,10 +91,14 @@ class _HomeBody extends StatelessWidget {
             onAction: () => context.push(RoutePaths.newTask),
           )
         else ...[
+          DayLoadIndicator(tasks: taskCtrl, day: now),
+          const SizedBox(height: DzSpacing.md),
           SyncStatusIndicator(
             taskController: taskCtrl,
             showFullStatus: true,
           ),
+          const SizedBox(height: DzSpacing.md),
+          const RhythmCard(),
           const SizedBox(height: DzSpacing.md),
           DayOptimizerHomeCard(taskCtrl: taskCtrl),
           const SizedBox(height: DzSpacing.md),

@@ -15,11 +15,14 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'core/services/jwt_auth_service.dart';
 import 'core/api/api_client.dart';
 import 'core/services/app_version_service.dart';
+import 'core/services/gentle_prompts.dart';
 import 'core/services/sync_triggers.dart';
+import 'core/services/widget_service.dart';
 import 'features/app_data.dart';
 import 'features/app_update/app_version_controller.dart';
 import 'features/journal_controller.dart';
 import 'features/notification_controller.dart';
+import 'features/rhythm/rhythm_controller.dart';
 import 'features/settings/settings_controller.dart';
 import 'features/task_controller.dart';
 
@@ -40,6 +43,7 @@ void _runApp() {
   final journalCtrl = JournalController();
   final settingsCtrl = SettingsController();
   final notifCtrl = NotificationController();
+  final rhythmCtrl = RhythmController();
 
   // Constructed synchronously, before Firebase.initializeApp() below —
   // AppVersionService reads AnalyticsService.instance lazily, only once it
@@ -54,6 +58,7 @@ void _runApp() {
       journalCtrl: journalCtrl,
       settingsCtrl: settingsCtrl,
       notifCtrl: notifCtrl,
+      rhythmCtrl: rhythmCtrl,
       appVersionCtrl: appVersionCtrl,
     ),
     appVersionController: appVersionCtrl,
@@ -64,6 +69,7 @@ void _runApp() {
     journal: journalCtrl,
     settings: settingsCtrl,
     notifications: notifCtrl,
+    rhythm: rhythmCtrl,
     child: const DayZenApp(),
   ));
 }
@@ -73,6 +79,7 @@ Future<String> _bootstrap({
   required JournalController journalCtrl,
   required SettingsController settingsCtrl,
   required NotificationController notifCtrl,
+  required RhythmController rhythmCtrl,
   required AppVersionController appVersionCtrl,
 }) async {
   // The shared singleton — every JwtAuthService.instance call site across
@@ -118,6 +125,8 @@ Future<String> _bootstrap({
     AppPrefs.hasSeenOnboarding(),
     AppPrefs.hasPin(),
     AppPrefs.isBiometricEnabled(),
+    AppPrefs.isOnboardingV2Done(),
+    AppPrefs.onboardingVariant(),
     taskCtrl.load(),
     journalCtrl.load(),
     settingsCtrl.load(),
@@ -125,19 +134,41 @@ Future<String> _bootstrap({
   ]);
   // Only ever written once; the Planner lets you browse back to this day.
   await AppPrefs.recordFirstUse();
+  // Rhythm learns from tasks as they change (done, carried, let go).
+  await rhythmCtrl.load(taskCtrl.all);
+  taskCtrl.addListener(() => rhythmCtrl.updateTasks(taskCtrl.all));
+  // Home-screen widget (M-3.2): today's/tomorrow's tasks and the tide.
+  WidgetService.instance.update(tasks: taskCtrl.all, profile: rhythmCtrl.profile);
+  taskCtrl.addListener(() => WidgetService.instance.update(tasks: taskCtrl.all));
+  rhythmCtrl.addListener(
+      () => WidgetService.instance.update(profile: rhythmCtrl.profile));
   final seenOnboarding = results[0] as bool;
   final hasPin = results[1] as bool;
   // Only use biometric unlock if both the preference is on AND device supports it
   final biometricEnabled = (results[2] as bool) && await hasBiometrics;
+  final onboardingV2Done = results[3] as bool;
+  final variant = results[4] as String;
+  AppRouter.onboardingVariant = variant;
 
   await NotificationService.instance.init();
-  // The permission prompt waits on the user, so never block startup on it.
-  unawaited(NotificationService.instance.requestPermission());
+  // Onboarding v2 (and installs that went through it) never get a system
+  // dialog at startup: the permission is asked after "Yes" to the gentle
+  // nudge, or when reminders are turned on in Settings (M-1.7). The v1
+  // flow and older installs keep the old behaviour. The prompt waits on
+  // the user, so never block startup on it.
+  final v2Flow = onboardingV2Done || (!seenOnboarding && variant == 'v2');
+  if (!v2Flow) {
+    unawaited(NotificationService.instance.requestPermission());
+  }
 
   taskCtrl.applyReminderSettings(
     enabled: settingsCtrl.remindersEnabled,
     quietWindow: settingsCtrl.quietWindow,
   );
+
+  // Evening Close the Day prompt and energy check-ins (own switches).
+  GentlePrompts.instance ??= GentlePrompts(settings: settingsCtrl);
+  unawaited(GentlePrompts.instance!.apply());
 
   // Travel or a zone change while backgrounded moves every reminder's real
   // time; re-check the zone whenever the app comes back to the foreground.
@@ -159,6 +190,8 @@ Future<String> _bootstrap({
       // other resumes it finds nothing to move. It pulls before rolling
       // over, so it also covers the usual resume sync for tasks.
       unawaited(taskCtrl.syncThenRollOver());
+      // A new day means new check-in times.
+      unawaited(GentlePrompts.instance?.apply());
       _syncTriggers?.onResume();
       if (await NotificationService.instance.refreshTimeZone()) {
         await taskCtrl.rescheduleNotifications();
@@ -171,6 +204,7 @@ Future<String> _bootstrap({
     hasPin: hasPin,
     biometricEnabled: biometricEnabled,
     isSignedIn: authService.isAuthenticated,
+    onboardingV2Done: onboardingV2Done,
   );
 }
 

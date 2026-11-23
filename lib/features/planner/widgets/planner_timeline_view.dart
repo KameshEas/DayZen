@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../home/models/task_model.dart';
+import '../../../core/domain/rhythm/energy_profile.dart';
 import '../timeline_layout.dart';
+import 'energy_tide.dart';
 
 /// Absolutely-positioned day timeline — a Stack of hour lines + event
 /// blocks inside a scroll view. Not a candidate for ListView.builder: a
@@ -19,7 +21,11 @@ class PlannerTimelineView extends StatefulWidget {
     this.showNow = true,
     this.onTapEvent,
     this.onToggleComplete,
+    this.profile,
   });
+
+  /// The user's Rhythm; when set, the energy tide is drawn behind the day.
+  final EnergyProfile? profile;
 
   final List<PlannerEvent> events;
   final int currentHour;
@@ -102,6 +108,19 @@ class _PlannerTimelineViewState extends State<PlannerTimelineView> {
             height: totalHeight + DzSpacing.xl,
             child: Stack(
               children: [
+                // ── Energy tide (Rhythm) ───────────────────────────
+                if (widget.profile != null)
+                  Positioned(
+                    left: _timeColWidth,
+                    right: 0,
+                    top: 0,
+                    child: EnergyTide(
+                      profile: widget.profile!,
+                      startHour: _startHour,
+                      endHour: _endHour,
+                      hourHeight: _hourHeight,
+                    ),
+                  ),
                 // ── Hour lines + labels ────────────────────────────
                 ...List.generate(totalHours + 1, (i) {
                   final hour = _startHour + i;

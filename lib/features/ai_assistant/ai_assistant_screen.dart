@@ -275,7 +275,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               '"What\'s on my plate today?"\n'
               '"Log a journal entry about today"\n'
-              '"How\'s my focus streak?"',
+              '"How did my week go?"',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),

@@ -21,6 +21,7 @@ const serverPaths = <String>{
   '/app-version',
   '/users/me',
   '/users/me/settings',
+  '/users/me/export',
   '/tasks',
   '/tasks/{}',
   '/tasks/sync',
@@ -36,6 +37,9 @@ const serverPaths = <String>{
   '/notifications/devices/unregister',
   '/quotes/daily',
   '/quotes/random',
+  // Called from features/ai_assistant (not scanned here), listed to match
+  // the server's contract_paths.txt.
+  '/n8n-chat/{}',
 };
 
 /// Paths the app calls that the server doesn't serve *yet*, each a known,

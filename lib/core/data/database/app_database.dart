@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'daos/journal_dao.dart';
+import 'db_encryption.dart';
 import 'daos/local_only_dao.dart';
 import 'daos/task_dao.dart';
 import 'tables/journal_entries_table.dart';
@@ -29,6 +30,7 @@ part 'app_database.g.dart';
     DayCloses,
     RhythmProfile,
     Counters,
+    RhythmProfileHistory,
   ],
   daos: [TaskDao, JournalDao, LocalOnlyDao],
 )
@@ -44,8 +46,9 @@ class AppDatabase extends _$AppDatabase {
   /// v2: task `status`, `completedAt`, `rolloverCount`, `effort`,
   ///     `originalDate`; local-only check-ins, day closes, Rhythm profile and
   ///     counters. Schema dumps live in `drift_schemas/`.
+  /// v3: local-only weekly Rhythm history (`rhythm_profile_history`).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -70,6 +73,9 @@ class AppDatabase extends _$AppDatabase {
             await migrator.createTable(rhythmProfile);
             await migrator.createTable(counters);
           }
+          if (from < 3) {
+            await migrator.createTable(rhythmProfileHistory);
+          }
         },
       );
 }
@@ -81,6 +87,14 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File(p.join(dir.path, 'dayzen.sqlite'));
-    return NativeDatabase.createInBackground(file);
+    // Encrypted at rest (M-2.7): make sure the file is encrypted with our
+    // key (migrating or recovering it if needed), then give drift the key.
+    final key = await DbEncryption.loadOrCreateKey();
+    await DbEncryption.prepare(file.path, key);
+    final pragma = DbEncryption.keyPragma(key);
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (db) => db.execute(pragma),
+    );
   });
 }

@@ -141,6 +141,17 @@ class TaskAnalytics {
     return count;
   }
 
+  /// Days in the 7 ending [today] on which at least one task was completed.
+  /// A rolling count, not a streak: a quiet day never resets it to zero.
+  static int activeDaysLast7(List<DzTask> tasks, DateTime today) {
+    final end = DateTime(today.year, today.month, today.day);
+    final start = DateTime(end.year, end.month, end.day - 6);
+    return {
+      for (final t in tasks)
+        if (t.isCompleted && !t.date.isBefore(start) && !t.date.isAfter(end)) t.date,
+    }.length;
+  }
+
   /// Completed focus minutes for each day Mon-Sun of the week containing
   /// [anchor].
   static List<int> weekFocusMinutes(List<DzTask> tasks, DateTime anchor) {

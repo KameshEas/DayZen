@@ -35,6 +35,25 @@ class JournalController extends ChangeNotifier {
     unawaited(JournalSyncManager.instance.requestSync(this));
   }
 
+  /// Replaces entry [entry.id] in place (e.g. a Close the Day reflection
+  /// edited by a second close the same evening). Adds it if it's gone.
+  Future<void> updateEntry(JournalEntry entry) async {
+    final idx = _entries.indexWhere((e) => e.id == entry.id);
+    if (idx == -1) return addEntry(entry);
+    _entries[idx] = entry;
+    _sortNewestFirst();
+    await JournalRepository.updateEntry(entry);
+    notifyListeners();
+    unawaited(JournalSyncManager.instance.requestSync(this));
+  }
+
+  JournalEntry? entryById(String id) {
+    for (final e in _entries) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
   Future<void> deleteEntry(String id) async {
     _entries.removeWhere((e) => e.id == id);
     // Soft delete (deleted_at set, row retained so the delete can be pushed).
