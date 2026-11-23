@@ -82,7 +82,7 @@ class _CountersPageState extends State<CountersPage> {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Time to first plan (median)'),
-                subtitle: Text('${d.ttfp.length} samples'),
+                subtitle: Text('${d.ttfp.length} ${d.ttfp.length == 1 ? 'sample' : 'samples'}'),
                 trailing: Text(
                   median == null ? '—' : '${(median / 1000).toStringAsFixed(1)} s',
                   style: DzTextStyles.body.copyWith(fontWeight: FontWeight.w700),
