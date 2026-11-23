@@ -17,6 +17,7 @@ import 'widgets/day_optimizer_suggestion_tile.dart';
 /// Card widgets live in features/home/widgets/.
 void showDayOptimizerSheet(BuildContext context, TaskController taskCtrl) {
   showModalBottomSheet<void>(
+    useRootNavigator: true, // above the tab bar, not inside the shell
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,

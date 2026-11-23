@@ -131,7 +131,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$unlocked of $total achievements unlocked',
+                    '$unlocked of $total milestones reached',
                     style: DzTextStyles.caption,
                   ),
                 ],

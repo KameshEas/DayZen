@@ -44,6 +44,7 @@ Future<void> showRhythmDetails(BuildContext context) {
   final rhythm = RhythmScope.maybeOf(context);
   if (rhythm == null) return Future.value();
   return showModalBottomSheet(
+    useRootNavigator: true, // above the tab bar, not inside the shell
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

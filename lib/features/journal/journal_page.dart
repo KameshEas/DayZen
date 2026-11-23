@@ -24,6 +24,7 @@ class JournalPage extends StatefulWidget {
 class _JournalPageState extends State<JournalPage> {
   void _openNewEntry() {
     showModalBottomSheet(
+      useRootNavigator: true, // above the tab bar, not inside the shell
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
