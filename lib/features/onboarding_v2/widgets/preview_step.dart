@@ -107,7 +107,10 @@ class _TomorrowRow extends StatelessWidget {
                 Text(planned.draft.title,
                     style: DzTextStyles.body, overflow: TextOverflow.ellipsis),
                 if (planned.movedToTomorrow)
-                  Text(OnboardingV2Copy.previewMovedNote,
+                  Text(
+                      planned.timePassed
+                          ? OnboardingV2Copy.previewPassedNote
+                          : OnboardingV2Copy.previewMovedNote,
                       style: DzTextStyles.small.copyWith(color: scheme.onSurfaceVariant)),
               ],
             ),

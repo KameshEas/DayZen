@@ -49,6 +49,7 @@ abstract final class OnboardingV2Copy {
       'Drag a block to move it.';
   static const previewTomorrow = 'Tomorrow';
   static const previewMovedNote = 'No room left today';
+  static const previewPassedNote = 'That time has passed today';
   static const previewEmptyToday = 'Nothing left for today. Tomorrow is set.';
 
   // Step 4 · Gentle nudge?

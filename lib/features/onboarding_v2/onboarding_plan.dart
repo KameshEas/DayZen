@@ -14,6 +14,7 @@ class PlannedDraft {
     required this.dayOffset,
     required this.startMinute,
     required this.movedToTomorrow,
+    this.timePassed = false,
   });
 
   /// Position in [OnboardingPlan.build]'s input, so edits map back.
@@ -24,8 +25,12 @@ class PlannedDraft {
   final int dayOffset;
   final int startMinute;
 
-  /// No room left today, so it went to tomorrow.
+  /// Moved from today to tomorrow (no room left, or [timePassed]).
   final bool movedToTomorrow;
+
+  /// Its fixed time had already passed today, so it keeps that time
+  /// tomorrow instead.
+  final bool timePassed;
 
   int get endMinute => startMinute + draft.durationMinutes;
 }
@@ -51,11 +56,25 @@ class OnboardingPlan {
     final profile = EnergyProfile.prior(prior);
     final out = <PlannedDraft>[];
     final overflow = <int>[];
+    final nowMinute = now.hour * 60 + now.minute;
+
+    // A fixed time today that is already over ("gym at 6pm", typed at 10pm)
+    // means tomorrow at that time, not a slot in the past.
+    final passed = <int>{
+      for (var i = 0; i < drafts.length; i++)
+        if (drafts[i].dayOffset == 0 &&
+            drafts[i].startMinute != null &&
+            drafts[i].startMinute! + drafts[i].durationMinutes <= nowMinute)
+          i,
+    };
 
     for (final offset in const [0, 1]) {
       final indices = <int>[
         for (var i = 0; i < drafts.length; i++)
-          if (drafts[i].dayOffset == offset) i,
+          if (offset == 0
+              ? drafts[i].dayOffset == 0 && !passed.contains(i)
+              : drafts[i].dayOffset == 1 || passed.contains(i))
+            i,
         if (offset == 1) ...overflow,
       ];
       if (indices.isEmpty) continue;
@@ -82,6 +101,7 @@ class OnboardingPlan {
           dayOffset: offset,
           startMinute: p.startMinute,
           movedToTomorrow: offset == 1 && drafts[i].dayOffset == 0,
+          timePassed: offset == 1 && passed.contains(i),
         ));
       }
       if (offset == 0) {
